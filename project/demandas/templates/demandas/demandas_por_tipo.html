@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+
+  <div class="jumbotron">
+    <div align = 'center'>
+      <h3><b>{{qtd}}</b> Demandas com tipo: <b>{{tipo}}</b></h3>
+      <br>
+    </div>
+
+  <table class="table table-striped table-hover table-sm">
+    <caption>Demandas</caption>
+    <thead>
+      <tr>
+        <th scope="col"><p align = "center">#</p></th>
+        <th scope="col"><p align = "center">Coord.</p></th>
+        <th scope="col"><p align = "center">Demanda</p></th>
+        <th scope="col"><p align = "center">SEI</p></th>
+        <th scope="col"><p align = "center">Atividade</p></th>
+        <th scope="col"><p align = "center">Resp.</p></th>
+        <th scope="col"><p align = "center">Registro</p></th>
+        <th scope="col"><p align = "center">Título</p></th>
+        <th scope="col"><p align = "center">Concluída?</p></th>
+        <th scope="col"><p align = "center">Última ação</p></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for post in demandas %}
+          <tr>
+            <th scope="row"><p align = "center"> {{demandas.index(post) + 1}}</p></th>
+            <td><p align = "center"> {{post.coord}} </p></td>
+            <td><p align = "center"> <a href="{{url_for('demandas.demanda',demanda_id = post.id)}}">{{post.id}} </p></td>
+            <td><p align = "center"> {{post.sei}} </p></td>
+            <td><p align = "center"> <b>{{post.atividade_sigla}}</b> </p></td>
+            <td><p align = "center"> <abbr title="{{post.username}}"><span class="d-inline-block text-truncate" style="max-width: 80px;">{{post.username}}</span> </p></td>
+            <td><p align = "center"> <b>{{post.data.strftime("%x")}}</b> </p></td>
+            <td><p align = "left"> <abbr title="{{post.titulo}}"><span class="d-inline-block text-truncate" style="max-width: 350px;">{{post.titulo}}</span> </p></td>
+            <td><p align = "center">
+              {% if post.conclu == '0' %}
+                <b>Não</b>
+              {% elif post.conclu == '1' %}
+                <span class="text-success">{{post.data_conclu.strftime('%x')}}</<span>
+              {% elif post.conclu == '2' %}
+                <span class="text-warning">{{post.data_conclu.strftime('%x')}}</<span>
+              {% endif %}
+            </p></td>
+            <td><p align = "left">
+              {% if l_act[post.id][0] == 'D' %}
+                <abbr title="{{l_act[post.id]}}"><span class="d-inline-block text-truncate" style="max-width: 350px;"><span class="text-success">D</span>{{l_act[post.id][1:]}}</span>
+              {% elif l_act[post.id][0] == 'P' %}
+                <abbr title="{{l_act[post.id]}}"><span class="d-inline-block text-truncate" style="max-width: 350px;"><span class="text-primary">P</span>{{l_act[post.id][1:]}}</span>
+              {% else %}
+                <abbr title="{{l_act[post.id]}}"><span class="d-inline-block text-truncate text-danger" style="max-width: 350px;">{{l_act[post.id]}}</span>
+              {% endif %}
+            </p></td>
+          </tr>
+      {% endfor %}
+
+{% endblock %}

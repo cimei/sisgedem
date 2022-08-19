@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="jumbotron">
+
+
+
+      <div class="row">
+
+        <div class="col">
+          <h5>Lista de Convênios</h5>
+        </div>
+
+        <div class="col">
+          <form class="form-group" method='POST'>
+            {{ form.hidden_tag() }}
+              <div class="row">
+                <div class="col-3">
+                  {{ form.coord(class="form-control form-control-sm") }}
+                </div>
+                <div class="col">
+                  {{ form.submit(class="btn btn-outline-primary btn-sm") }}
+                </div>
+              </div>
+          </form>
+        </div>
+
+      </div>
+
+
+<caption>
+  <div class="row">
+      <div class="col-8">
+        <p>Lista dos <span class="badge badge-pill badge-primary">{{quantidade}}</span> convênios cadastrados no SICONV
+          {% if lista == 'todos' %}
+            <span class="text-info font-weight-bold">(todos)</span>
+          {% endif %}
+          {% if lista == 'em execução' %}
+            <span class="text-info font-weight-bold">(em execução)</span>
+          {% endif %}
+          {% if lista[:8] == 'programa' %}
+            <span class="text-info font-weight-bold">({{lista[8:]}})</span>
+          {% endif %}
+        </p>
+      </div>
+      <div class="col">
+        <p align="right"><span class="text-secondary">Dados de </span>
+          <span class="badge badge-pill badge-info">{{data_carga[8:]+'/'+data_carga[5:7]+'/'+data_carga[0:4]}}</span></p>
+      </div>
+  </div>
+</caption>
+
+<div style="overflow-y:scroll ; height:500px">
+
+  <table class="table table-striped table-hover table-sm">
+    {% if lista == 'todos' %}
+      <caption>Convênios (todos)</caption>
+    {% endif %}
+    {% if lista == 'vencendo' %}
+      <caption>Convênios (com vencimento em menos de 90 dias)</caption>
+    {% endif %}
+    {% if lista == 'em execução' %}
+      <caption>Convênios (em execução)</caption>
+    {% endif %}
+    <thead>
+      <tr>
+        <th scope="col"><p align = "center">#</p></th>
+        <th scope="col"><p align = "center">Convênio</p></th>
+        <th scope="col"><p align = "center">Ano</p></th>
+        <th scope="col"><p align = "center"><abbr title="Clique no NUP para ver as demandas do processo.">SEI</abbr></p></th>
+        <th scope="col"><p align = "center">EPE</p></th>
+        <th scope="col"><p align = "center">UF</p></th>
+        <th scope="col"><p align = "center">Programa</p></th>
+        <th scope="col"><p align = "center">Situação</p></th>
+        <th scope="col"><p align = "center">Subsituação</p></th>
+        <th scope="col"><p align = "center"><abbr title="Vermelho: vence em menos de 30 dias. Laranja: vence em menos de 60 dias. Cinza: vence em menos de 90 dias.">Final de Vigência</p></th>
+        <th scope="col"><p align = "center">Repasse (% exec.)</p></th>
+        <th scope="col"><p align = "center">Contrapartida (% exec.)</p></th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      {% for conv in convenio %}
+
+      <tr>
+        <th scope="row"><p align = "center"> {{convenio.index(conv) + 1}}</p></th>
+
+        <td><p align = "center"> <a href="{{url_for('convenios.convenio_detalhes', conv=conv[0])}}"> <abbr title="Clique aqui para ver detalhes do convênio">{{conv[0]}} </abbr></a> </p></td>
+        {% if conv[2] != None %}
+          <td><p align = "center"> {{conv[2]}} </p></td>
+        {% else %}
+          <td><p align = "center"> N.I. </p></td>
+        {% endif %}
+        {% if conv[3] != None%}
+          <td><p align = "center"> <a href="{{url_for('convenios.SEI_demandas', conv=conv[0])}}"><abbr title="Clique aqui para ver as demandas deste processo">{{conv[3]}}</abbr></a> </p></td>
+        {% else %}
+          <td><p align = "center"> N.I. </p></td>
+        {% endif %}
+        {% if conv[4] != None %}
+        <td><p align = "center"> {{conv[4]}} </p></td>
+        {% else %}
+          <td><p align = "center"> N.I. </p></td>
+        {% endif %}
+        <td><p align = "center"> {{conv[5]}} </p></td>
+        <td><p align = "center"> {{conv[6]}} </p></td>
+        <td><p align = "center"> {{conv[7]}} </p></td>
+        <td><p align = "center"> {{conv[8]}} </p></td>
+        {% if conv[15] <= 30 and conv[15] >= 0 %}
+          <td><p align = "center" class="bg-danger text-white font-weight-bold"> {{conv[9]}} </p></td>
+        {% elif conv[15] <= 60 and conv[15] > 30 %}
+          <td><p align = "center" class="bg-warning text-dark font-weight-bold"> {{conv[9]}} </p></td>
+        {% elif conv[15] <= 90 and conv[15] > 60 %}
+          <td><p align = "center" class="bg-secondary text-white font-weight-bold"> {{conv[9]}} </p></td>
+        {% else %}
+          <td><p align = "center"> {{conv[9]}} </p></td>
+        {% endif %}
+        <td><p align = "right"> {{conv[10]}}
+          {% if conv[17] == 100 %}
+            (<span class="text-success">{{conv[17]}}%</span>)
+          {% else %}
+            (<span class="text-danger">{{conv[17]}}%</span>)
+          {% endif %}
+        </p></td>
+        <td><p align = "right"> {{conv[11]}}
+          {% if conv[18] == 100 %}
+            (<span class="text-success">{{conv[18]}}%</span>)
+          {% elif conv[18] > 100 %}
+            (<span class="text-primary">{{conv[18]}}%</span>)
+          {% else %}
+            (<span class="text-danger">{{conv[18]}}%</span>)
+          {% endif %}
+        </p></td>
+      </tr>
+
+      {% endfor %}
+    </tbody>
+
+  </table>
+</div>
+
+
+</div>
+{% endblock %}

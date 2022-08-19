@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+
+  <div class="admin-view-users">
+    <div class="page-header">
+      <h2>Lista dos usuários (gerenciar atividades)</h2>
+    </div>
+
+    <div class="row">
+      <table class="table table-striped" id="admin_list_of_users">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuário</th>
+            <th>E-mail</th>
+            <th align="center">Coord.</th>
+            <th align="center">Papel</th>
+            <th align="center">Data reg.</th>
+            <th align="center">Ativo?</th>
+            </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr>
+              <td> <a href="{{url_for('users.ativ_usu', user_id=user.id)}}"><abbr title="Clique aqui atualizar atividades">{{ user.id }} </td>
+              {% if user.despacha0 == 1 %}
+                <td> <span class="text-warning">{{user.username }}</span> </td>
+              {% elif user.despacha == 1 %}
+                <td> <span class="text-success">{{user.username }}</span> </td>
+              {% elif user.despacha2 == 1 %}
+                <td> <span class="text-danger">{{user.username }}</span> </td>
+              {% else %}
+                <td> {{user.username }} </td>
+              {% endif %}
+              <td> {{ user.email }} </td>
+              <td> {{ user.coord }} </td>
+              <td align="center"> {{ user.role }} </td>
+              <td align="center"> {% if user.registered_on != None %} {{user.registered_on.strftime('%x')}} {% endif %} </td>
+              <td align="center"> {% if user.ativo == 1 %} Sim {% else %} Não {% endif %} </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

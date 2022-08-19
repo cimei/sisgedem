@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="jumbotron">
+  <h5><b>Passos definidos para {{ tipo.tipo }}</b></h5>
+
+  {% if current_user.is_authenticated %}
+    <div>
+      <a href="{{url_for('demandas.cria_passo_tipo', tipo_id=tipo_id)}}" class="btn btn-primary active" role="button" aria-pressed="true">Inserir Passo</a>
+      <small class="form-text text-muted">Ou clique em um número de sequência para alterar passo existente.</small>
+    </div>
+  {% endif %}
+  <br>
+
+<caption>
+  <div class="row">
+      <div class="col">
+        <p>Lista dos <span class="badge badge-pill badge-primary">{{quantidade}}</span> passos deste tipo de demanda.</p>
+      </div>
+  </div>
+</caption>
+
+<div class="container">
+  <table class="table table-striped table-hover table-sm">
+    <caption>Passos</caption>
+    <thead>
+      <tr>
+        <th scope="col"><p align = "center">#</p></th>
+        <th scope="col"><p align = "center">Passo</p></th>
+        <th scope="col"><p align = "center">Descrição</p></th>
+      </tr>
+    </thead>
+    <tbody>
+
+      {% for passo in passos %}
+
+      <tr>
+        <th scope="row"><p align = "center"><a href="{{url_for('demandas.update_passo_tipo', id=passo.id, tipo_id=tipo_id)}}"><abbr title="Clique aqui para atualizar este passo."> {{passo.ordem}} </a></p></th>
+        <td><p align = "center"> {{ passo.passo }} </p></td>
+        <td><p align = "center"> {{ passo.desc }} </p></td>
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+  </table>
+</div>
+
+
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="jumbotron">
+
+<h5><b>Últimas mensagens recebidas</b>
+
+{% if msgs == [] %}
+  <h3>Nada nos últimos 7 dias...</h3>
+{% else %}
+
+<div style="overflow-y: auto; height:550px">
+
+  <table class="table table-striped table-hover table-sm">
+    <thead>
+      <tr>
+        <th scope="col"><p align = "center">#</p></th>
+        <th scope="col"><p align = "center">Data e Hora</p></th>
+        <th scope="col"><p align = "center">Demanda</p></th>
+        <th scope="col"><p align = "left">Mensagem</p></th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      {% for msg in msgs %}
+
+      <tr>
+        <th scope="row"><p align = "center">{{msgs.index(msg) + 1}}</p></th>
+        <td><p align = "center"> {{msg.data_hora.strftime("%x - %H:%M")}}  </p></td>
+        <td><p align = "center">  <a href="{{url_for('demandas.demanda', demanda_id=msg.demanda_id)}}"><abbr title="Clique aqui para ver a demanda">{{msg.demanda_id}}</abbr></a></p></td>
+        {% if msg.msg == 'A demanda foi concluída!'%}
+          <td><p align = "left" class="text-secondary">{{msg.msg}}</p></td>
+        {% elif msg.msg == 'A demanda recebeu um despacho!'%}
+          <td><p align = "left" class="text-success"><b>{{msg.msg}}</b></p></td>
+        {% elif msg.msg == 'Chefia, a demanda está pedindo um despacho!'%}
+          <td><p align = "left" class="text-warning">{{msg.msg}}</p></td>
+        {% elif msg.msg == 'A opção -Necessita despacho?- foi marcada na sua demanda!'%}
+          <td><p align = "left" class="text-info">{{msg.msg}}</p></td>
+        {% elif msg.msg == 'A demanda recebeu uma providência alheia!'%}
+          <td><p align = "left" class="text-danger">{{msg.msg}}</p></td>
+        {% elif msg.msg == 'A demanda foi transferida para você!'%}
+          <td><p align = "left" class="text-danger"><b>{{msg.msg}}</b></p></td>
+        {% else %}
+          <td><p align = "left">{{msg.msg}}</p></td>
+        {% endif %}
+
+      </tr>
+
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+
+</div>
+
+{% endif %}
+
+</div>
+{% endblock %}

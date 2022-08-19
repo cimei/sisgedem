@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+  <div class="jumbotron">
+    <div align = 'center'>
+      <h4><p> {{demandas_count}} demanda(s) relacionadas ao processo {{sei}} </p></h4>
+    </div>
+    {% if current_user.is_authenticated %}
+      <div align = 'center'>
+        <a href="{{url_for('demandas.acordo_convenio_demanda',prog=dados[0],sei=dados[1],conv=dados[2],ano=dados[3])}}"
+           class="btn btn-outline-primary btn-sm" role="button" aria-pressed="true">Clique aqui para criar nova demanda relacionada a este processo</a>
+      </div>
+    {% endif %}
+  </div>
+
+<div class="container"  style="overflow-y:auto ; height:450px">
+  {% for post in demandas %}
+    <h5><a href="{{url_for('demandas.demanda',demanda_id = post.id)}}">{{post.id}} - {{post.titulo}}</a></h5>
+    <p class="text-muted">Registrada por {{autores[demandas.index(post)]}} em: {{post.data.strftime("%x")}} Tipo: {{post.tipo}}
+    {% if post.necessita_despacho == 1 %} <span class="bg-warning text-dark">** AGUARDA DESPACHO **</span> {% endif %}
+    {% if post.necessita_despacho_cg == 1 %} <span class="bg-info text-dark">** AGUARDA DESPACHO SUP. **</span> {% endif %}
+    {% if post.conclu == '1' %}
+     <span class="bg-success text-white">** CONCLUÍDO **</span>
+    {% elif post.conclu == '2' %}
+     <span class="bg-warning text-white">** CONCLUÍDO SEM SUCESSO **</span>
+    {% endif %} </p>
+    <li class="list-group-item list-group-item-light">{{post.desc}}</li>
+  {% endfor %}
+</div>
+
+</div>
+
+{% endblock %}

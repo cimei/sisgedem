@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+
+  <div class="jumbotron">
+
+    <div class="row">
+
+      <div class="col-sm">
+        <div class="card border-primary">
+        <!-- <div class="card"> -->
+          <div class="card-body" style="overflow-y:auto; height:616px">
+
+            <form class="needs-validation" method='POST' >
+              {{ form.hidden_tag() }}
+              <div class="form-row">
+                <div class="form-group col-9">
+                  {{ form.submit(class="btn btn-outline-primary btn-sm") }}
+                </div>
+                <div class="form-group col-2">
+                  {% if post.username == current_user.username %}
+                    <a href="{{url_for('demandas.verifica', demanda_id=id)}}" class="btn btn-outline-info btn-sm" role="button" aria-pressed="true">Verificar</a>
+                  {% endif %}
+                </div>
+              </div>
+            </form>
+
+            <span class="small">Demanda: {{id}} ({{post.coord}}) - {{programa}}
+              {% if data_verific != None and conclu == False %}
+                <span class="text-info"> - Verificada em: <b>{{data_verific.strftime('%x')}}</b></span>
+              {% endif %}
+            </span>
+
+            {% if titulo != None %}
+              <h5>{{titulo}}</h5>
+            {% endif %}
+
+            <p><h7><b>Tipo: </b>
+            <a href="{{url_for('demandas.lista_passos_tipos', tipo_id=tipo_demanda_id)}}"><abbr title="Clique aqui para ver os passos."><b>{{tipo}}</b></a></h7></p>
+
+            <span class = "small">SEI: {{sei}}
+              {% if convênio != None and convênio != '' and convênio != 0 %}
+                <p>Convênio: <a href="{{url_for('convenios.convenio_detalhes', conv=convênio)}}">{{convênio}}/{{ano_convênio}}</a></p>
+              {% elif acordo_id != '' %}
+                <p><a href="{{url_for('acordos.update', acordo_id=acordo_id, lista=lista)}}"><abbr title="Clique aqui para detalhes do Acordo">Ver Acordo</abbr></a><p>
+              {% else %}
+                <br><br>
+              {% endif %}
+            </span>
+
+            <h6 class="text-muted">Resp.: <b>{{post.username}}</b></h6>
+
+            <p class="small"><b>Descrição:</b> {% if desc != None %}{{desc}}{% endif %}</p>
+
+            <h7 class="text-muted">Aberta em: {{data.strftime('%x - %H:%M')}}</h7><br>
+
+            {% if necessita_despacho == 0 %}
+              <h6>Necessita despacho: Não</h6>
+            {% else %}
+              <h6 class="text-danger">Necessita despacho: Sim</h6>
+            {% endif %}
+
+            {% if necessita_despacho_cg == 0 %}
+              <h6>Necessita despacho superior: Não</h6>
+            {% else %}
+              <h6 class="text-info">Necessita despacho superior: Sim</h6>
+            {% endif %}
+
+            {% if conclu == '0' %}
+              <p><h7>Concluído: Não</h7></p>
+            {% elif conclu == '1' %}
+              <p><h7 class="text-success">Concluído (sucesso) em {{data_conclu}}
+              {% if current_user.role[0:5] == 'admin' %}
+                <a href="{{url_for('demandas.admin_altera_demanda',demanda_id=post.id)}}" class="btn btn-dark active btn-sm" role="button" aria-pressed="true">Alterar data</a>
+              {% endif %}
+              </h7></p>
+            {% elif conclu == '2' %}
+              <p><h7 class="text-warning">Concluído (insucesso) em {{data_conclu}}
+              {% if current_user.role[0:5] == 'admin' %}
+                <a href="{{url_for('demandas.admin_altera_demanda',demanda_id=post.id)}}" class="btn btn-dark active btn-sm" role="button" aria-pressed="true">Alterar data</a>
+              {% endif %}
+              </h7></p>
+            {% endif %}
+
+            {% if current_user.is_authenticated %}
+
+              <div>
+                <a href="{{url_for('demandas.cria_providencia',demanda_id=post.id)}}" class="btn btn-info active btn-sm" role="button" aria-pressed="true">Providência</a>
+                {% if post.username == current_user.username %}
+                  <a href="{{url_for('demandas.update_demanda',demanda_id=post.id)}}" class="btn btn-warning active btn-sm" role="button" aria-pressed="true">Atualizar</a>
+                  <a href="{{url_for('demandas.transfer_demanda',demanda_id=post.id)}}" class="btn btn-secondary active btn-sm" role="button" aria-pressed="true">Transferir</a>
+                  <button type="button" class="btn btn-danger btn-sm" data-toggle='modal' data-target='#del_modal'>Excluir</button>
+                {% else %}
+                    <button type="button" class="btn btn-secondary btn-sm" data-toggle='modal' data-target='#avoca_modal'>Avocar</button>
+                {% endif %}
+
+              </div>
+            {% endif %}
+
+            {% if leitor_despacha == 'True' %}
+              <div>
+                <br>
+                <a href="{{url_for('demandas.cria_despacho',demanda_id=post.id)}}" class="btn btn-success btn-sm" role="button" aria-pressed="true">Despachar</a>
+                {% if conclu == '1' or conclu == '2' %}
+                  <a href="{{url_for('demandas.afere_demanda',demanda_id=post.id)}}" class="btn btn-info btn-sm" role="button" aria-pressed="true">Aferir</a>
+                {% endif %}
+
+              </div>
+            {% endif %}
+          </div>
+        <!-- </div> -->
+      </div>
+      </div>
+
+      <div class="col-sm">
+        <div class="card border-info">
+        <div class="card bg-light mb-3">
+          <div class="card-header"><div class="text-info">Providências e Despachos</div></div>
+          <div class="card-body"  style="overflow-y:auto; height:550px">
+            <div class="list-group">
+            {% for item in pro_des %}
+
+                <div class="list-group-item list-group-item-action">
+                  <p class="card-text">{% if item.passo != None and item.passo != '' %} <b>{{ item.passo }}</b> - {% endif %} {{item.texto}}</p>
+                  {% if item.username[-8:-1] == 'DESPACH' %}
+                    {% if item.despacha0 == 1 %}
+                      <p class="card-text"><small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
+                        <span class="text-warning"><b>({{item.username}})</b></span></small></p>
+                    {% elif item.despacha == 1 %}
+                      <p class="card-text"><small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
+                        <span class="text-success"><b>({{item.username}})</b></span></small></p>
+                    {% else %}
+                      <p class="card-text"><small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
+                        <span class="text-danger"><b>({{item.username}})</b></span></small></p>
+                    {% endif %}
+                  {% else %}
+                    <p class="card-text">
+                      {% if item.programada == True %}
+                      <small><b>P</b></small>
+                      {% endif %}
+                      <small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
+                      <span class="text-info">({{item.username}})</span> - {{item.duracao}} min.</small></p>
+                  {% endif %}
+                </div>
+
+            {% endfor %}
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# modal para deleção de demanda #}
+
+  <div class="modal" tabindex="-1" role="dialog" id="del_modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="p-3 mb-2 bg-danger text-white">
+        <h5 class="modal-title">Exluir Demanda?</h5>
+        </div>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Deseja realmente excluir esta demanda?</p>
+        <p class="text-danger">ATENÇÃO!</p>
+        <p class="text-danger">Todas as providências e despachos relacionados também serão excluidos!</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+
+        <form action="{{url_for('demandas.delete_demanda',demanda_id=post.id)}}" method="post">
+          <input class="btn btn-danger" type="submit" name="" value="Excluir">
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{# modal para avocar demanda #}
+
+<div class="modal" tabindex="-1" role="dialog" id="avoca_modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="p-3 mb-2 bg-danger text-white">
+        <h5 class="modal-title">Avocar Demanda?</h5>
+        </div>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p><b>Deseja realmente colocar esta demanda sob a sua responsabilidade?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+
+        <form action="{{url_for('demandas.avocar_demanda',demanda_id=post.id)}}" method="post">
+          <input class="btn btn-danger" type="submit" name="" value="Avocar">
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
