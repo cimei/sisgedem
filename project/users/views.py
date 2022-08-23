@@ -169,7 +169,7 @@ def register():
                     coord                      = form.coord.data,
                     role                       = role_user,
                     email_confirmation_sent_on = datetime.now(),
-                    ativo                      = False,
+                    ativo                      = 0,
                     sversion                   = version[0],
                     cargo_func                 = 'a definir',
                     trab_conv                  = trab_conv[0],
@@ -217,7 +217,7 @@ def confirm_email(token):
     if user.email_confirmed:
         flash('Confirmação já realizada. Por favor, faça o login.', 'erro')
     else:
-        user.email_confirmed = True
+        user.email_confirmed = 1
         user.email_confirmed_on = datetime.now()
 
         db.session.commit()

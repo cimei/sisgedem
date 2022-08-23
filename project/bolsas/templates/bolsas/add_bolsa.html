@@ -25,22 +25,33 @@
 <form class="needs-validation" method='POST' >
   {{ form.hidden_tag() }}
 
-  <div class="form-group">
-    {{ render_field(form.mod,class="form-control",obr=True) }}
-  </div>
+  <div class="form-row">
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.mod,class="form-control", obr=True) }}
+      </div>
+    </div>
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.niv,class="form-control",obr=True) }}
+      </div>
+    </div>  
+  </div>    
 
-  <div class="form-group">
-    {{ render_field(form.niv,class="form-control",obr=True) }}
-  </div>
-
-  <div class="form-group">
-    {{ render_field(form.mensalidade,class="form-control",obr=True) }}
-    <small id="valorCNPqHelp" class="form-text text-muted">Não informar moeda. Use . para separar milhar e , para separar centavos.</small>
-  </div>
-  <div class="form-group">
-    {{ render_field(form.auxilio,class="form-control",obr=True) }}
-    <small id="valorEPEHelp" class="form-text text-muted">Não informar moeda. Use . para separar milhar e , para separar centavos.</small>
-  </div>
+  <div class="form-row">
+    <div class="col-3">
+      <div class="form-group">
+        {{ render_field(form.mensalidade,class="form-control",obr=True) }}
+        <small id="valorCNPqHelp" class="form-text text-muted">Não informar moeda. Use . para separar milhar e , para separar centavos.</small>
+      </div>
+    </div> 
+    <div class="col-3"> 
+      <div class="form-group">
+        {{ render_field(form.auxilio,class="form-control",obr=True) }}
+        <small id="valorEPEHelp" class="form-text text-muted">Não informar moeda. Use . para separar milhar e , para separar centavos.</small>
+      </div>
+    </div>  
+  </div>  
 
   <div class="form-group">
     {{ form.submit(class="btn btn-primary") }}

@@ -81,13 +81,13 @@
         <td><p align = "center"> {{demanda[3]}} </p></td>
         <td><p align = "center"> {{demanda[4].strftime("%x")}} </p></td>
         <td><p align = "center">
-              {% if demanda[5] == True%}
+              {% if demanda[5] == 1%}
                 <span class="badge badge-pill badge-warning">'.'</span>
               {% endif %}
             </p>
         </td>
         <td><p align = "center">
-              {% if demanda[6] == True%}
+              {% if demanda[6] == 1%}
                 <span class="badge badge-pill badge-info">'.'</span>
               {% endif %}
             </p>

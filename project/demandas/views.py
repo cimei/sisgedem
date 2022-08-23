@@ -75,6 +75,8 @@ import pickle
 import os.path
 import sys
 
+from calendar import monthrange
+
 demandas = Blueprint("demandas",__name__,
                         template_folder='templates/demandas')
 
@@ -719,7 +721,10 @@ def confirma_cria_demanda(sei,tipo,mensagem):
             conv = form.convênio.data
 
         if form.necessita_despacho.data == True:
+            desp = 1
             data_env_despacho = datetime.now()
+        else:
+            desp = 0
 
         demanda = Demanda(programa              = form.atividade.data,
                           sei                   = sei,
@@ -730,7 +735,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
                           user_id               = current_user.id,
                           titulo                = form.titulo.data,
                           desc                  = form.desc.data,
-                          necessita_despacho    = form.necessita_despacho.data,
+                          necessita_despacho    = desp,
                           necessita_despacho_cg = 0,
                           conclu                = form.conclu.data,
                           data_conclu           = data_conclu,
@@ -917,6 +922,9 @@ def confirma_acordo_convenio_demanda(prog,sei,conv,ano,tipo,mensagem):
 
         if form.necessita_despacho.data == True:
             data_env_despacho = datetime.now()
+            desp = 1
+        else:
+            desp = 0
 
         demanda = Demanda(programa              = form.atividade.data,
                           sei                   = str(sei).split('_')[0]+'/'+str(sei).split('_')[1],
@@ -927,7 +935,7 @@ def confirma_acordo_convenio_demanda(prog,sei,conv,ano,tipo,mensagem):
                           user_id               = current_user.id,
                           titulo                = form.titulo.data,
                           desc                  = form.desc.data,
-                          necessita_despacho    = form.necessita_despacho.data,
+                          necessita_despacho    = desp,
                           necessita_despacho_cg = 0,
                           conclu                = form.conclu.data,
                           data_conclu           = data_conclu,
@@ -1846,7 +1854,7 @@ def transfer_demanda(demanda_id):
                                   texto      = 'DEMANDA TRANSFERIDA para '+recebedor.username+'!    ',
                                   user_id    = current_user.id,
                                   duracao    = 5,
-                                  programada = False,
+                                  programada = 0,
                                   passo      = '')
 
         db.session.add(providencia)
@@ -1902,7 +1910,7 @@ def avocar_demanda(demanda_id):
                               texto      = 'DEMANDA AVOCADA! Resp. anterior: ' + demanda.author.username + '.',
                               user_id    = current_user.id,
                               duracao    = 5,
-                              programada = False,
+                              programada = 0,
                               passo      = '')
 
     db.session.add(providencia)
@@ -2408,9 +2416,9 @@ def cria_providencia(demanda_id):
     if form.validate_on_submit():
 
         if form.data_hora.data > datetime.now():
-            programada = True
+            programada = 1
         else:
-            programada = False
+            programada = 0
 
         if form.passo.data == None:
             passo = ''
@@ -2428,7 +2436,7 @@ def cria_providencia(demanda_id):
         db.session.add(providencia)
         db.session.commit()
 
-        if programada:
+        if programada == 1:
             registra_log_auto(current_user.id,demanda_id,'age',demanda.programa,form.duracao.data)
         else:
             registra_log_auto(current_user.id,demanda_id,'pro',demanda.programa,form.duracao.data)
@@ -2569,7 +2577,7 @@ def cria_providencia(demanda_id):
                 db.session.commit()
 
 
-        if programada and form.agenda.data:
+        if programada == 1 and form.agenda.data:
 
             # cria evento no google agenda quando a providência for futura e o usuário assim o desejar
             scopes = ['https://www.googleapis.com/auth/calendar.events']
@@ -2700,20 +2708,20 @@ def demandas_resumo(coord):
                                    .filter(User.coord.like(coord))\
                                    .count()
 
-        demandas_por_tipo = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)),User.id)\
+        demandas_por_tipo = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
                                       .join(User, Demanda.user_id == User.id)\
                                       .order_by(func.count(Demanda.id).desc())\
                                       .filter(User.coord.like(coord))\
                                       .group_by(Demanda.tipo)
 
-        demandas_por_tipo_ano_anterior = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)),User.id)\
+        demandas_por_tipo_ano_anterior = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
                                                    .join(User, Demanda.user_id == User.id)\
                                                    .filter(Demanda.data >= str(hoje.year - 1) + '-01-01',
                                                            Demanda.data <= str(hoje.year - 1) + '-12-31',
                                                            User.coord.like(coord))\
                                                    .group_by(Demanda.tipo)
 
-        demandas_por_tipo_ano_corrente = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)),User.id)\
+        demandas_por_tipo_ano_corrente = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
                                                    .join(User, Demanda.user_id == User.id)\
                                                    .filter(Demanda.data >= str(hoje.year) + '-01-01',
                                                            User.coord.like(coord))\
@@ -2726,8 +2734,7 @@ def demandas_resumo(coord):
 
         for demanda in demandas_por_tipo:
             demandas_datas = db.session.query(Demanda.data,
-                                              Demanda.data_conclu,
-                                              User.id)\
+                                              Demanda.data_conclu)\
                                         .join(User, Demanda.user_id == User.id)\
                                         .filter(Demanda.tipo == demanda.tipo,
                                                 Demanda.conclu == '1',
@@ -2735,13 +2742,12 @@ def demandas_resumo(coord):
                                                 User.coord.like(coord))
 
             demandas_conclu_por_tipo = db.session.query(Demanda.tipo,
-                                                        label('qtd_conclu',
-                                                        func.count(Demanda.id)),
-                                                        User.id)\
+                                                        label('qtd_conclu',func.count(Demanda.id)))\
                                                  .join(User, Demanda.user_id == User.id)\
                                                  .filter(Demanda.tipo == demanda.tipo,
                                                          Demanda.conclu == '1',
-                                                         User.coord.like(coord))
+                                                         User.coord.like(coord))\
+                                                 .group_by(Demanda.tipo)      
 
             vida = 0
             vida_m = 0
@@ -2755,12 +2761,12 @@ def demandas_resumo(coord):
             else:
                 vida_m = 0
 
-            vida_m_por_tipo.append([demanda.tipo,demandas_conclu_por_tipo[0][1],vida_m])
+            if len(demandas_conclu_por_tipo.all()) != 0:
+                vida_m_por_tipo.append([demanda.tipo,demandas_conclu_por_tipo[0][1],vida_m])
 
         ## calcula a vida média das demandas (geral)
         demandas_datas = db.session.query(Demanda.data,
-                                          Demanda.data_conclu,
-                                          User.id)\
+                                          Demanda.data_conclu)\
                                     .join(User, Demanda.user_id == User.id)\
                                     .filter(Demanda.conclu == '1',
                                             Demanda.data_conclu != None,
@@ -2782,8 +2788,7 @@ def demandas_resumo(coord):
         inic_ano = str(hoje.year) + '-01-01'
 
         demandas_ano = db.session.query(Demanda.data,
-                                        Demanda.data_conclu,
-                                        User.id)\
+                                        Demanda.data_conclu)\
                                   .join(User, Demanda.user_id == User.id)\
                                   .filter(Demanda.conclu == '1',
                                           Demanda.data > inic_ano,
@@ -2804,8 +2809,7 @@ def demandas_resumo(coord):
         despachos = db.session.query(label('c_data',Despacho.data),
                                      Despacho.demanda_id,
                                      Demanda.id,
-                                     label('i_data',Demanda.data),
-                                     User.id)\
+                                     label('i_data',Demanda.data))\
                                .join(User, Despacho.user_id == User.id)\
                                .outerjoin(Demanda, Despacho.demanda_id == Demanda.id)\
                                .filter(User.coord.like(coord))\
@@ -2840,8 +2844,7 @@ def demandas_resumo(coord):
         # média, maior quantidade e menor quantidade de demandas por colaborador ativo.
 
         colaborador_demandas = db.session.query(Demanda.user_id,
-                                                label('qtd',func.count(Demanda.user_id)),
-                                                User.id)\
+                                                label('qtd',func.count(Demanda.user_id)))\
                                          .join(User, Demanda.user_id == User.id)\
                                          .filter(User.coord.like(coord))\
                                          .group_by(Demanda.user_id)
@@ -2882,7 +2885,7 @@ def demandas_resumo(coord):
         demandas_12meses = [db.session.query(Demanda)\
                                       .join(User, Demanda.user_id == User.id)\
                                       .filter(Demanda.data >= mes[1]+'-'+mes[0]+'-01',
-                                              Demanda.data <= mes[1]+'-'+mes[0]+'-31',
+                                              Demanda.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
                                               User.coord.like(coord))\
                                       .count()
                             for mes in meses]
@@ -2900,7 +2903,7 @@ def demandas_resumo(coord):
         providencias_12meses = [db.session.query(Providencia)\
                                           .join(User, Providencia.user_id == User.id)\
                                           .filter(Providencia.data >= mes[1]+'-'+mes[0]+'-01',
-                                                  Providencia.data <= mes[1]+'-'+mes[0]+'-31',
+                                                  Providencia.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
                                                   User.coord.like(coord))\
                                           .count()
                                 for mes in meses]
@@ -2918,7 +2921,7 @@ def demandas_resumo(coord):
         despachos_12meses = [db.session.query(Despacho)\
                                        .join(User, Despacho.user_id == User.id)\
                                        .filter(Despacho.data >= mes[1]+'-'+mes[0]+'-01',
-                                               Despacho.data <= mes[1]+'-'+mes[0]+'-31',
+                                               Despacho.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
                                                User.coord.like(coord))\
                                        .count()
                              for mes in meses]

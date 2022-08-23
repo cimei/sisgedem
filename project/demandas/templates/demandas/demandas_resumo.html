@@ -42,47 +42,49 @@
               </thead>
               <tbody>
 
-                    {% for deman in demandas_por_tipo %}
+                {% for deman in demandas_por_tipo %}
 
-                      <tr>
-                        <td>{{deman.tipo}}</td>
+                  <tr>
+                    <td>{{deman.tipo}}</td>
 
-                      {% set ns = namespace(x=false) %}
+                    {% set ns = namespace(x=false) %}
 
-                        {% for dem in demandas_por_tipo_ano_anterior %}
-                          {% if dem.tipo == deman.tipo %}
-                            <td><center>{{dem.qtd_por_tipo}}</center></td>
-                            {% set ns.x = true %}
-                          {% endif %}
-                        {% endfor %}
-                        {% if ns.x == false %}
-                          <td><center>0</center></td>
-                        {% endif %}
-
-                        {% set ns.x = false %}
-
-                        {% for dem in demandas_por_tipo_ano_corrente %}
-                          {% if dem.tipo == deman.tipo %}
-                            <td><center>{{dem.qtd_por_tipo}}</center></td>
-                            {% set ns.x = true %}
-                          {% endif %}
-                        {% endfor %}
-                        {% if ns.x == false %}
-                          <td><center>0</center></td>
-                        {% endif %}
-
-                        <td><center>{{deman.qtd_por_tipo}}</center></td>
-
-                          {% for v_m in vida_m_por_tipo %}
-                            {% if deman.tipo == v_m[0]%}
-                              <td><center>{{v_m[1]}}</center></td>
-                              <td><center>{{v_m[2]}} dias</center></td>
-                            {% endif %}
-                          {% endfor %}
-
+                    {% for dem in demandas_por_tipo_ano_anterior %}
+                      {% if dem.tipo == deman.tipo %}
+                        <td><center>{{dem.qtd_por_tipo}}</center></td>
+                        {% set ns.x = true %}
+                      {% endif %}
                     {% endfor %}
+                    {% if ns.x == false %}
+                      <td><center>0</center></td>
+                    {% endif %}
 
-                  </tr>
+                    {% set ns.x = false %}
+
+                    {% for dem in demandas_por_tipo_ano_corrente %}
+                      {% if dem.tipo == deman.tipo %}
+                        <td><center>{{dem.qtd_por_tipo}}</center></td>
+                        {% set ns.x = true %}
+                      {% endif %}
+                    {% endfor %}
+                    {% if ns.x == false %}
+                      <td><center>0</center></td>
+                    {% endif %}
+
+                    <td><center>{{deman.qtd_por_tipo}}</center></td>
+
+                      {% for v_m in vida_m_por_tipo %}
+                        {% if deman.tipo == v_m[0]%}
+                          <td><center>{{v_m[1]}}</center></td>
+                          <td><center>{{v_m[2]}} dias</center></td>
+                        {% endif %}
+                      {% endfor %}
+
+                  </tr>    
+
+                {% endfor %}
+
+                  
 
               </tbody>
             </table>

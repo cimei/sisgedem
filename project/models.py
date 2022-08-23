@@ -983,7 +983,7 @@ class Providencia(db.Model):
     texto      = db.Column(db.Text,nullable=False)
     user_id    = db.Column(db.Integer, nullable=False)
     duracao    = db.Column(db.Integer)
-    programada = db.Column(db.Boolean)
+    programada = db.Column(db.Integer)
     passo      = db.Column(db.String)
 
     def __init__(self, data, demanda_id, texto, user_id, duracao, programada, passo):

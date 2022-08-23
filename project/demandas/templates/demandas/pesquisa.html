@@ -104,7 +104,7 @@
                   {% endif %}
                 {% else %}
                   <p class="card-text">
-                    {% if item.programada == True %}
+                    {% if item.programada == 1 %}
                     <small><b>P</b></small>
                     {% endif %}
                     <small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}

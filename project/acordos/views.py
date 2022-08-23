@@ -1004,7 +1004,11 @@ def lista_bolsistas(proc_mae,prog,edic,epe,uf):
                               label('mens_ap',func.sum(Processo_Filho.mens_apagar)),
                               label('apagar',func.sum(Processo_Filho.valor_apagar)))\
                        .filter(Processo_Filho.proc_mae == proc_mae.replace('_','/'))\
-                       .group_by(Processo_Filho.cpf)\
+                       .group_by(Processo_Filho.cpf,
+                                 Processo_Filho.nome,
+                                 Processo_Filho.modalidade,
+                                 Processo_Filho.nivel,
+                                 Processo_Filho.situ_filho)\
                        .order_by(Processo_Filho.nome).all()
 
     qtd_cpfs = len(cpfs_banco)
@@ -1137,7 +1141,11 @@ def lista_bolsistas_acordo(acordo_id,prog,edic,epe,uf):
                               label('mens_ap',func.sum(Processo_Filho.mens_apagar)),
                               label('apagar',func.sum(Processo_Filho.valor_apagar)))\
                        .filter(Processo_Filho.proc_mae.in_(l_procs_mae))\
-                       .group_by(Processo_Filho.cpf)\
+                       .group_by(Processo_Filho.cpf,
+                                 Processo_Filho.nome,
+                                 Processo_Filho.modalidade,
+                                 Processo_Filho.nivel,
+                                 Processo_Filho.situ_filho)\
                        .order_by(Processo_Filho.nome).all()
 
     qtd_cpfs = len(cpfs_banco)
