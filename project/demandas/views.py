@@ -52,13 +52,14 @@
 
 # views.py dentro da pasta demandas
 
-from flask import render_template, url_for, flash, request, redirect, Blueprint, abort
+from flask import render_template, url_for, flash, request, redirect, Blueprint, abort, send_from_directory
 from flask_login import current_user, login_required
 from flask_mail import Message
 from threading import Thread
 from sqlalchemy import or_, and_, func, cast, String
 from sqlalchemy.sql import label
 from sqlalchemy.orm import aliased
+from sqlalchemy.sql.functions import coalesce
 from project import db, mail, app
 from project.models import Demanda, Providencia, Despacho, User, Tipos_Demanda, DadosSEI, Acordo, Log_Auto, Plano_Trabalho,\
                            Sistema, Ativ_Usu, Passos_Tipos, Msgs_Recebidas, Proposta, Convenio
@@ -308,7 +309,7 @@ def lista_tipos():
 
                 self.set_font('Arial', 'B', 10)
                 self.set_text_color(127,127,127)
-                self.cell(0, 10, 'Lista de procedimentos (Tipos de Demanda e respectivos Passos) - gerado em '+date.today().strftime('%x'), 1, 1,'C')
+                self.cell(0, 10, 'Lista de procedimentos (Tipos de Demanda e respectivos Passos) - gerado em '+date.today().strftime('%d/%m/%Y'), 1, 1,'C')
 
             # Rodape da página
             def footer(self):
@@ -689,10 +690,10 @@ def confirma_cria_demanda(sei,tipo,mensagem):
 
         if form.convênio.data != '' and form.convênio.data != None:
 
-            verif_sei = db.session.query(DadosSEI).filter(DadosSEI.nr_convenio == form.convênio.data).first()
+            verif_sei = db.session.query(DadosSEI).filter(DadosSEI.nr_convenio == str(form.convênio.data)).first()
 
             if verif_sei == None:
-                dadosSEI = DadosSEI(nr_convenio = form.convênio.data,
+                dadosSEI = DadosSEI(nr_convenio = str(form.convênio.data),
                                     sei         = sei,
                                     epe         = '*',
                                     fiscal      = '')
@@ -1107,13 +1108,13 @@ def demanda(demanda_id):
     if current_user.is_anonymous:
         leitor_despacha = 'False'
     else:
-        if str(current_user).split(';')[1] == 'True' or str(current_user).split(';')[2] == 'True' or str(current_user).split(';')[4] == 'True':
+        if current_user.despacha == 1 or current_user.despacha0 == 1 or current_user.despacha2 == 1:
             leitor_despacha = 'True'
         else:
             leitor_despacha = 'False'
 
     if demanda.data_conclu != None:
-        data_conclu = demanda.data_conclu.strftime('%x')
+        data_conclu = demanda.data_conclu.strftime('%d/%m/%Y')
     else:
         data_conclu = ''
 
@@ -1143,7 +1144,7 @@ def demanda(demanda_id):
                 # self.image('logo_pb.png', 10, 8, 33)
                 self.set_font('Arial', 'B', 13)
                 self.set_text_color(127,127,127)
-                self.cell(0, 10, 'Relatório de Demanda - gerado em '+date.today().strftime('%x'), 1, 1,'C')
+                self.cell(0, 10, 'Relatório de Demanda - gerado em '+date.today().strftime('%d/%m/%Y'), 1, 1,'C')
                 # Nº da demanda, coordenação e atividade
                 if demanda.atividade_sigla == None:
                     self.set_text_color(127,127,127)
@@ -1167,7 +1168,6 @@ def demanda(demanda_id):
                 self.set_text_color(0,0,0)
                 titulo = demanda.titulo.encode('latin-1', 'replace').decode('latin-1')
                 tamanho_titulo = self.get_string_width(titulo)
-                #print ('**** titulo ', tamanho_titulo)
                 self.multi_cell(0, 6, titulo)
                 if tamanho_titulo <= 100:
                     pdf.ln(12)
@@ -1192,16 +1192,17 @@ def demanda(demanda_id):
                     self.set_text_color(127,127,127)
                     self.cell(25, 8, 'Criada em: ', 0, 0)
                     self.set_text_color(0,0,0)
-                    self.cell(30, 8, demanda.data.strftime('%x'), 0, 0)
+                    self.cell(30, 8, demanda.data.strftime('%d/%m/%Y'), 0, 0)
                     self.set_text_color(127,127,127)
                     self.cell(33, 8, 'Finalizada em: ', 0, 0)
                     self.set_text_color(0,0,0)
-                    self.cell(0, 8, demanda.data_conclu.strftime('%x'), 0, 1)
+                    x = lambda x: 'N.I.' if x == None else x.strftime('%d/%m/%Y')
+                    self.cell(0, 8, x(demanda.data_conclu), 0, 1)
                 else:
                     self.set_text_color(127,127,127)
                     self.cell(25, 8, 'Criada em: ', 0, 0)
                     self.set_text_color(0,0,0)
-                    self.cell(30, 8, demanda.data.strftime('%x'), 0, 0)
+                    self.cell(30, 8, demanda.data.strftime('%d/%m/%Y'), 0, 0)
                     self.cell(0, 8,'Não concluída', 0, 1)
                 # descrição
                 self.set_text_color(127,127,127)
@@ -1209,16 +1210,15 @@ def demanda(demanda_id):
                 self.set_text_color(0,0,0)
                 desc = demanda.desc.encode('latin-1', 'replace').decode('latin-1')
                 tamanho_desc = self.get_string_width(desc)
-                #print ('**** desc ', tamanho_desc)
                 self.multi_cell(0, 6, desc)
                 if tamanho_desc <= 100:
                     pdf.ln(6)
                 else:
                     pdf.ln(tamanho_desc/12)
                 # se necessita despachos
-                if demanda.necessita_despacho:
+                if demanda.necessita_despacho == 1:
                     self.cell(0, 10, 'Aguarda despacho', 0, 1)
-                if demanda.necessita_despacho_cg:
+                if demanda.necessita_despacho_cg == 1:
                     self.cell(0, 10, 'Aguarda despacho Coord. Geral ou sup.', 0, 1)
                 # Line break
                 self.ln(10)
@@ -1247,7 +1247,7 @@ def demanda(demanda_id):
             pdf.set_text_color(127,127,127)
             pdf.cell(8, 10, 'Em: ', 0, 0)
             pdf.set_text_color(0,0,0)
-            pdf.cell(0, 10, item.data.strftime('%x'), 0, 1)
+            pdf.cell(0, 10, item.data.strftime('%d/%m/%Y'), 0, 1)
             texto = item.texto.encode('latin-1', 'replace').decode('latin-1')
             tamanho_texto = pdf.get_string_width(texto)
             pdf.multi_cell(0, 5, texto)
@@ -1257,15 +1257,15 @@ def demanda(demanda_id):
                 pdf.ln(tamanho_texto/10)
             pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
 
-            #print ('**** prov_desp ', tamanho_texto)
-        #pasta_pdf = os.path.normpath('C:'+str(demanda.id)+'.pdf')
 
-        pasta_pdf = os.path.normpath('c:/temp/'+str(demanda.id)+'.pdf')
-        if not os.path.exists(os.path.normpath('c:/temp/')):
-            os.makedirs(os.path.normpath('c:/temp/'))
+        pasta_pdf = os.path.normpath('/app/project/static/demanda.pdf')
+
         pdf.output(pasta_pdf, 'F')
 
-        flash ('Relatório da demanada '+str(demanda.id)+' gerado! Verifique na pasta temp do disco C: o arquivo '+str(demanda.id)+'.pdf','sucesso')
+        # o comandinho mágico que permite fazer o download de um arquivo
+        send_from_directory('/app/project/static', 'demanda.pdf')
+
+        return redirect(url_for('static', filename='demanda.pdf'))
 
     return render_template('ver_demanda.html',
                             id                    = demanda.id,
@@ -2091,6 +2091,11 @@ def list_pesquisa(pesq):
     else:
         p_conclu = pesq_l[4]
 
+    if pesq_l[5] != '':
+        conv = pesq_l[5]
+    else:
+        conv = '%'
+
     if pesq_l[6] != '':
         autor_id = pesq_l[6]
     else:
@@ -2136,7 +2141,7 @@ def list_pesquisa(pesq):
                          .join(User, User.id == Demanda.user_id)\
                          .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
                          .filter(Demanda.sei.like('%'+sei+'%'),
-                                 Demanda.convênio.like('%'+pesq_l[5]+'%'),
+                                 coalesce(Demanda.convênio,'').like(conv),
                                  Demanda.titulo.like('%'+pesq_l[1]+'%'),
                                  Demanda.tipo.like('%'+p_tipo_pattern+'%'),
                                  cast(Demanda.necessita_despacho,String) != p_n_d,
@@ -2229,7 +2234,10 @@ def cria_despacho(demanda_id):
 
         # marca a demanda quanto à necessidade de despacho da CG
         # e desmarca, dependendo de quem deu o despacho.
-        demanda.necessita_despacho_cg = form.necessita_despacho_cg.data
+        if form.necessita_despacho_cg.data:
+            demanda.necessita_despacho_cg = 1
+        else:
+            demanda.necessita_despacho_cg = 0
 
         if form.necessita_despacho_cg == 1:
             demanda.data_env_despacho = datetime.now()

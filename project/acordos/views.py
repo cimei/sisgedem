@@ -63,6 +63,7 @@
 
 # views.py na pasta acordos
 
+from re import I
 from flask import render_template,url_for,flash, redirect,request,Blueprint
 from flask_login import current_user,login_required
 from sqlalchemy import func, distinct
@@ -650,7 +651,11 @@ def cria_programa_cnpq():
     form = Programa_CNPqForm()
 
     if form.validate_on_submit():
-        programa_cnpq = Programa_CNPq(COD_PROGRAMA   = form.cod_programa.data,
+
+        last_programa_cnpq = db.session.query(Programa_CNPq).order_by(Programa_CNPq.ID_PROGRAMA.desc()).first()
+
+        programa_cnpq = Programa_CNPq(ID_PROGRAMA    = last_programa_cnpq.ID_PROGRAMA + 1,
+                                      COD_PROGRAMA   = form.cod_programa.data,
                                       NOME_PROGRAMA  = form.nome_programa.data,
                                       SIGLA_PROGRAMA = form.sigla_programa.data,
                                       COORD          = form.coord.data)

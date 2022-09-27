@@ -160,12 +160,27 @@ def register():
         trab_acordo = db.session.query(Sistema.funcionalidade_acordo).first()
         trab_instru = db.session.query(Sistema.funcionalidade_instru).first()
 
+        if form.despacha0:
+            despacha0 = 1
+        else:
+            despacha0 = 0
+
+        if form.despacha:
+            despacha = 1
+        else:
+            despacha = 0
+
+        if form.despacha2:
+            despacha2 = 1
+        else:
+            despacha2 = 0    
+
         user = User(email                      = form.email.data,
                     username                   = form.username.data,
                     plaintext_password         = form.password.data,
-                    despacha0                  = form.despacha0.data,
-                    despacha                   = form.despacha.data,
-                    despacha2                  = form.despacha2.data,
+                    despacha0                  = despacha0,
+                    despacha                   = despacha,
+                    despacha2                  = despacha2,
                     coord                      = form.coord.data,
                     role                       = role_user,
                     email_confirmation_sent_on = datetime.now(),
@@ -214,7 +229,7 @@ def confirm_email(token):
 
     user = User.query.filter_by(email=email).first()
 
-    if user.email_confirmed:
+    if user.email_confirmed == 1:
         flash('Confirmação já realizada. Por favor, faça o login.', 'erro')
     else:
         user.email_confirmed = 1
@@ -245,7 +260,7 @@ def reset():
             flash('Endereço de e-mail inválido!', 'erro')
             return render_template('email.html', form=form)
 
-        if user.email_confirmed:
+        if user.email_confirmed == 1:
             send_password_reset_email(user.email)
             flash('Verifique a caixa de entrada de seu e-mail. Uma mensagem com o link de atualização de senha foi enviado.', 'sucesso')
         else:
@@ -314,11 +329,11 @@ def login():
 
             if user.check_password(form.password.data):
 
-                if user.email_confirmed:
+                if user.email_confirmed == 1:
 
                     user.last_logged_in = user.current_logged_in
                     user.current_logged_in = datetime.now()
-                    #db.session.add(user)
+
                     db.session.commit()
 
                     login_user(user)
@@ -938,19 +953,35 @@ def admin_update_user(user_id):
 
         if form.validate_on_submit():
 
-            user.coord       = form.coord.data
-            user.despacha0   = form.despacha0.data
-            user.despacha    = form.despacha.data
-            user.despacha2   = form.despacha2.data
+            user.coord = form.coord.data
+
+            if form.despacha0.data:
+                user.despacha0 = 1
+            else: 
+                user.despacha0 = 0
+            if form.despacha.data:
+                user.despacha = 1
+            else: 
+                user.despacha = 0
+            if form.despacha2.data:
+                user.despacha2 = 1
+            else: 
+                user.despacha2 = 0      
+
+            if form.ativo.data:
+                user.ativo = 1
+            else: 
+                user.ativo = 0      
+
             user.role        = form.role.data
             user.cargo_func  = form.cargo_func.data
-            user.ativo       = form.ativo.data
+
             if sistema.funcionalidade_conv == 1:
-                user.trab_conv   = form.trab_conv.data
+                user.trab_conv   = int(form.trab_conv.data)
             if sistema.funcionalidade_acordo == 1:
-                user.trab_acordo = form.trab_acordo.data
+                user.trab_acordo = int(form.trab_acordo.data)
             if sistema.funcionalidade_instru == 1:
-                user.trab_instru = form.trab_instru.data
+                user.trab_instru = int(form.trab_instru.data)
 
             db.session.commit()
 
@@ -1270,7 +1301,7 @@ def user_rel():
                         .join(User, User.id == Log_Auto.user_id)\
                         .outerjoin(Demanda, Demanda.id == Log_Auto.demanda_id)\
                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Log_Auto.atividade)\
-                        .filter(Log_Auto.user_id.like(current_user.id),
+                        .filter(Log_Auto.user_id == current_user.id,
                                 Log_Auto.data_hora >= datetime.combine(data_ini,time.min),
                                 Log_Auto.data_hora <= datetime.combine(data_fim,time.max))\
                         .subquery()

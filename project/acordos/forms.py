@@ -17,7 +17,8 @@
 # forms.py dentro de acordos
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, DecimalField, DateField, SubmitField, SelectField, SelectMultipleField
+from wtforms import StringField, IntegerField, DecimalField, SubmitField, SelectField, SelectMultipleField
+from wtforms.fields.html5 import DateField
 from wtforms.validators import DataRequired, Regexp, Optional
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from project import db

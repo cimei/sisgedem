@@ -35,14 +35,13 @@ if getattr(sys, 'frozen', False):
     frozen = ' sim '
     deleteOldPyinstallerFolders()
 
-app = Flask (__name__, static_url_path=None, instance_relative_config=True)
+app = Flask (__name__, static_url_path=None, instance_relative_config=True, static_folder='/app/project/static')
 
 app.config.from_pyfile('flask.cfg')
 
 app.static_url_path=app.config.get('STATIC_PATH')
 
 print( 'rodando no modo frozen:',frozen)
-
 
 db = SQLAlchemy(app)
 Migrate(app,db)

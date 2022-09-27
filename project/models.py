@@ -262,7 +262,9 @@ class Programa_CNPq(db.Model):
     SIGLA_PROGRAMA = db.Column(db.String)
     COORD          = db.Column(db.String)
 
-    def __init__(self, COD_PROGRAMA, NOME_PROGRAMA,SIGLA_PROGRAMA,COORD):
+    def __init__(self, ID_PROGRAMA, COD_PROGRAMA, NOME_PROGRAMA,SIGLA_PROGRAMA,COORD):
+
+        self.ID_PROGRAMA     = ID_PROGRAMA
         self.COD_PROGRAMA    = COD_PROGRAMA
         self.NOME_PROGRAMA   = NOME_PROGRAMA
         self.SIGLA_PROGRAMA  = SIGLA_PROGRAMA
@@ -889,7 +891,7 @@ class Demanda(db.Model):
     id                     = db.Column(db.Integer, primary_key=True)
     programa               = db.Column(db.Integer, nullable=False)
     sei                    = db.Column(db.String, nullable=False)
-    convênio               = db.Column(db.Integer)
+    convênio               = db.Column(db.String)
     ano_convênio           = db.Column(db.Integer)
     tipo                   = db.Column(db.String,nullable=False)
     data                   = db.Column(db.DateTime,nullable=False,default=datetime.now())
@@ -1041,7 +1043,7 @@ class User(db.Model, UserMixin):
         #self.password = plaintext_password
         self.despacha                   = despacha
         self.email_confirmation_sent_on = email_confirmation_sent_on
-        self.email_confirmed            = False
+        self.email_confirmed            = 0
         self.email_confirmed_on         = None
         self.registered_on              = datetime.now()
         self.last_logged_in             = None

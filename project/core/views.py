@@ -386,7 +386,8 @@ def cargaSICONV():
     print ('*****************************************************************')
 
     #url_base = 'http://portal.convenios.gov.br/images/docs/CGSIS/csv/'
-    url_base = 'http://plataformamaisbrasil.gov.br/images/docs/CGSIS/csv/'
+    #url_base = 'http://plataformamaisbrasil.gov.br/images/docs/CGSIS/csv/'
+    url_base = 'http://repositorio.dados.gov.br/seges/detru/'
     pasta_compactados = os.path.normpath('c:/temp/arqs_siconv')
     #pasta_compactados = 'arqs_siconv'
     if not os.path.exists(pasta_compactados):

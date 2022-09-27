@@ -40,7 +40,7 @@
 
 # views.py na pasta convenios
 
-from flask import render_template,url_for,flash, redirect,request,Blueprint
+from flask import render_template,url_for,flash, redirect,request,Blueprint,send_from_directory
 from flask_login import current_user,login_required
 from sqlalchemy import func, distinct
 from sqlalchemy.sql import label
@@ -101,6 +101,14 @@ def lista_programas_pref():
     quantidade = len(progs)
 
     inst = db.session.query(RefSICONV.cod_inst).first()
+
+    with open('/app/project/static/programas_conv.csv','w',encoding='UTF8',newline='') as f:
+        writer = csv.writer(f, delimiter=';')
+        writer.writerow(['Programa','Nome','Situação','Ano','Sigla','Coordenação'])
+        writer.writerows(progs)
+
+    # o comandinho mágico que permite fazer o download de um arquivo
+    send_from_directory('/app/project/static', 'programas_conv.csv')    
 
     return render_template('lista_programas_pref.html', progs = progs, quantidade=quantidade, cod_inst = inst.cod_inst)
 

@@ -14,7 +14,7 @@
 # forms.py dentro de bolsas
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, DateField, SubmitField
+from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Regexp
 
 class BolsaForm(FlaskForm):

@@ -1,5 +1,13 @@
 ## Atualizações ##
 
+27/09/2022
+Ajustes para que o sistema rode em contêiner.
+v 4.11.0
+
+23/09/2022
+Alterado link de acesso aos arquivos bach do siconv
+v 4.10.1
+
 09/08/2022
 Banco de dados migrado para o PostgreSQL em um servidor de rede.
 v 4.10.0
