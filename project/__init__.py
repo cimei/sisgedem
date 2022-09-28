@@ -29,11 +29,11 @@ def deleteOldPyinstallerFolders(time_threshold = 3600): # Por deefault remove de
             rmtree(item)
 
 TOP_LEVEL_DIR = os.path.abspath(os.curdir)
-frozen = ' não '
+# frozen = ' não '
 
-if getattr(sys, 'frozen', False):
-    frozen = ' sim '
-    deleteOldPyinstallerFolders()
+# if getattr(sys, 'frozen', False):
+#     frozen = ' sim '
+#     deleteOldPyinstallerFolders()
 
 app = Flask (__name__, static_url_path=None, instance_relative_config=True, static_folder='/app/project/static')
 
@@ -41,7 +41,7 @@ app.config.from_pyfile('flask.cfg')
 
 app.static_url_path=app.config.get('STATIC_PATH')
 
-print( 'rodando no modo frozen:',frozen)
+# print( 'rodando no modo frozen:',frozen)
 
 db = SQLAlchemy(app)
 Migrate(app,db)

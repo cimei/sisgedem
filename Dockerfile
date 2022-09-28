@@ -4,6 +4,8 @@ FROM python:3.9-bullseye
 WORKDIR /app
 
 RUN apt-get update
+
+# estabelece padrão brasileiro no locale
 RUN apt-get install -y locales locales-all
 ENV LC_ALL pt_BR.UTF-8
 ENV LANG pt_BR.UTF-8
