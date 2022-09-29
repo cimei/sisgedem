@@ -363,9 +363,9 @@ def lista_tipos():
                 pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
 
 
-        pasta_pdf = os.path.normpath('c:/temp/procedimentos.pdf')
-        if not os.path.exists(os.path.normpath('c:/temp/')):
-            os.makedirs(os.path.normpath('c:/temp/'))
+        pasta_pdf = os.path.normpath('/temp/procedimentos.pdf')
+        if not os.path.exists(os.path.normpath('/temp/')):
+            os.makedirs(os.path.normpath('/temp/'))
         pdf.output(pasta_pdf, 'F')
 
         flash ('Manual de procedimentos gerado! Verifique na pasta temp do disco C: o arquivo procedimentos.pdf','sucesso')
@@ -2602,11 +2602,11 @@ def cria_providencia(demanda_id):
             # SICOPES acessando sua agenda, mas isto só precisa ser feito uma vez, abaixo
             # as credenciais são armazenadas e usadas nos outros agendamentos
 
-            pasta_token_antiga = os.path.normpath('c:/temp/token.pkl')
-            pasta_token = os.path.normpath('c:/temp/token/token.pkl')
+            pasta_token_antiga = os.path.normpath('/temp/token.pkl')
+            pasta_token = os.path.normpath('/temp/token/token.pkl')
 
             if os.path.exists(pasta_token_antiga):
-                os.makedirs(os.path.normpath('c:/temp/token/'))
+                os.makedirs(os.path.normpath('/temp/token/'))
                 os.system('copy '+ pasta_token_antiga +' '+pasta_token)
                 os.remove(pasta_token_antiga)
 

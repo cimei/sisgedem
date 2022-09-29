@@ -233,7 +233,18 @@ def cargaPDCTR(entrada):
                                        label('valor_apagar', Bolsa.mensalidade),
                                        label('max_dt_ult_pag', func.max(PagamentosPDCTR.data_pagamento)))\
                                        .outerjoin(Bolsa, (PagamentosPDCTR.modalidade+PagamentosPDCTR.nivel)==(Bolsa.mod+Bolsa.niv))\
-                                       .group_by(PagamentosPDCTR.proc_mae,PagamentosPDCTR.processo).all()
+                                       .group_by(PagamentosPDCTR.proc_mae,
+                                                 PagamentosPDCTR.processo,
+                                                 PagamentosPDCTR.cod_programa,
+                                                 PagamentosPDCTR.nome_chamada,
+                                                 PagamentosPDCTR.nome,
+                                                 PagamentosPDCTR.cpf,
+                                                 PagamentosPDCTR.modalidade,
+                                                 PagamentosPDCTR.nivel,
+                                                 PagamentosPDCTR.situ_filho,
+                                                 PagamentosPDCTR.inic_filho,
+                                                 Bolsa.mensalidade)\
+                                       .all()
 
 #
     quantidade_filho = len(processos_filho)
@@ -319,7 +330,14 @@ def cargaPDCTR(entrada):
                                      PagamentosPDCTR.term_mae,
                                      label('max_id',func.max(PagamentosPDCTR.id)),
                                      PagamentosPDCTR.situ_mae)\
-                                     .group_by(PagamentosPDCTR.proc_mae).all()
+                               .group_by(PagamentosPDCTR.proc_mae,
+                                         PagamentosPDCTR.coordenador,
+                                         PagamentosPDCTR.cod_programa,
+                                         PagamentosPDCTR.nome_chamada,
+                                         PagamentosPDCTR.inic_mae,
+                                         PagamentosPDCTR.term_mae,
+                                         PagamentosPDCTR.situ_mae)\
+                               .all()
                                      #label('max_term_mae',func.max(PagamentosPDCTR.term_mae)))\
 
 #
@@ -388,7 +406,7 @@ def cargaSICONV():
     #url_base = 'http://portal.convenios.gov.br/images/docs/CGSIS/csv/'
     #url_base = 'http://plataformamaisbrasil.gov.br/images/docs/CGSIS/csv/'
     url_base = 'http://repositorio.dados.gov.br/seges/detru/'
-    pasta_compactados = os.path.normpath('c:/temp/arqs_siconv')
+    pasta_compactados = os.path.normpath('/temp/arqs_siconv')
     #pasta_compactados = 'arqs_siconv'
     if not os.path.exists(pasta_compactados):
         os.makedirs(os.path.normpath(pasta_compactados))
@@ -797,6 +815,10 @@ def cargaSICONV():
         if os.path.exists(arq2):
             os.remove(arq2 + '.zip')
             os.remove(arq2)
+
+        if os.path.exists(arq1):
+            os.remove(arq1 + '.zip')
+            os.remove(arq1)    
 
     #
     ##################################################

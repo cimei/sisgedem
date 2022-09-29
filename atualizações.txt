@@ -1,5 +1,9 @@
 ## Atualizações ##
 
+28/09/2022
+Correção na carga de acordos.
+v 4.11.1
+
 27/09/2022
 Ajustes para que o sistema rode em contêiner.
 v 4.11.0
