@@ -1,5 +1,9 @@
 ## Atualizações ##
 
+04/10/2022
+Algumas tabelas passam a contar com possibilidade de filtro e ordenação.
+v 4.11.2
+
 28/09/2022
 Correção na carga de acordos.
 v 4.11.1
