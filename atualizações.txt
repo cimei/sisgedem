@@ -1,5 +1,9 @@
 ## Atualizações ##
 
+05/10/2022
+Permite gerar csv de convênios e acordos.
+v 4.11.3
+
 04/10/2022
 Algumas tabelas passam a contar com possibilidade de filtro e ordenação.
 v 4.11.2

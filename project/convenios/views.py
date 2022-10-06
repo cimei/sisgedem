@@ -42,7 +42,7 @@
 
 from flask import render_template,url_for,flash, redirect,request,Blueprint,send_from_directory
 from flask_login import current_user,login_required
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, literal, text
 from sqlalchemy.sql import label
 from sqlalchemy.orm import aliased
 from project import db
@@ -63,6 +63,7 @@ from folium.plugins import FloatImage
 import math
 
 
+
 convenios = Blueprint('convenios',__name__,
                             template_folder='templates/convenios')
 
@@ -77,6 +78,15 @@ def none_0(a):
     if a == None:
         a = 0
     return a
+
+
+def cria_csv(arq,linha,tabela):
+  '''Recebe caminho do arquivo como string, campos da tabela como lista e a tabela propriamente dita'''
+  with open(arq,'w',encoding='UTF8',newline='') as f:
+        writer = csv.writer(f, delimiter=';')
+        writer.writerow(linha)
+        writer.writerows(tabela)
+
 
 ## lista programas da coordenação
 
@@ -102,10 +112,12 @@ def lista_programas_pref():
 
     inst = db.session.query(RefSICONV.cod_inst).first()
 
-    with open('/app/project/static/programas_conv.csv','w',encoding='UTF8',newline='') as f:
-        writer = csv.writer(f, delimiter=';')
-        writer.writerow(['Programa','Nome','Situação','Ano','Sigla','Coordenação'])
-        writer.writerows(progs)
+    # with open('/app/project/static/programas_conv.csv','w',encoding='UTF8',newline='') as f:
+    #     writer = csv.writer(f, delimiter=';')
+    #     writer.writerow(['Programa','Nome','Situação','Ano','Sigla','Coordenação'])
+    #     writer.writerows(progs)
+
+    cria_csv('/app/project/static/programas_conv.csv',['Programa','Nome','Situação','Ano','Sigla','Coordenação'],progs)    
 
     # o comandinho mágico que permite fazer o download de um arquivo
     send_from_directory('/app/project/static', 'programas_conv.csv')    
@@ -207,7 +219,8 @@ def lista_convenios_SICONV(lista,coord):
                                         Proposta.UF_PROPONENTE,
                                         Programa.COD_PROGRAMA,
                                         Programa_Interesse.sigla,
-                                        Programa.ANO_DISPONIBILIZACAO)\
+                                        Programa.ANO_DISPONIBILIZACAO,
+                                        Programa_Interesse.coord)\
                                         .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
                                         .outerjoin(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
                                         .subquery()
@@ -221,7 +234,8 @@ def lista_convenios_SICONV(lista,coord):
                                             Proposta.UF_PROPONENTE,
                                             Programa.COD_PROGRAMA,
                                             Programa_Interesse.sigla,
-                                            Programa.ANO_DISPONIBILIZACAO)\
+                                            Programa.ANO_DISPONIBILIZACAO,
+                                            Programa_Interesse.coord)\
                                             .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
                                             .outerjoin(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
                                             .subquery()
@@ -231,7 +245,8 @@ def lista_convenios_SICONV(lista,coord):
                                             Proposta.UF_PROPONENTE,
                                             Programa.COD_PROGRAMA,
                                             Programa_Interesse.sigla,
-                                            Programa.ANO_DISPONIBILIZACAO)\
+                                            Programa.ANO_DISPONIBILIZACAO,
+                                            Programa_Interesse.coord)\
                                             .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
                                             .join(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
                                             .filter(Programa_Interesse.coord.like('%'+coord+'%'))\
@@ -240,8 +255,8 @@ def lista_convenios_SICONV(lista,coord):
         if lista == 'todos':
 
             convenio = db.session.query(Convenio.NR_CONVENIO,
-                                        DadosSEI.nr_convenio,
                                         programa.c.ANO_DISPONIBILIZACAO,
+                                        programa.c.coord,
                                         DadosSEI.sei,
                                         DadosSEI.epe,
                                         programa.c.UF_PROPONENTE,
@@ -251,9 +266,10 @@ def lista_convenios_SICONV(lista,coord):
                                         Convenio.DIA_FIM_VIGENC_CONV,
                                         Convenio.VL_REPASSE_CONV,
                                         Convenio.VL_CONTRAPARTIDA_CONV,
-                                        DadosSEI.id,
                                         Convenio.VL_DESEMBOLSADO_CONV,
-                                        Convenio.VL_INGRESSO_CONTRAPARTIDA)\
+                                        Convenio.VL_INGRESSO_CONTRAPARTIDA,
+                                        (Convenio.VL_REPASSE_CONV - Convenio.VL_DESEMBOLSADO_CONV).label('vl_a_desembolsar'),
+                                        (Convenio.DIA_FIM_VIGENC_CONV - datetime.date.today()).label('prazo'))\
                                         .filter(Convenio.DIA_PUBL_CONV != '')\
                                         .join(programa, programa.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
                                         .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
@@ -263,8 +279,8 @@ def lista_convenios_SICONV(lista,coord):
         elif lista == 'em execução':
 
             convenio = db.session.query(Convenio.NR_CONVENIO,
-                                        DadosSEI.nr_convenio,
                                         programa.c.ANO_DISPONIBILIZACAO,
+                                        programa.c.coord,
                                         DadosSEI.sei,
                                         DadosSEI.epe,
                                         programa.c.UF_PROPONENTE,
@@ -274,9 +290,10 @@ def lista_convenios_SICONV(lista,coord):
                                         Convenio.DIA_FIM_VIGENC_CONV,
                                         Convenio.VL_REPASSE_CONV,
                                         Convenio.VL_CONTRAPARTIDA_CONV,
-                                        DadosSEI.id,
                                         Convenio.VL_DESEMBOLSADO_CONV,
-                                        Convenio.VL_INGRESSO_CONTRAPARTIDA)\
+                                        Convenio.VL_INGRESSO_CONTRAPARTIDA,
+                                        (Convenio.VL_REPASSE_CONV - Convenio.VL_DESEMBOLSADO_CONV).label('vl_a_desembolsar'),
+                                        (Convenio.DIA_FIM_VIGENC_CONV - datetime.date.today()).label('prazo'))\
                                         .join(programa, programa.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
                                         .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
                                         .filter(Convenio.SIT_CONVENIO == 'Em execução')\
@@ -288,8 +305,8 @@ def lista_convenios_SICONV(lista,coord):
         elif lista[:8] == 'programa':
 
             convenio = db.session.query(Convenio.NR_CONVENIO,
-                                        DadosSEI.nr_convenio,
                                         programa.c.ANO_DISPONIBILIZACAO,
+                                        programa.c.coord,
                                         DadosSEI.sei,
                                         DadosSEI.epe,
                                         programa.c.UF_PROPONENTE,
@@ -299,9 +316,10 @@ def lista_convenios_SICONV(lista,coord):
                                         Convenio.DIA_FIM_VIGENC_CONV,
                                         Convenio.VL_REPASSE_CONV,
                                         Convenio.VL_CONTRAPARTIDA_CONV,
-                                        DadosSEI.id,
                                         Convenio.VL_DESEMBOLSADO_CONV,
-                                        Convenio.VL_INGRESSO_CONTRAPARTIDA)\
+                                        Convenio.VL_INGRESSO_CONTRAPARTIDA,
+                                        (Convenio.VL_REPASSE_CONV - Convenio.VL_DESEMBOLSADO_CONV).label('vl_a_desembolsar'),
+                                        (Convenio.DIA_FIM_VIGENC_CONV - datetime.date.today()).label('prazo'))\
                                         .filter(Convenio.DIA_PUBL_CONV != '')\
                                         .join(programa, programa.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
                                         .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
@@ -313,41 +331,20 @@ def lista_convenios_SICONV(lista,coord):
         ## lê data de carga dos dados dos convênios
         data_carga = db.session.query(RefSICONV.data_ref).first()
 
-        convenio_s = []
-        for conv in convenio:
-
-            conv_s = list(conv)
-            if conv_s[11] is not None:
-                conv_s[11] = locale.currency(conv_s[11], symbol=False, grouping = True)
-            if conv_s[10] is not None:
-                vl_a_desembolsar = locale.currency(conv.VL_REPASSE_CONV - conv.VL_DESEMBOLSADO_CONV, symbol=False, grouping = True)
-                conv_s[10] = locale.currency(conv_s[10], symbol=False, grouping = True)
-                if conv.VL_DESEMBOLSADO_CONV == 0 or conv.VL_DESEMBOLSADO_CONV == None:
-                    percent_repass_desemb = 0
-                else:
-                    percent_repass_desemb   = round(100*conv.VL_DESEMBOLSADO_CONV / conv.VL_REPASSE_CONV)
-            if conv_s[9] is not None:
-                conv_s[9] = conv_s[9].strftime('%x')
-
-            if conv.VL_CONTRAPARTIDA_CONV == 0 or conv.VL_CONTRAPARTIDA_CONV == None:
-                percent_ingre_contrap   = 0
-            else:
-                percent_ingre_contrap   = round(100*conv.VL_INGRESSO_CONTRAPARTIDA / conv.VL_CONTRAPARTIDA_CONV)
-
-            conv_s.append((conv.DIA_FIM_VIGENC_CONV - datetime.date.today()).days)
-
-            conv_s.append(vl_a_desembolsar)
-
-            conv_s.append(percent_repass_desemb)
-
-            conv_s.append(percent_ingre_contrap)
-
-            convenio_s.append(conv_s)
-
         quantidade = len(convenio)
 
-        return render_template('list_convenios.html', convenio = convenio_s, quantidade=quantidade, lista=lista,
-                                form = form, data_carga = str(data_carga[0]))
+        cria_csv('/app/project/static/convenios.csv',
+                 ['conv','ano','coord','sei','epe','uf','sigla','sit','subsit','fim','repasse','contrapartida','desemb','ingres_contra','vl_a_desembolsar','prazo'],
+                 convenio)    
+
+        # o comandinho mágico que permite fazer o download de um arquivo
+        send_from_directory('/app/project/static', 'convenios.csv') 
+
+        return render_template('list_convenios.html', convenio = convenio,   
+                                                      quantidade=quantidade, 
+                                                      lista=lista,
+                                                      form = form,
+                                                      data_carga = str(data_carga[0]))
 
 #
 ## Mostra detalhes SICONV de um convênio e permite alterar dados SEI

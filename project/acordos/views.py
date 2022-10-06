@@ -64,7 +64,7 @@
 # views.py na pasta acordos
 
 from re import I
-from flask import render_template,url_for,flash, redirect,request,Blueprint
+from flask import render_template,url_for,flash, redirect,request,Blueprint,send_from_directory
 from flask_login import current_user,login_required
 from sqlalchemy import func, distinct
 from sqlalchemy.sql import label
@@ -83,6 +83,7 @@ import tempfile
 from werkzeug.utils import secure_filename
 import os
 from folium import Map, Circle, Popup
+import csv
 
 acordos = Blueprint('acordos',__name__,
                             template_folder='templates/acordos')
@@ -143,7 +144,13 @@ def cargaSit(entrada):
     print ('Carga finalizada!')
     print ('\n')
 
-
+#
+def cria_csv(arq,linha,tabela):
+  '''Recebe caminho do arquivo como string, campos da tabela como lista e a tabela propriamente dita'''
+  with open(arq,'w',encoding='UTF8',newline='') as f:
+        writer = csv.writer(f, delimiter=';')
+        writer.writerow(linha)
+        writer.writerows(tabela)
 
 @acordos.route('/<lista>/<coord>/lista_acordos', methods=['GET', 'POST'])
 def lista_acordos(lista,coord):
@@ -430,6 +437,13 @@ def lista_acordos(lista,coord):
                             acordo.ID_PROGRAMA,
                             qtd_cpfs,
                             situ])
+
+        cria_csv('/app/project/static/acordos.csv',
+                 ['id','prog','nome','sei','epe','uf','ini','fim','valor_epe','valor_cnpq','qtd_proc_mae','qtd_filhos','pago','a_pagar','saldo','coord','dias','id_prog','qtd_cpfs','situ'],
+                 acordos)    
+
+        # o comandinho mágico que permite fazer o download de um arquivo
+        send_from_directory('/app/project/static', 'acordos.csv')                     
 
         return render_template('lista_acordos.html', acordos=acordos,quantidade=quantidade,lista=lista,form=form)
 
