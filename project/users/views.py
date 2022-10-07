@@ -64,7 +64,7 @@ from project import db, mail, app
 from project.models import User, Demanda, Despacho, Providencia, Coords, Log_Auto,\
                            Log_Desc, Plano_Trabalho, Sistema, RefSICONV, Ativ_Usu, Msgs_Recebidas
 from project.users.forms import RegistrationForm, LoginForm, UpdateUserForm, EmailForm, PasswordForm, AdminForm,\
-                                LogForm, LogFormMan, VerForm, RelForm, AtivUsu
+                                LogForm, LogFormMan, VerForm, RelForm, AtivUsu, TrocaPasswordForm
 # from project.users.picture_handler import add_profile_pic
 from project.demandas.views import registra_log_auto
 
@@ -254,6 +254,9 @@ def reset():
     form = EmailForm()
 
     if form.validate_on_submit():
+
+        print('*** Procedimento de troca de senha com token executado para ',form.email.data)
+
         try:
             user = User.query.filter_by(email=form.email.data).first_or_404()
         except:
@@ -265,11 +268,12 @@ def reset():
             flash('Verifique a caixa de entrada de seu e-mail. Uma mensagem com o link de atualização de senha foi enviado.', 'sucesso')
         else:
             flash('Seu endereço de e-mail precisa ser confirmado antes de tentar efetuar uma troca de senha.', 'erro')
+
         return redirect(url_for('users.login'))
 
     return render_template('email.html', form=form)
 
-# trocar ou gerar nova senha
+# trocar ou gerar nova senha via link
 
 @users.route('/reset/<token>', methods=["GET", "POST"])
 def reset_with_token(token):
@@ -306,6 +310,38 @@ def reset_with_token(token):
         return redirect(url_for('users.login'))
 
     return render_template('troca_senha_com_token.html', form=form, token=token)
+
+# trocar ou gerar nova senha via app
+
+@users.route('/troca_senha', methods=["GET", "POST"])
+def troca_senha():
+    """+--------------------------------------------------------------------------------------+
+       |Abre tela para o usuário informar nova senha.                                         |
+       +--------------------------------------------------------------------------------------+
+    """
+
+    form = TrocaPasswordForm()
+
+    if form.validate_on_submit():
+
+        if current_user.ativo != 1:
+            flash('Usuário deve ser ativado antes de poder trocar senha!', 'erro')
+            return redirect(url_for('users.login'))
+
+        if current_user.check_password(form.password_atual.data):    
+
+            current_user.password_hash = generate_password_hash(form.password_nova.data)
+
+            db.session.commit()
+
+            registra_log_auto(current_user.id,None,'sen')
+
+            logout_user()
+
+            flash('Sua senha foi atualizada!', 'sucesso')
+            return redirect(url_for('users.login'))
+
+    return render_template('troca_senha.html', form=form)
 
 
 # login
@@ -1212,7 +1248,7 @@ def user_msgs_recebidas():
 
     hoje = date.today()
 
-    deleta_msgs = db.session.query(Msgs_Recebidas).filter(Msgs_Recebidas.data_hora < (hoje - timedelta(days=7))).delete()
+    deleta_msgs = db.session.query(Msgs_Recebidas).filter(Msgs_Recebidas.data_hora < (hoje - timedelta(days=30))).delete()
     db.session.commit()
 
     msgs = db.session.query(Msgs_Recebidas).filter(Msgs_Recebidas.user_id == current_user.id).order_by(Msgs_Recebidas.data_hora.desc()).all()

@@ -1,5 +1,9 @@
 ## Atualizações ##
 
+07/10/2022
+Possibilidade de trocar senha dentro do aplicativo.
+v 4.11.4
+
 05/10/2022
 Permite gerar csv de convênios e acordos.
 v 4.11.3

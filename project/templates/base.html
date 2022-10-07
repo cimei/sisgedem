@@ -109,6 +109,9 @@
                 {% if current_user.despacha == 1 or current_user.despacha0 == 1 or current_user.role[0:5] == "admin" %}
                   <a class="dropdown-item"  href="{{ url_for('users.coord_view_users') }}">Atribuir atividade (Coord.)</a>
                 {% endif %}
+                {% if current_user.ativo == 1 %}
+                  <a class="dropdown-item"  href="{{ url_for('users.troca_senha') }}">Trocar senha</a>
+                {% endif %}
               </div>
             </li>
 
@@ -158,7 +161,7 @@
             </div>
           </li>
 
-          {% set ver = namespace(num='4.11.3') %}
+          {% set ver = namespace(num='4.11.4') %}
 
           {% if current_user.is_authenticated and current_user.sversion != ver.num %}
             <li class="nav-item">
