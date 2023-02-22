@@ -64,7 +64,7 @@ from project import db, mail, app
 from project.models import User, Demanda, Despacho, Providencia, Coords, Log_Auto,\
                            Log_Desc, Plano_Trabalho, Sistema, RefSICONV, Ativ_Usu, Msgs_Recebidas
 from project.users.forms import RegistrationForm, LoginForm, UpdateUserForm, EmailForm, PasswordForm, AdminForm,\
-                                LogForm, LogFormMan, VerForm, RelForm, AtivUsu, TrocaPasswordForm
+                                LogForm, LogFormMan, VerForm, RelForm, AtivUsu, TrocaPasswordForm, CoordForm
 # from project.users.picture_handler import add_profile_pic
 from project.demandas.views import registra_log_auto
 
@@ -954,7 +954,6 @@ def admin_view_users():
     else:
         users = User.query.order_by(User.id).all()
         return render_template('admin_view_users.html', users=users)
-    return redirect(url_for('core.index'))
 
 #
 ## alterações em users pelo admin
@@ -1043,6 +1042,101 @@ def admin_update_user(user_id):
 
         return render_template('admin_update_user.html', title='Update', name=user.username,
                                form=form)
+
+
+
+# Lista unidades
+
+@users.route('/admin_view_coords')
+@login_required
+
+def admin_view_coords():
+    """+--------------------------------------------------------------------------------------+
+       |Mostra lista das unidades cadastratas.                                                |
+       |Visto somente por admin.                                                              |
+       +--------------------------------------------------------------------------------------+
+    """
+    if current_user.role[0:5] != 'admin':
+        abort(403)
+    else:
+        coords = db.session.query(Coords).order_by(Coords.sigla).all()
+        return render_template('admin_view_coords.html', coords=coords)
+
+## inserção de nova unidade pelo admin
+
+@users.route("/admin_insere_coord", methods=['GET', 'POST'])
+@login_required
+def admin_insere_coord():
+    """
+    +----------------------------------------------------------------------------------------------+
+    |Permite ao admin inserir nova unidade no sitema.                                              |
+    |                                                                                              |
+    +----------------------------------------------------------------------------------------------+
+    """
+
+    if current_user.role[0:5] != 'admin':
+
+        abort(403)
+
+    else:
+
+        form = CoordForm()
+
+        if form.validate_on_submit():
+
+            print ('**** ','inserino nova coord')
+
+            nova_coord = Coords(sigla = form.coord.data,
+                                pai   = form.pai.data)
+            db.session.add(nova_coord)
+            db.session.commit()
+
+            flash('Unidade '+form.coord.data+' inserida no sistema!','sucesso')
+
+            return redirect(url_for('users.admin_view_coords'))
+
+        return render_template('admin_update_coord.html', form=form)
+
+
+
+## alterações em coords pelo admin
+
+@users.route("/admin_update_coord/<int:id>", methods=['GET', 'POST'])
+@login_required
+def admin_update_coord(id):
+    """
+    +----------------------------------------------------------------------------------------------+
+    |Permite ao admin atualizar dados de coords.                                                   |
+    |                                                                                              |
+    +----------------------------------------------------------------------------------------------+
+    """
+    if current_user.role[0:5] != 'admin':
+
+        abort(403)
+
+    else:
+
+        coord = Coords.query.get_or_404(id)
+
+        form = CoordForm()
+
+        if form.validate_on_submit():
+
+            coord.sigla = form.coord.data
+            coord.pai   = form.pai.data
+            db.session.commit()
+
+            flash('Unidade '+form.coord.data+' alterada!','sucesso')
+
+            return redirect(url_for('users.admin_view_coords'))
+
+        elif request.method == 'GET':    
+
+            form.coord.data  = coord.sigla
+            form.pai.data    = coord.pai 
+
+        return render_template('admin_update_coord.html', form=form)
+
 
 #
 # diário do usuário

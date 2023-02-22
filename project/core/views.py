@@ -88,7 +88,8 @@ def cargaPDCTR(entrada):
     for campo in campos_bolsistas_para_db:
         if campo.lower() not in linha_cabeçalho_lower:
             print ('** ATENÇÃO: o campo ',campo,' não existe na planinha original, verifique o parâmetro inserido. **')
-            exit()
+            flash('ERRO! O campo '+str(campo)+' não existe na planinha original, verifique o parâmetro inserido.','erro')
+            return redirect(url_for('core.index'))
 
     try:
         data_referência = planilha.cell_value(3,1)[-10:]
@@ -1217,7 +1218,8 @@ def carrega_homologados(chamada_id):
         for campo in campos_homologados_para_db:
             if campo not in linha_cabeçalho:
                 print ('** ATENÇÃO: o campo ',campo,' não existe na planinha original, verifique o parâmetro inserido. **')
-                exit()
+                flash('ERRO! O campo '+str(campo)+' não existe na planinha original, verifique o parâmetro inserido.','erro')
+                return redirect(url_for('core.index'))
 
         qtd_linhas = planilha.nrows - 1
 

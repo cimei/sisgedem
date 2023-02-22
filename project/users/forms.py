@@ -43,18 +43,12 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
 
-    # coords = db.session.query(Coords.sigla)\
-    #                   .order_by(Coords.sigla).all()
-    # lista_coords = [(c[0],c[0]) for c in coords]
-    # lista_coords.insert(0,('',''))
-
     email        = StringField('E-mail: ', validators=[DataRequired(message="Informe seu e-mail!"),Email()])
     username     = StringField('Nome do usuário: ', validators=[DataRequired(message="Informe um nome de usuário!")])
     password     = PasswordField('Senha: ', validators=[DataRequired(message="Informe uma senha!"),EqualTo('pass_confirm',message='Senhas devem ser iguais!')])
     pass_confirm = PasswordField('Confirmar Senha: ', validators=[DataRequired(message="Confirme a senha!")])
     # não é utilizada a lista de coordenações, pois o usuário pode se registrar antes de existirem coordenações no banco.
     coord        = StringField('Coordenação:',validators=[DataRequired(message="Informe a Coordenação!")])
-    # coord        = SelectField('Coordenação:',choices= lista_coords, validators=[DataRequired(message="Escolha uma Coordenação!")])
     despacha     = BooleanField('Você é coordenador, ou o seu substituto?')
     despacha2    = BooleanField('Você é coordenador-geral, ou o seu substituto?')
     despacha0    = BooleanField('Você é chefe de serviço, ou o seu substituto?')
@@ -123,6 +117,13 @@ class AdminForm(FlaskForm):
     trab_acordo  = BooleanField('Usuário trabalha com acordos e encomendas?')
     trab_instru  = BooleanField('Usuário trabalha com instrumentos?')
     submit       = SubmitField('Atualizar')
+
+class CoordForm(FlaskForm):
+
+    coord  = StringField('Coordenação:',validators=[DataRequired(message="Informe a sigla da Unidade!")])  
+    pai    = StringField('Pai:')
+
+    submit = SubmitField('Registrar') 
 
 class LogForm(FlaskForm):
 

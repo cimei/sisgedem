@@ -31,26 +31,39 @@
   {{ form.hidden_tag() }}
 
   <div class="form-row">
-    <div class="col-3">
-      <div class="form-group">
-        {{ render_field(form.programa_cnpq,class="form-control", placeholder="Escolha um programa",obr=True) }}
-      </div>
-    </div>
-    <div class="col-3">
+    <div class="col-2">
       <div class="form-group">
         {{ render_field(form.nome,class="form-control",obr=True) }}
       </div>
     </div>
+    <div class="col-8">
+      <div class="form-group">
+        {{ render_field(form.desc,class="form-control",obr=False) }}
+      </div>
+    </div>
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.unid,class="form-control",obr=False) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="form-row">
     <div class="col-3">
       <div class="form-group">
-        {{ render_field(form.sei,class="form-control", placeholder="Entre com o NUP",obr=True) }}
-        <small id="seiHelp" class="form-text text-muted">Use o formato 01300.nnnnnn/nnnn-nn.</small>
+        {{ render_field(form.sei,class="form-control", placeholder="01300.nnnnnn/nnnn-nn",obr=True) }}
       </div>
     </div>
     <div class="col-3">
       <div class="form-group">
         {{ render_field(form.situ,class="form-control",obr=False) }}
       </div>
+    </div>
+    <div class="col-6">
+        <b>Programa(s):</b>
+        {% for p in l_programas%}
+         {{ p }} 
+        {% endfor %} 
     </div>
   </div>
 
@@ -81,13 +94,13 @@
 
   <div class="form-row">
 
-    <div class="col-3">
+    <div class="col-2">
       <div class="form-group">
         {{ render_field(form.valor_cnpq,class="form-control",obr=True) }}
         <small id="valorCNPqHelp" class="form-text text-muted">Não informar moeda. Use . para separar milhar e , para separar centavos.</small>
       </div>
     </div>
-    <div class="col-3">
+    <div class="col-2">
       <div class="form-group">
         {{ render_field(form.valor_epe,class="form-control",obr=True) }}
         <small id="valorEPEHelp" class="form-text text-muted">Não informar moeda. Use . para separar milhar e , para separar centavos.</small>
@@ -99,7 +112,7 @@
       {% if qtd_procs_mae > 0 %}
       <div class="col-4">
         <div class="form-group">
-          <b><a href="{{url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo_id,prog=prog,edic=edic,epe=epe,uf=uf)}}">Processos-Mãe vinculados:</a></b><br>
+          <b><a href="{{url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo_id)}}">Processos-Mãe vinculados:</a></b><br>
           {% for proc in procs_mae %}
             <small class="form-text"> {{ proc.proc_mae }}
               {% if proc.inic_mae != None %}({{ proc.inic_mae.strftime("%x") }} {% else %}( ? {% endif %}
@@ -117,6 +130,9 @@
       </div>
       {% endif %}
     {% endif %}
+    <div class="col-2">
+      <a href="{{url_for('acordos.inclui_proc_mae',acordo_id=acordo_id)}}" class="btn btn-secondary" role="button" aria-pressed="true">Inc. Proc_Mae</a>
+    </div>
 
   </div>
 

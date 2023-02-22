@@ -196,6 +196,9 @@ def lista_convenios_SICONV(lista,coord):
     +---------------------------------------------------------------------------------------+
     """
 
+    # pega unidade do usuário logado
+    unidade = db.session.query(User.coord).filter(User.id==current_user.id).first()
+
     form = ListaForm()
 
     if form.validate_on_submit():
@@ -224,6 +227,42 @@ def lista_convenios_SICONV(lista,coord):
                                         .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
                                         .outerjoin(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
                                         .subquery()
+        elif coord == 'usu':
+
+            form.coord.data = unidade.coord
+
+            # se unidade for pai, pega filhos
+            filhos = db.session.query(Coords.sigla).filter(Coords.pai == unidade.coord).all()
+            l_filhos = [f.sigla for f in filhos]
+            l_filhos.append(unidade.coord)
+
+            if filhos:
+                unid = l_filhos
+                programa = db.session.query(Proposta.ID_PROPOSTA,
+                                        Proposta.ID_PROGRAMA,
+                                        Proposta.UF_PROPONENTE,
+                                        Programa.COD_PROGRAMA,
+                                        Programa_Interesse.sigla,
+                                        Programa.ANO_DISPONIBILIZACAO,
+                                        Programa_Interesse.coord)\
+                                        .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
+                                        .outerjoin(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
+                                        .filter(Programa_Interesse.coord.in_(unid))\
+                                        .subquery()
+            else:
+                unid = unidade.coord
+                programa = db.session.query(Proposta.ID_PROPOSTA,
+                                        Proposta.ID_PROGRAMA,
+                                        Proposta.UF_PROPONENTE,
+                                        Programa.COD_PROGRAMA,
+                                        Programa_Interesse.sigla,
+                                        Programa.ANO_DISPONIBILIZACAO,
+                                        Programa_Interesse.coord)\
+                                        .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
+                                        .outerjoin(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
+                                        .filter(Programa_Interesse.coord == unid)\
+                                        .subquery()
+        
         else:
 
             form.coord.data = coord

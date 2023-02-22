@@ -33,8 +33,8 @@ class InstrumentoForm(FlaskForm):
     nome         = StringField('Título:',validators=[DataRequired(message="Informe um título para o instrumento!")])
     contraparte  = StringField('Contraparte:',validators=[DataRequired(message="Informe a contraparte!")])
     sei          = StringField('Número SEI:',validators=[DataRequired(message="Informe o Programa!")]) # incluir regex para sei
-    data_inicio  = DateField('Data de início:',format='%Y/%m/%d',validators=[DataRequired(message="Informe data do início!")])
-    data_fim     = DateField('Data de término:',format='%Y/%m/%d',validators=[DataRequired(message="Informe data do término!")])
+    data_inicio  = DateField('Data de início:',format='%Y-%m-%d',validators=[DataRequired(message="Informe data do início!")])
+    data_fim     = DateField('Data de término:',format='%Y-%m-%d',validators=[DataRequired(message="Informe data do término!")])
     descri       = TextAreaField('Descrição:',validators=[DataRequired(message="Informe a descrição!")])
     valor        = StringField('Valor alocado:',validators=[DataRequired(message="Informe o valor!")])
 

@@ -24,22 +24,26 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from project import db
 from project.models import Programa_CNPq, Processo_Mae, Coords
 
+class ProgAcordoForm(FlaskForm):
+
+    programa_cnpq    = SelectMultipleField('Programa CNPq:')
+
+    submit           = SubmitField('Registrar')
+
+
 class AcordoForm(FlaskForm):
 
-    programas_cnpq = db.session.query(Programa_CNPq.COD_PROGRAMA,Programa_CNPq.SIGLA_PROGRAMA)\
-                               .order_by(Programa_CNPq.NOME_PROGRAMA).all()
-    lista_progs = [(prog[0],prog[1]) for prog in programas_cnpq]
-    lista_progs.insert(0,('',''))
-
-    programa_cnpq    = SelectField('Programa CNPq:',choices= lista_progs)
+    #programa_cnpq    = SelectMultipleField('Programa CNPq:')
     nome             = StringField('Edição:',validators=[DataRequired(message="Informe um nome ou edição!")])
+    desc             = StringField('Descrição:')
+    unid             = StringField('Unidade:')
     sei              = StringField('Número SEI:',validators=[DataRequired(message="Informe o Programa!")]) # incluir regex para sei
     epe              = StringField('Sigla da EPE:',validators=[DataRequired(message="Informe a Instituição!")])
     uf               = StringField('UF (sigla):',validators=[DataRequired(message="Informe a sigla da UF!")])
     data_inicio      = DateField('Data de início:',format='%Y-%m-%d', validators=(Optional(),))#,validators=[DataRequired(message="Informe data do início!")])
     data_fim         = DateField('Data de término:',format='%Y-%m-%d', validators=(Optional(),))#,validators=[DataRequired(message="Informe data do término!")])
-    valor_cnpq       = StringField('Valor alocado pelo CNPq:',validators=[DataRequired(message="Informe o valor!")])
-    valor_epe        = StringField('Valor alocado pela EPE:',validators=[DataRequired(message="Informe o valor!")])
+    valor_cnpq       = StringField('Valor CNPq:',validators=[DataRequired(message="Informe o valor!")])
+    valor_epe        = StringField('Valor EPE:',validators=[DataRequired(message="Informe o valor!")])
     situ             = SelectField('Situação:',choices=[('',''),
                                   ('Preparação','Preparação'),
                                   ('Assinado','Assinado'),
@@ -59,15 +63,10 @@ class AcordoForm(FlaskForm):
 #
 class Programa_CNPqForm(FlaskForm):
 
-    coords = db.session.query(Coords.sigla)\
-                      .order_by(Coords.sigla).all()
-    lista_coords = [(c[0],c[0]) for c in coords]
-    lista_coords.insert(0,('',''))
-
     cod_programa   = StringField('Código:',validators=[DataRequired(message="Informe o código do programa!")])
     nome_programa  = StringField('Nome:',validators=[DataRequired(message="Informe o nome do Programa!")])
     sigla_programa = StringField('Sigla:',validators=[DataRequired(message="Informe a sigla do Programa!")])
-    coord          = SelectField('Coordenação:',choices= lista_coords, validators=[DataRequired(message="Escolha uma Coordenção!")])
+    coord          = SelectField('Unidade:', validators=[DataRequired(message="Escolha uma Coordenção!")])
 
     submit      = SubmitField('Registrar')
 
@@ -84,14 +83,26 @@ class Altera_proc_mae_Form(FlaskForm):
 
     submit  = SubmitField('Registrar')
 
+class Inclui_proc_mae_Form(FlaskForm):
+
+    proc_mae      = StringField('Processo_Mãe:',validators=[DataRequired(message="Informe número do processo_mãe!")])
+    coordenador   = StringField('Coordenador:',validators=[DataRequired(message="Informe o nome do coordenador ou que não há registro!")])
+    programa_cnpq = SelectField('Programa CNPq:')
+    nome_chamada  = StringField('Chamada:')
+    inic_mae      = DateField('Data de início:',format='%Y-%m-%d', validators=(Optional(),))
+    term_mae      = DateField('Data de término:',format='%Y-%m-%d', validators=(Optional(),))
+    situ_mae      = StringField('Situação:')
+
+    submit  = SubmitField('Registrar')    
+
 #
-def func_ProcMae_Acordo(programa):
+def func_ProcMae_Acordo(programas):
 
     class ProcMae_Acordo(FlaskForm):
         pass
 
     procs_mae = db.session.query(Processo_Mae.id,Processo_Mae.proc_mae)\
-                          .filter(Processo_Mae.cod_programa == programa)\
+                          .filter(Processo_Mae.cod_programa.in_(programas))\
                           .all()
 
     lista_procs = [(str(proc[0]),proc[1]) for proc in procs_mae]

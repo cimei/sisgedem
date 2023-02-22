@@ -66,13 +66,13 @@
 from re import I
 from flask import render_template,url_for,flash, redirect,request,Blueprint,send_from_directory
 from flask_login import current_user,login_required
-from sqlalchemy import func, distinct, not_
+from sqlalchemy import func, distinct
 from sqlalchemy.sql import label
 from project import db
 from project.models import Acordo, RefCargaPDCTR, PagamentosPDCTR, Processo_Mae, Bolsa, User, Demanda,\
                            Chamadas, Programa_CNPq, Acordo_ProcMae, Processo_Filho, Coords, grupo_programa_cnpq
 from project.acordos.forms import AcordoForm, Programa_CNPqForm, func_ProcMae_Acordo, ListaForm, ArquivoForm,\
-                                  Altera_proc_mae_Form, ProgAcordoForm, Inclui_proc_mae_Form
+                                  Altera_proc_mae_Form, ProgAcordoForm
 from project.demandas.views import registra_log_auto
 
 import locale
@@ -178,6 +178,7 @@ def lista_acordos(lista,coord):
     # pega unidade do usuário logado
     unidade = db.session.query(User.coord).filter(User.id==current_user.id).first()
     
+
     form = ListaForm()
 
     if form.validate_on_submit():
@@ -194,8 +195,12 @@ def lista_acordos(lista,coord):
         if coord == '*':
 
             form.coord.data = ''
-            unid = '%'
 
+            programa = db.session.query(Programa_CNPq.SIGLA_PROGRAMA,
+                                        Programa_CNPq.COD_PROGRAMA,
+                                        Programa_CNPq.COORD,
+                                        Programa_CNPq.ID_PROGRAMA)\
+                                 .subquery()
         elif coord == 'usu':
 
             form.coord.data = unidade.coord
@@ -206,10 +211,22 @@ def lista_acordos(lista,coord):
             l_filhos.append(unidade.coord)
 
             if filhos:
-                unid = l_filhos
+
+                programa = db.session.query(Programa_CNPq.SIGLA_PROGRAMA,
+                                            Programa_CNPq.COD_PROGRAMA,
+                                            Programa_CNPq.COORD,
+                                            Programa_CNPq.ID_PROGRAMA)\
+                                    .filter(Programa_CNPq.COORD.in_(l_filhos))\
+                                    .subquery()
+
             else:
-                unid = unidade.coord
-        
+
+                programa = db.session.query(Programa_CNPq.SIGLA_PROGRAMA,
+                                            Programa_CNPq.COD_PROGRAMA,
+                                            Programa_CNPq.COORD,
+                                            Programa_CNPq.ID_PROGRAMA)\
+                                    .filter(Programa_CNPq.COORD == unidade.coord)\
+                                    .subquery()
         else:
             
             form.coord.data = coord
@@ -220,10 +237,24 @@ def lista_acordos(lista,coord):
             l_filhos.append(coord)
 
             if filhos:
-                unid = l_filhos               
-            else:
-                unid = coord
+                
+                programa = db.session.query(Programa_CNPq.SIGLA_PROGRAMA,
+                                            Programa_CNPq.COD_PROGRAMA,
+                                            Programa_CNPq.COORD,
+                                            Programa_CNPq.ID_PROGRAMA)\
+                                    .filter(Programa_CNPq.COORD.in_(l_filhos))\
+                                    .subquery()
 
+            else:
+
+                programa = db.session.query(Programa_CNPq.SIGLA_PROGRAMA,
+                                            Programa_CNPq.COD_PROGRAMA,
+                                            Programa_CNPq.COORD,
+                                            Programa_CNPq.ID_PROGRAMA)\
+                                    .filter(Programa_CNPq.COORD == coord)\
+                                    .subquery()
+
+        #situ_filho_retirados = ['17','40','41','61','62','63','66']
 
         # contabiliza quandidade de programas por acordo
         cont_prog = db.session.query(grupo_programa_cnpq.id_acordo,
@@ -232,184 +263,53 @@ def lista_acordos(lista,coord):
                               .subquery()
 
         if lista == 'todos':
-            if type(unid) is str:
-                # acordos onde o nome da unidade está no campo programa_cnpq
-                acordos_1 = db.session.query(label('id',distinct(Acordo.id)),
-                                            Acordo.nome,
-                                            Acordo.sei,
-                                            Acordo.epe,
-                                            Acordo.uf,
-                                            Acordo.data_inicio,
-                                            Acordo.data_fim,
-                                            Acordo.valor_cnpq,
-                                            Acordo.valor_epe,
-                                            label('unid',Acordo.programa_cnpq),
-                                            Acordo.situ,
-                                            Acordo.desc,
-                                            cont_prog.c.qtd_prog)\
-                                    .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                    .filter(Acordo.programa_cnpq.like(unid))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()
-                # acordos onde o cod_programa está no campo programa_cnpq
-                acordos_2 = db.session.query(label('id',distinct(Acordo.id)),
-                                            Acordo.nome,
-                                            Acordo.sei,
-                                            Acordo.epe,
-                                            Acordo.uf,
-                                            Acordo.data_inicio,
-                                            Acordo.data_fim,
-                                            Acordo.valor_cnpq,
-                                            Acordo.valor_epe,
-                                            label('unid',Programa_CNPq.COORD),
-                                            Acordo.situ,
-                                            Acordo.desc,
-                                            cont_prog.c.qtd_prog)\
-                                    .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                    .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
-                                    .join(Programa_CNPq,Programa_CNPq.COD_PROGRAMA==grupo_programa_cnpq.cod_programa)\
-                                    .filter(Programa_CNPq.COORD.like(unid),
-                                            not_(Acordo.programa_cnpq.like(unid)))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()  
-                # união das duas consultas
-                acordos_v = acordos_1 + acordos_2        
-
-            elif type(unid) is list: 
-                # acordos onde o nome da unidade está no campo programa_cnpq
-                acordos_1 = db.session.query(label('id',distinct(Acordo.id)),
-                                             Acordo.nome,
-                                             Acordo.sei,
-                                             Acordo.epe,
-                                             Acordo.uf,
-                                             Acordo.data_inicio,
-                                             Acordo.data_fim,
-                                             Acordo.valor_cnpq,
-                                             Acordo.valor_epe,
-                                             label('unid',Acordo.programa_cnpq),
-                                             Acordo.situ,
-                                             Acordo.desc,
-                                             cont_prog.c.qtd_prog)\
-                                    .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                    .filter(Acordo.programa_cnpq.in_(unid))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all() 
-                # acordos onde o cod_programa está no campo programa_cnpq
-                acordos_2 = db.session.query(label('id',distinct(Acordo.id)),
-                                             Acordo.nome,
-                                             Acordo.sei,
-                                             Acordo.epe,
-                                             Acordo.uf,
-                                             Acordo.data_inicio,
-                                             Acordo.data_fim,
-                                             Acordo.valor_cnpq,
-                                             Acordo.valor_epe,
-                                             label('unid',Programa_CNPq.COORD),
-                                             Acordo.situ,
-                                             Acordo.desc,
-                                             cont_prog.c.qtd_prog)\
-                                    .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                    .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
-                                    .join(Programa_CNPq,Programa_CNPq.COD_PROGRAMA==grupo_programa_cnpq.cod_programa)\
-                                    .filter(Programa_CNPq.COORD.in_(unid),
-                                            not_(Acordo.programa_cnpq.in_(unid)))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()  
-                # união das duas consultas
-                acordos_v = acordos_1 + acordos_2                                                            
+            acordos_v = db.session.query(Acordo.id,
+                                         Acordo.nome,
+                                         Acordo.sei,
+                                         Acordo.epe,
+                                         Acordo.uf,
+                                         Acordo.data_inicio,
+                                         Acordo.data_fim,
+                                         Acordo.valor_cnpq,
+                                         Acordo.valor_epe,
+                                         Acordo.programa_cnpq,
+                                         Acordo.situ,
+                                         programa.c.SIGLA_PROGRAMA,
+                                         programa.c.COORD,
+                                         programa.c.ID_PROGRAMA,
+                                         Acordo.desc,
+                                         cont_prog.c.qtd_prog)\
+                                  .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
+                                  .join(programa, programa.c.COD_PROGRAMA == Acordo.programa_cnpq)\
+                                  .order_by(Acordo.programa_cnpq, Acordo.epe).all()
 
         elif lista == 'em execução':
-
-            if type(unid) is str:
-                # acordos onde o nome da unidade está no campo programa_cnpq
-                acordos_1 = db.session.query(label('id',distinct(Acordo.id)),
-                                            Acordo.nome,
-                                            Acordo.sei,
-                                            Acordo.epe,
-                                            Acordo.uf,
-                                            Acordo.data_inicio,
-                                            Acordo.data_fim,
-                                            Acordo.valor_cnpq,
-                                            Acordo.valor_epe,
-                                            label('unid',Acordo.programa_cnpq),
-                                            Acordo.situ,
-                                            Acordo.desc,
-                                            cont_prog.c.qtd_prog)\
-                                    .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                    .filter(Acordo.programa_cnpq.like(unid),
-                                            Acordo.data_fim >= datetime.date.today())\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()
-                # acordos onde o cod_programa está no campo programa_cnpq
-                acordos_2 = db.session.query(label('id',distinct(Acordo.id)),
-                                            Acordo.nome,
-                                            Acordo.sei,
-                                            Acordo.epe,
-                                            Acordo.uf,
-                                            Acordo.data_inicio,
-                                            Acordo.data_fim,
-                                            Acordo.valor_cnpq,
-                                            Acordo.valor_epe,
-                                            label('unid',Programa_CNPq.COORD),
-                                            Acordo.situ,
-                                            Acordo.desc,
-                                            cont_prog.c.qtd_prog)\
-                                    .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                    .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
-                                    .join(Programa_CNPq,Programa_CNPq.COD_PROGRAMA==grupo_programa_cnpq.cod_programa)\
-                                    .filter(Programa_CNPq.COORD.like(unid),
-                                            Acordo.data_fim >= datetime.date.today(),
-                                            not_(Acordo.programa_cnpq.like(unid)))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()  
-                # união das duas consultas
-                acordos_v = acordos_1 + acordos_2        
-
-            elif type(unid) is list: 
-                # acordos onde o nome da unidade está no campo programa_cnpq
-                acordos_1 = db.session.query(label('id',distinct(Acordo.id)),
-                                             Acordo.nome,
-                                             Acordo.sei,
-                                             Acordo.epe,
-                                             Acordo.uf,
-                                             Acordo.data_inicio,
-                                             Acordo.data_fim,
-                                             Acordo.valor_cnpq,
-                                             Acordo.valor_epe,
-                                             label('unid',Acordo.programa_cnpq),
-                                             Acordo.situ,
-                                             Acordo.desc,
-                                             cont_prog.c.qtd_prog)\
-                                    .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                    .filter(Acordo.programa_cnpq.in_(unid),
-                                            Acordo.data_fim >= datetime.date.today())\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all() 
-                # acordos onde o cod_programa está no campo programa_cnpq
-                acordos_2 = db.session.query(label('id',distinct(Acordo.id)),
-                                             Acordo.nome,
-                                             Acordo.sei,
-                                             Acordo.epe,
-                                             Acordo.uf,
-                                             Acordo.data_inicio,
-                                             Acordo.data_fim,
-                                             Acordo.valor_cnpq,
-                                             Acordo.valor_epe,
-                                             label('unid',Programa_CNPq.COORD),
-                                             Acordo.situ,
-                                             Acordo.desc,
-                                             cont_prog.c.qtd_prog)\
-                                    .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                    .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
-                                    .join(Programa_CNPq,Programa_CNPq.COD_PROGRAMA==grupo_programa_cnpq.cod_programa)\
-                                    .filter(Programa_CNPq.COORD.in_(unid),
-                                            Acordo.data_fim >= datetime.date.today(),
-                                            not_(Acordo.programa_cnpq.in_(unid)))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()  
-                # união das duas consultas
-                acordos_v = acordos_1 + acordos_2 
-
+            acordos_v = db.session.query(Acordo.id,
+                                        Acordo.nome,
+                                        Acordo.sei,
+                                        Acordo.epe,
+                                        Acordo.uf,
+                                        Acordo.data_inicio,
+                                        Acordo.data_fim,
+                                        Acordo.valor_cnpq,
+                                        Acordo.valor_epe,
+                                        Acordo.programa_cnpq,
+                                        Acordo.situ,
+                                        programa.c.SIGLA_PROGRAMA,
+                                        programa.c.COORD,
+                                        programa.c.ID_PROGRAMA,
+                                        Acordo.desc,
+                                        cont_prog.c.qtd_prog)\
+                                  .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
+                                  .outerjoin(programa, programa.c.COD_PROGRAMA == Acordo.programa_cnpq)\
+                                  .filter(Acordo.data_fim >= datetime.date.today())\
+                                  .order_by(Acordo.data_fim,Acordo.epe).all()
         elif lista[:8] == 'programa':
 
             # pegar coords do programa
-            unidades = db.session.query(Programa_CNPq.COORD).filter(Programa_CNPq.COD_PROGRAMA==lista[8:]).all()
-            l_unidades = [c.COORD for c in unidades]
 
-            # acordos com nome de unidade no campo programa_cnpq
-            acordos_1 = db.session.query(Acordo.id,
+            #
+            acordos_v = db.session.query(Acordo.id,
                                          Acordo.nome,
                                          Acordo.sei,
                                          Acordo.epe,
@@ -418,33 +318,17 @@ def lista_acordos(lista,coord):
                                          Acordo.data_fim,
                                          Acordo.valor_cnpq,
                                          Acordo.valor_epe,
-                                         label('unid',Acordo.programa_cnpq),
+                                         Acordo.programa_cnpq,
                                          Acordo.situ,
+                                         programa.c.SIGLA_PROGRAMA,
+                                         programa.c.COORD,
+                                         programa.c.ID_PROGRAMA,
                                          Acordo.desc,
                                          cont_prog.c.qtd_prog)\
                                   .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                  .filter(Acordo.programa_cnpq.in_(l_unidades))\
-                                  .order_by(Acordo.epe,Acordo.data_fim).all()
-            # acordos com cod_programa no campo programa_cnpq
-            acordos_2 = db.session.query(Acordo.id,
-                                         Acordo.nome,
-                                         Acordo.sei,
-                                         Acordo.epe,
-                                         Acordo.uf,
-                                         Acordo.data_inicio,
-                                         Acordo.data_fim,
-                                         Acordo.valor_cnpq,
-                                         Acordo.valor_epe,
-                                         label('unid',Acordo.programa_cnpq),
-                                         Acordo.situ,
-                                         Acordo.desc,
-                                         cont_prog.c.qtd_prog)\
-                                  .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
-                                  .filter(Acordo.programa_cnpq == lista[8:],
-                                          not_(Acordo.programa_cnpq.in_(l_unidades)))\
-                                  .order_by(Acordo.epe,Acordo.data_fim).all()
-            # união das duas consultas
-            acordos_v = acordos_1 + acordos_2                      
+                                  .outerjoin(programa, programa.c.COD_PROGRAMA == Acordo.programa_cnpq)\
+                                  .filter(Acordo.programa_cnpq == lista[8:])\
+                                  .order_by(Acordo.epe).all()
     #
         elif lista[:4] == 'edic':
             acordos_v = db.session.query(Acordo.id,
@@ -456,27 +340,45 @@ def lista_acordos(lista,coord):
                                        Acordo.data_fim,
                                        Acordo.valor_cnpq,
                                        Acordo.valor_epe,
-                                       label('unid',Acordo.programa_cnpq),
+                                       Acordo.programa_cnpq,
                                        Acordo.situ,
+                                       programa.c.SIGLA_PROGRAMA,
+                                       programa.c.COORD,
+                                       programa.c.ID_PROGRAMA,
                                        Acordo.desc,
                                        cont_prog.c.qtd_prog)\
                                   .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
+                                  .outerjoin(programa, programa.c.COD_PROGRAMA == Acordo.programa_cnpq)\
                                   .filter(Acordo.nome == lista[4:])\
-                                  .order_by(Acordo.epe,Acordo.data_fim).all()
+                                  .order_by(Acordo.epe).all()
         #
+        elif lista[:2] == 'uf':
+            acordos_v = db.session.query(Acordo.id,
+                                         Acordo.nome,
+                                         Acordo.sei,
+                                         Acordo.epe,
+                                         Acordo.uf,
+                                         Acordo.data_inicio,
+                                         Acordo.data_fim,
+                                         Acordo.valor_cnpq,
+                                         Acordo.valor_epe,
+                                         Acordo.programa_cnpq,
+                                         Acordo.situ,
+                                         programa.c.SIGLA_PROGRAMA,
+                                         programa.c.COORD,
+                                         programa.c.ID_PROGRAMA,
+                                         Acordo.desc,
+                                         cont_prog.c.qtd_prog)\
+                                  .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
+                                  .outerjoin(programa, programa.c.COD_PROGRAMA == Acordo.programa_cnpq)\
+                                  .filter(Acordo.programa_cnpq == lista[4:], Acordo.uf == lista[2:4])\
+                                  .order_by(Acordo.epe).all()
 
         quantidade = len(acordos_v)
 
         acordos = []
 
         for acordo in acordos_v:
-
-            # zera qtd_progs, caso seja nulo
-            if acordo.qtd_prog == None:
-                qtd_prog = 0
-            else:
-                qtd_prog = acordo.qtd_prog
-
             # ajusta formatos para data e dinheiro
             if acordo.data_inicio is not None:
                 início = acordo.data_inicio.strftime('%x')
@@ -590,7 +492,7 @@ def lista_acordos(lista,coord):
                 db.session.commit()
             #
             acordos.append([acordo.id,
-                            "",
+                            acordo.SIGLA_PROGRAMA,
                             acordo.nome, 
                             acordo.sei, 
                             acordo.epe, 
@@ -604,13 +506,13 @@ def lista_acordos(lista,coord):
                             locale.currency(pago_acordo, symbol=False, grouping = True),
                             locale.currency(a_pagar, symbol=False, grouping = True),
                             locale.currency(acordo.valor_cnpq - pago_acordo - a_pagar, symbol=False, grouping = True),
-                            acordo.unid,
+                            acordo.COORD,
                             dias,
-                            "",
+                            acordo.ID_PROGRAMA,
                             qtd_cpfs,
                             situ,
                             acordo.desc,
-                            qtd_prog])
+                            acordo.qtd_prog])
 
         cria_csv('/app/project/static/acordos.csv',
                  ['id','prog','nome','sei','epe','uf','ini','fim','valor_epe','valor_cnpq','qtd_proc_mae','qtd_filhos','pago','a_pagar','saldo',\
@@ -641,7 +543,7 @@ def update(acordo_id,lista):
     acordo = Acordo.query.get_or_404(acordo_id)
 
     ## consulta grupo_programa_cnpq para uso futuro (acordo com mais de um programa)
-    programas = db.session.query(grupo_programa_cnpq).filter(grupo_programa_cnpq.id_acordo==acordo_id).order_by(grupo_programa_cnpq.cod_programa).all()
+    programas = db.session.query(grupo_programa_cnpq).filter(grupo_programa_cnpq.id_acordo==acordo_id).all()
     l_programas = [p.cod_programa for p in programas]
     #
     
@@ -652,7 +554,20 @@ def update(acordo_id,lista):
                           .filter(Acordo_ProcMae.acordo_id == acordo_id)\
                           .order_by(Processo_Mae.term_mae.desc()).all()
 
+    # programas_cnpq = db.session.query(Programa_CNPq.COD_PROGRAMA,Programa_CNPq.SIGLA_PROGRAMA)\
+    #                            .order_by(Programa_CNPq.NOME_PROGRAMA).all()
+    # lista_progs = [(prog[0],prog[1]) for prog in programas_cnpq]
+    # lista_progs.insert(0,('',''))
+
     form = AcordoForm()
+
+    # form.programa_cnpq.choices= lista_progs
+
+    # form.programa_cnpq.data = acordo.programa_cnpq
+
+    # programa = db.session.query(Programa_CNPq.SIGLA_PROGRAMA)\
+    #                         .filter(Programa_CNPq.COD_PROGRAMA == acordo.programa_cnpq)\
+    #                         .first()
 
     chamadas = db.session.query(Chamadas.id,
                                 Chamadas.chamada,
@@ -682,6 +597,12 @@ def update(acordo_id,lista):
 
     if form.validate_on_submit():
 
+        ## atualiza registro em grupo_programa_cnpq para uso futuro (acordo com mais de um programa)
+        # if programas and form.programa_cnpq.data != acordo.programa_cnpq:
+        #     grupo_prog.cod_programa = form.programa_cnpq.data
+        #     db.session.commit()
+        #    
+
         acordo.nome             = form.nome.data
         acordo.sei              = form.sei.data
         acordo.epe              = form.epe.data
@@ -690,7 +611,7 @@ def update(acordo_id,lista):
         acordo.data_fim         = form.data_fim.data
         acordo.valor_cnpq       = float(form.valor_cnpq.data.replace('.','').replace(',','.'))
         acordo.valor_epe        = float(form.valor_epe.data.replace('.','').replace(',','.'))
-        acordo.programa_cnpq    = form.unid.data
+        acordo.programa_cnpq    = None
         acordo.situ             = form.situ.data
         acordo.desc             = form.desc.data
 
@@ -711,20 +632,17 @@ def update(acordo_id,lista):
     # traz a informação atual do acordo
     elif request.method == 'GET':
 
-        form.nome.data        = acordo.nome
-        form.desc.data        = acordo.desc
-        form.sei.data         = acordo.sei
-        form.epe.data         = acordo.epe
-        form.uf.data          = acordo.uf
-        form.data_inicio.data = acordo.data_inicio
-        form.data_fim.data    = acordo.data_fim
-        form.valor_cnpq.data  = locale.currency( acordo.valor_cnpq, symbol=False, grouping = True )
-        form.valor_epe.data   = locale.currency( acordo.valor_epe, symbol=False, grouping = True )
-        if acordo.programa_cnpq.isdigit():
-            form.unid.data = None 
-        else:
-            form.unid.data = acordo.programa_cnpq  
-        form.situ.data        = acordo.situ
+        form.nome.data             = acordo.nome
+        form.desc.data             = acordo.desc
+        form.sei.data              = acordo.sei
+        form.epe.data              = acordo.epe
+        form.uf.data               = acordo.uf
+        form.data_inicio.data      = acordo.data_inicio
+        form.data_fim.data         = acordo.data_fim
+        form.valor_cnpq.data       = locale.currency( acordo.valor_cnpq, symbol=False, grouping = True )
+        form.valor_epe.data        = locale.currency( acordo.valor_epe, symbol=False, grouping = True )
+        #form.programa_cnpq.data    = None
+        form.situ.data             = acordo.situ
 
 
     return render_template('add_acordo.html', title='Update',
@@ -791,7 +709,14 @@ def cria_acordo():
     +---------------------------------------------------------------------------------------+
     """
 
+    # programas_cnpq = db.session.query(Programa_CNPq.COD_PROGRAMA,Programa_CNPq.SIGLA_PROGRAMA)\
+    #                            .order_by(Programa_CNPq.NOME_PROGRAMA).all()
+    # lista_progs = [(prog[0],prog[1]) for prog in programas_cnpq]
+    # lista_progs.insert(0,('',''))
+
     form = AcordoForm()
+
+    # form.programa_cnpq.choices= lista_progs
 
     if form.validate_on_submit():
 
@@ -804,11 +729,19 @@ def cria_acordo():
                         data_fim         = form.data_fim.data,
                         valor_cnpq       = float(form.valor_cnpq.data.replace('.','').replace(',','.')),
                         valor_epe        = float(form.valor_epe.data.replace('.','').replace(',','.')),
-                        programa_cnpq    = form.unid.data,
+                        programa_cnpq    = None,
                         situ             = form.situ.data)
 
         db.session.add(acordo)
         db.session.commit()
+
+        ## cria registros em grupo_programa_cnpq para uso futuro (acordo com mais de um programa)
+        # for p in form.programa_cnpq.data:
+        #     grupo_prog = grupo_programa_cnpq(id_acordo    = acordo.id,
+        #                                      cod_programa = p)
+        #     db.session.add(grupo_prog)
+        # db.session.commit()
+        #
 
         registra_log_auto(current_user.id,None,'aco')
 
@@ -1033,8 +966,8 @@ def atualiza_programa_cnpq(id):
 #
 ### LISTAR processos mãe de um acordo
 
-@acordos.route("/<int:acordo_id>/lista_processos_mae_por_acordo")
-def lista_processos_mae_por_acordo(acordo_id):
+@acordos.route("/<int:acordo_id>/<prog>/<edic>/<epe>/<uf>/lista_processos_mae_por_acordo")
+def lista_processos_mae_por_acordo(acordo_id,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     |Lista os processos mãe vinculados a um acordo.                                         |
@@ -1100,13 +1033,13 @@ def lista_processos_mae_por_acordo(acordo_id):
 
 
     return render_template('lista_processos_mae.html',procs_mae=maes,qtd_maes=qtd_maes,
-                                                      acordo_id=acordo_id,
-                                                      edic='',epe='',uf='')
+                                                      acordo_id=acordo_id,prog=prog,
+                                                      edic=edic,epe=epe,uf=uf)
 #
 ### Alterar dados de um processos_mãe de um acordo
 
-@acordos.route("/<int:acordo_id>/<edic>/<epe>/<uf>/<proc_mae>/altera_mae", methods=['GET', 'POST'])
-def altera_mae(acordo_id,edic,epe,uf,proc_mae):
+@acordos.route("/<int:acordo_id>/<prog>/<edic>/<epe>/<uf>/<proc_mae>/altera_mae", methods=['GET', 'POST'])
+def altera_mae(acordo_id,prog,edic,epe,uf,proc_mae):
     """
     +---------------------------------------------------------------------------------------+
     |Alterar dados de um processos_mãe de um acordo.                                        |
@@ -1135,13 +1068,13 @@ def altera_mae(acordo_id,edic,epe,uf,proc_mae):
         form.situ_mae.data   = processo_mae.situ_mae
 
 
-    return render_template('altera_mae.html', form=form,acordo_id=acordo_id,prog='',edic=edic,epe=epe,uf=uf,proc_mae=proc_mae)
+    return render_template('altera_mae.html', form=form,acordo_id=acordo_id,prog=prog,edic=edic,epe=epe,uf=uf,proc_mae=proc_mae)
 
 ### ASSOCIAR UM processo mãe a um acordo
 
-@acordos.route("/<int:acordo_id>/<edic>/<epe>/<uf>/processo_mae_acordo", methods=['GET', 'POST'])
+@acordos.route("/<int:acordo_id>/<prog>/<edic>/<epe>/<uf>/processo_mae_acordo", methods=['GET', 'POST'])
 @login_required
-def processo_mae_acordo(acordo_id,edic,epe,uf):
+def processo_mae_acordo(acordo_id,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     | Apesar da planilha COSAO trazer, em tese, os processos mãe aos quais os bolsistas     |
@@ -1175,62 +1108,13 @@ def processo_mae_acordo(acordo_id,edic,epe,uf):
         flash('Processo Mãe relacionado ao Acordo!','sucesso')
         return redirect(url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo_id))
 
-    return render_template('associa_processo_mae_acordo.html', form=form,acordo_id=acordo_id,prog='',edic=edic,epe=epe,uf=uf)
-
-## resistrar manualmente um processo-mãe no sistema
-@acordos.route("/<int:acordo_id>/inclui_proc_mae", methods=['GET', 'POST'])
-def inclui_proc_mae(acordo_id):
-    """
-    +---------------------------------------------------------------------------------------+
-    |Registra um processos_mãe no sistema e o associa a um acordo.                          |
-    +---------------------------------------------------------------------------------------+
-    """
-
-    programas_cnpq = db.session.query(Programa_CNPq.COD_PROGRAMA,Programa_CNPq.SIGLA_PROGRAMA)\
-                               .order_by(Programa_CNPq.NOME_PROGRAMA).all()
-    lista_progs = [(prog[0],prog[1]) for prog in programas_cnpq]
-    lista_progs.insert(0,('',''))
-
-    form = Inclui_proc_mae_Form()
-
-    form.programa_cnpq.choices = lista_progs
-
-    if form.validate_on_submit():
-
-        proc = Processo_Mae(proc_mae     = form.proc_mae.data,
-                            coordenador  = form.coordenador.data,
-                            cod_programa = form.programa_cnpq.data.replace('/','_'),
-                            nome_chamada = form.nome_chamada.data,
-                            inic_mae     = form.inic_mae.data,
-                            term_mae     = form.term_mae.data,
-                            situ_mae     = form.situ_mae.data)
-
-        db.session.add(proc)              
-        db.session.commit()
-
-        registra_log_auto(current_user.id,None,'mae')
-
-        acordo_procmae = Acordo_ProcMae(acordo_id   = acordo_id,
-                                        proc_mae_id = proc.id)
-
-        db.session.add(acordo_procmae)
-        db.session.commit()
-
-        registra_log_auto(current_user.id,None,'ass')
-
-        flash('Processo-mãe inseridos manualmente e relacionado ao Acordo!','sucesso')
-
-
-        return redirect(url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo_id))
-
-
-    return render_template('inclui_proc_mae.html', form=form,acordo_id=acordo_id)
+    return render_template('associa_processo_mae_acordo.html', form=form,acordo_id=acordo_id,prog=prog,edic=edic,epe=epe,uf=uf)
 
 #
 ### DELETAR processo MÃE de um ACORDO
 
-@acordos.route('/<int:id>/<int:acordo_id>/<edic>/<epe>/<uf>/deleta_processo_mae',methods=['GET','POST'])
-def deleta_processo_mae(id,acordo_id,edic,epe,uf):
+@acordos.route('/<int:id>/<int:acordo_id>/<prog>/<edic>/<epe>/<uf>/deleta_processo_mae',methods=['GET','POST'])
+def deleta_processo_mae(id,acordo_id,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     |Deleta a associação de um processo mãe com um acordo.                                  |
@@ -1255,8 +1139,8 @@ def deleta_processo_mae(id,acordo_id,edic,epe,uf):
 
 ### LISTAR processos filho de um processo mãe
 
-@acordos.route("/<proc_mae>/<edic>/<epe>/<uf>/lista_processos_filho")
-def lista_processos_filho(proc_mae,edic,epe,uf):
+@acordos.route("/<proc_mae>/<prog>/<edic>/<epe>/<uf>/lista_processos_filho")
+def lista_processos_filho(proc_mae,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     |Lista os processos filho de um determinado processo mãe.                               |
@@ -1307,11 +1191,11 @@ def lista_processos_filho(proc_mae,edic,epe,uf):
 
     return render_template('lista_processos_filho.html',proc_mae=proc_mae,filhos=filhos,
                                                    qtd_filhos=qtd_filhos,lista=lista,
-                                                   prog='',edic=edic,epe=epe,uf=uf,max_ult_pag=max_ult_pag.strftime("%m/%Y"))
+                                                   prog=prog,edic=edic,epe=epe,uf=uf,max_ult_pag=max_ult_pag.strftime("%m/%Y"))
 #
 
-@acordos.route("/<proc_mae>/<edic>/<epe>/<uf>/carrega_sit_sigef", methods=['GET', 'POST'])
-def carrega_sit_sigef(proc_mae,edic,epe,uf):
+@acordos.route("/<proc_mae>/<prog>/<edic>/<epe>/<uf>/carrega_sit_sigef", methods=['GET', 'POST'])
+def carrega_sit_sigef(proc_mae,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     |Carrega situações dos processos-filho obtidas de uma planilha gerada via sigef         |
@@ -1336,15 +1220,15 @@ def carrega_sit_sigef(proc_mae,edic,epe,uf):
 
         registra_log_auto(current_user.id,None,'car')
 
-        return redirect(url_for('acordos.lista_processos_filho', proc_mae=proc_mae, edic=edic, epe=epe, uf=uf))
+        return redirect(url_for('acordos.lista_processos_filho', proc_mae=proc_mae, prog=prog, edic=edic, epe=epe, uf=uf))
 
     return render_template('grab_file.html',form=form,data_ref="sigef")
 
 #
 ### LISTAR bolsistas (cpf) de um processo mãe
 
-@acordos.route("/<proc_mae>/<edic>/<epe>/<uf>/lista_bolsistas")
-def lista_bolsistas(proc_mae,edic,epe,uf):
+@acordos.route("/<proc_mae>/<prog>/<edic>/<epe>/<uf>/lista_bolsistas")
+def lista_bolsistas(proc_mae,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     |Lista bolsistas (cpfs) de um determinado processo mãe.                                 |
@@ -1392,12 +1276,12 @@ def lista_bolsistas(proc_mae,edic,epe,uf):
 
     return render_template('lista_bolsistas.html',proc_mae=proc_mae,cpfs=cpfs,
                                                    qtd_cpfs=qtd_cpfs,
-                                                   prog='',edic=edic,epe=epe,uf=uf)
+                                                   prog=prog,edic=edic,epe=epe,uf=uf)
 #
 ### LISTAR processos filhos de um acordo
 
-@acordos.route("/<int:acordo_id>/<edic>/<epe>/<uf>/lista_processos_filho_por_acordo")
-def lista_processos_filho_por_acordo(acordo_id,edic,epe,uf):
+@acordos.route("/<int:acordo_id>/<prog>/<edic>/<epe>/<uf>/lista_processos_filho_por_acordo")
+def lista_processos_filho_por_acordo(acordo_id,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     |Lista os processos filhos vinculados a um acordo.                                      |
@@ -1460,14 +1344,14 @@ def lista_processos_filho_por_acordo(acordo_id,edic,epe,uf):
 
     return render_template('lista_processos_filho.html',filhos=filhos,qtd_maes=qtd_maes,
                                                         qtd_filhos=qtd_filhos,lista=lista,acordo_id=acordo_id,
-                                                        prog='',edic=edic,epe=epe,uf=uf,max_ult_pag=max_ult_pag.strftime("%m/%Y"))
+                                                        prog=prog,edic=edic,epe=epe,uf=uf,max_ult_pag=max_ult_pag.strftime("%m/%Y"))
 #
 
 #
 ### LISTAR bolsistas (cpf) de um acordo
 
-@acordos.route("/<int:acordo_id>/<edic>/<epe>/<uf>/lista_bolsistas")
-def lista_bolsistas_acordo(acordo_id,edic,epe,uf):
+@acordos.route("/<int:acordo_id>/<prog>/<edic>/<epe>/<uf>/lista_bolsistas")
+def lista_bolsistas_acordo(acordo_id,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     |Lista bolsistas (cpfs) de um acordo especifico.                                        |
@@ -1527,7 +1411,7 @@ def lista_bolsistas_acordo(acordo_id,edic,epe,uf):
 
     return render_template('lista_bolsistas.html',proc_mae=l_procs_mae,cpfs=cpfs,
                                                    qtd_cpfs=qtd_cpfs,
-                                                   prog='',edic=edic,epe=epe,uf=uf)
+                                                   prog=prog,edic=edic,epe=epe,uf=uf)
 #
 ## RESUMO acordos
 
@@ -1747,8 +1631,8 @@ def brasil_acordos():
 #
 ### gasto mês por acordo
 
-@acordos.route("/<int:acordo_id>/<edic>/<epe>/<uf>/gasto_mes")
-def gasto_mes(acordo_id,edic,epe,uf):
+@acordos.route("/<int:acordo_id>/<prog>/<edic>/<epe>/<uf>/gasto_mes")
+def gasto_mes(acordo_id,prog,edic,epe,uf):
     """
     +---------------------------------------------------------------------------------------+
     |Lista os gastos mensais por acordo.                                                    |
@@ -1811,13 +1695,13 @@ def gasto_mes(acordo_id,edic,epe,uf):
         gastos = [ (x[0].year,x[0].month,locale.currency(x[1], symbol=False, grouping = True),x[2]) for x in lista ]
 
         return render_template('gasto_mes.html',gastos=gastos,qtd_meses=len(gastos),
-                                                    prog='',edic=edic,epe=epe,uf=uf)
+                                                    prog=prog,edic=edic,epe=epe,uf=uf)
 
     else:
         flash('Não há processos-mãe registrados!','erro')
 
         return render_template('gasto_mes.html',gastos=[],qtd_meses=0,
-                                                    prog='',edic=edic,epe=epe,uf=uf)
+                                                    prog=prog,edic=edic,epe=epe,uf=uf)
     
     
 

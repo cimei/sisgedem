@@ -1,5 +1,18 @@
 ## Atualizações ##
 
+17/02/2023
+Tratamento de exceção quanto planilha de folha de pagamento vem com coluna faltando.
+Usuário paassa a ver convenioso e acordos da sua unidade inicialmente nas listas.
+Ajustes para antender necessidades da CGSAU: 
+Acordos podem ter mais de um programa CNPq
+Acordo passa a ter unidade no seu registro, antes a associação era por programa_cnpq. Unidade ocupará a posição de programa_cnpq no banco de dados.
+O sistema tratará as duas situações em função do legado.
+v4.12.0
+
+30/12/2022
+Correção de erro no cadastro e visualização de Instrumentos.
+v4.11.5
+
 07/10/2022
 Possibilidade de trocar senha dentro do aplicativo.
 v 4.11.4

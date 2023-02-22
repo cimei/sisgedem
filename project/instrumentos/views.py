@@ -34,8 +34,7 @@ from project.instrumentos.forms import InstrumentoForm, ListaForm
 from project.demandas.views import registra_log_auto
 
 import locale
-import datetime
-from datetime import datetime as dt
+from datetime import datetime, date
 from dateutil.rrule import rrule, MONTHLY
 
 instrumentos = Blueprint('instrumentos',__name__,
@@ -68,6 +67,9 @@ def lista_instrumentos(lista,coord):
     |                                                                                       |
     +---------------------------------------------------------------------------------------+
     """
+
+    hoje = datetime.today()
+
     form = ListaForm()
 
     if form.validate_on_submit():
@@ -124,7 +126,8 @@ def lista_instrumentos(lista,coord):
                                               Instrumento.valor,
                                               coordenacao.c.sigla)\
                                        .join(coordenacao, coordenacao.c.sigla == Instrumento.coord)\
-                                       .filter(Instrumento.data_fim >= datetime.date.today())\
+                                       .filter(Instrumento.data_fim >= hoje,
+                                               Instrumento.data_inicio <= hoje)\
                                        .order_by(Instrumento.data_fim,Instrumento.nome).all()
 
         quantidade = len(instrumentos_v)
@@ -140,7 +143,7 @@ def lista_instrumentos(lista,coord):
 
             if instrumento.data_fim is not None:
                 fim = instrumento.data_fim.strftime('%x')
-                dias = (instrumento.data_fim - datetime.date.today()).days
+                dias = (instrumento.data_fim - hoje).days
             else:
                 fim = None
                 dias = 999

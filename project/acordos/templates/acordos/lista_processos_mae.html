@@ -5,7 +5,7 @@
 
   {% if current_user.is_authenticated %}
     <div>
-      <a href="{{url_for('acordos.processo_mae_acordo',acordo_id=acordo_id,prog=prog,edic=edic,epe=epe,uf=uf)}}" class="btn btn-primary active" role="button" aria-pressed="true">Inserir novo</a>
+      <a href="{{url_for('acordos.processo_mae_acordo',acordo_id=acordo_id,edic=edic,epe=epe,uf=uf)}}" class="btn btn-primary active" role="button" aria-pressed="true">Inserir novo</a>
     </div>
   {% endif %}
 <br>
@@ -13,14 +13,14 @@
 <caption>
   <div class="row">
       <div class="col">
-        <p>Lista dos <span class="badge badge-pill badge-primary">{{qtd_maes}}</span> <b>Processos mãe</b> cadastrados ({{prog}}-{{edic}} {{epe}}-{{uf}})
+        <p>Lista dos <span class="badge badge-pill badge-primary">{{qtd_maes}}</span> <b>Processos mãe</b> cadastrados
         </p>
       </div>
   </div>
 </caption>
 
   <table class="table table-striped table-hover table-sm">
-    <caption>Processos mãe do Acordo {{prog}}-{{edic}} {{epe}}-{{uf}}</caption>
+    <caption>Processos mãe do Acordo {{edic}} - {{epe}}-{{uf}}</caption>
     <thead>
       <tr>
         <th scope="col"><p align = "center">#</p></th>
@@ -64,7 +64,7 @@
                     <div class="modal-footer">
                       <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
 
-                      <form action="{{url_for('acordos.deleta_processo_mae',id=proc[0],acordo_id=acordo_id,prog=prog,edic=edic,epe=epe,uf=uf)}}" method="post">
+                      <form action="{{url_for('acordos.deleta_processo_mae',id=proc[0],acordo_id=acordo_id,edic=edic,epe=epe,uf=uf)}}" method="post">
                         <input class="btn btn-danger" type="submit" name="" value="Excluir">
                       </form>
 
@@ -79,7 +79,7 @@
               {% endif %}
 
           </th>
-          <td><p align = "center"> <a href="{{url_for('acordos.altera_mae', acordo_id=acordo_id, prog=prog, edic=edic, epe=epe, uf=uf, proc_mae=proc[1].replace('/','_'))}}">
+          <td><p align = "center"> <a href="{{url_for('acordos.altera_mae', acordo_id=acordo_id, edic=edic, epe=epe, uf=uf, proc_mae=proc[1].replace('/','_'))}}">
                                    <abbr title="Clique aqui para alterar dados deste processo-mãe.">{{proc[1]}} </p></td>
           <td><p align = "center"> {{proc[9]}} </p></td>
           <td><p align = "center"> {{proc[10]}} </p></td>
@@ -89,9 +89,9 @@
             <td><p align = "center"> {{proc[2]}} {{proc[3]}}</p></td>
           {% endif %}
 
-          <td><p align = "center"> <a href="{{url_for('acordos.lista_processos_filho', proc_mae=proc[1].replace('/','_'), prog=prog, edic=edic, epe=epe, uf=uf)}}">
+          <td><p align = "center"> <a href="{{url_for('acordos.lista_processos_filho', proc_mae=proc[1].replace('/','_'), edic=edic, epe=epe, uf=uf)}}">
                                    <abbr title="Clique aqui para ver a lista de filhos.">{{proc[4]}} </p></td>
-          <td><p align = "center"><a href="{{url_for('acordos.lista_bolsistas', proc_mae=proc[1].replace('/','_'), prog=prog, edic=edic, epe=epe, uf=uf)}}">
+          <td><p align = "center"><a href="{{url_for('acordos.lista_bolsistas', proc_mae=proc[1].replace('/','_'), edic=edic, epe=epe, uf=uf)}}">
                                    <abbr title="Clique aqui para ver a lista de bolsistas."> {{proc[7]}} </p></td>
           <td><p align = "center"> {{proc[8]}} </p></td>
           <td><p align = "right"> {{proc[5]}} </p></td>

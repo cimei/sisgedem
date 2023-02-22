@@ -273,6 +273,25 @@ class Programa_CNPq(db.Model):
     def __repr__ (self):
         return f"{self.COD_PROGRAMA};{self.NOME_PROGRAMA};{self.SIGLA_PROGRAMA};{self.COORD}"
 
+#
+# programa do CNPq - Utilizado para Acordos
+
+class grupo_programa_cnpq(db.Model):
+
+    __tablename__ = 'grupo_programa_cnpq'
+
+    id_grupo     = db.Column(db.Integer, primary_key = True)
+    id_acordo    = db.Column(db.Integer)
+    cod_programa = db.Column(db.String)
+
+    def __init__(self, id_acordo, cod_programa):
+
+        self.id_acordo    = id_acordo
+        self.cod_programa = cod_programa
+
+    def __repr__ (self):
+        return f"{self.id_acordo};{self.cod_programa}"        
+
 # dados dos vários acordos
 class Acordo(db.Model):
 
@@ -289,10 +308,11 @@ class Acordo(db.Model):
     valor_epe        = db.Column(db.Float)
     programa_cnpq    = db.Column(db.String)
     situ             = db.Column(db.String)
+    desc             = db.Column(db.String)
 
     #AcordoEpeEdic = db.relationship('ProcessoMae', primaryjoin="_and(ProcessoMae.epe==Acordo.epe, ProcessoMae.acordo_nome=Acordo.nome)")
 
-    def __init__(self,nome,sei,epe,uf,data_inicio,data_fim,valor_cnpq,valor_epe,programa_cnpq,situ):
+    def __init__(self,nome,sei,epe,uf,data_inicio,data_fim,valor_cnpq,valor_epe,programa_cnpq,situ,desc):
         self.nome             = nome
         self.sei              = sei
         self.epe              = epe
@@ -303,6 +323,7 @@ class Acordo(db.Model):
         self.valor_epe        = valor_epe
         self.programa_cnpq    = programa_cnpq
         self.situ             = situ
+        self.desc             = desc
 
     def __repr__(self):
 
@@ -760,13 +781,15 @@ class Coords (db.Model):
 
     id   = db.Column(db.Integer,primary_key=True)
     sigla = db.Column(db.String)
+    pai = db.Column(db.String)
 
-    def __init__ (self,sigla):
+    def __init__ (self,sigla,pai):
 
         self.sigla = sigla
+        self.pai   = pai
 
     def __repr__ (self):
-        return f"{self.sigla}"
+        return f"{self.sigla};{self.pai}"
 
 
 class Tipos_Demanda(db.Model):
