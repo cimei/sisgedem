@@ -65,8 +65,8 @@
                 <a class="dropdown-item" href="{{url_for('acordos.lista_programa_cnpq')}}">Programas CNPq</a>
                 <a class="dropdown-item" href="{{url_for('acordos.lista_acordos',lista='todos',coord='usu')}}">Todos</a>
                 <a class="dropdown-item" href="{{url_for('acordos.lista_acordos',lista='em execução',coord='usu')}}">Em Execução</a>
-                <a class="dropdown-item" href="{{url_for('acordos.brasil_acordos')}}">Por UF</a>
                 <a class="dropdown-item" href="{{url_for('acordos.resumo_acordos')}}">Por Programa</a>
+                <a class="dropdown-item" href="{{url_for('acordos.brasil_acordos')}}">Mapa</a>
                 <a class="dropdown-item" href="{{url_for('bolsas.lista_bolsas')}}">Bolsas</a>
               </div>
             </li>
@@ -162,7 +162,7 @@
             </div>
           </li>
 
-          {% set ver = namespace(num='4.12.0') %}
+          {% set ver = namespace(num='4.12.1') %}
 
           {% if current_user.is_authenticated and current_user.sversion != ver.num %}
             <li class="nav-item">

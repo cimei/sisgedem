@@ -89,9 +89,9 @@
             <td><p align = "center"> {{proc[2]}} {{proc[3]}}</p></td>
           {% endif %}
 
-          <td><p align = "center"> <a href="{{url_for('acordos.lista_processos_filho', proc_mae=proc[1].replace('/','_'), edic=edic, epe=epe, uf=uf)}}">
+          <td><p align = "center"> <a href="{{url_for('acordos.lista_processos_filho', proc_mae=proc[1].replace('/','_'))}}">
                                    <abbr title="Clique aqui para ver a lista de filhos.">{{proc[4]}} </p></td>
-          <td><p align = "center"><a href="{{url_for('acordos.lista_bolsistas', proc_mae=proc[1].replace('/','_'), edic=edic, epe=epe, uf=uf)}}">
+          <td><p align = "center"><a href="{{url_for('acordos.lista_bolsistas', proc_mae=proc[1].replace('/','_'))}}">
                                    <abbr title="Clique aqui para ver a lista de bolsistas."> {{proc[7]}} </p></td>
           <td><p align = "center"> {{proc[8]}} </p></td>
           <td><p align = "right"> {{proc[5]}} </p></td>

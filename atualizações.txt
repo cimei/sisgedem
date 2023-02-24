@@ -1,5 +1,10 @@
 ## Atualizações ##
 
+24/02/2023
+Correção de erro na exibição de listas de bolsistas.
+Mapa passa a mostrar somente quantidades de acordos vigentes.
+v4.12.1
+
 17/02/2023
 Tratamento de exceção quanto planilha de folha de pagamento vem com coluna faltando.
 Usuário paassa a ver convenioso e acordos da sua unidade inicialmente nas listas.

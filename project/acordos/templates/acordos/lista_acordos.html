@@ -168,21 +168,21 @@
 
         {% if acordo[1] != None%}
           <td><p align = "center">
-            <a href="{{url_for('acordos.lista_processos_filho_por_acordo',acordo_id=acordo[0],edic=acordo[2],epe=acordo[4],uf=acordo[5])}}">
+            <a href="{{url_for('acordos.lista_processos_filho_por_acordo',acordo_id=acordo[0])}}">
               <small class="font-weight-bold"> {{acordo[11]}}</small></a></p></td>
         {% else %}
           <td><p align = "center">
-            <a href="{{url_for('acordos.lista_processos_filho_por_acordo',acordo_id=acordo[0],edic=acordo[2],epe=acordo[4],uf=acordo[5])}}">
+            <a href="{{url_for('acordos.lista_processos_filho_por_acordo',acordo_id=acordo[0])}}">
               <small> {{acordo[11]}}</small></a></p></td>
         {% endif %}
 
         {% if acordo[1] != None%}
           <td><p align = "center">
-            <a href="{{url_for('acordos.lista_bolsistas_acordo',acordo_id=acordo[0],edic=acordo[2],epe=acordo[4],uf=acordo[5])}}">
+            <a href="{{url_for('acordos.lista_bolsistas_acordo',acordo_id=acordo[0])}}">
               <small class="font-weight-bold"> {{acordo[18]}}</small></a></p></td>
         {% else %}
           <td><p align = "center">
-            <a href="{{url_for('acordos.lista_bolsistas_acordo',acordo_id=acordo[0],edic=acordo[2],epe=acordo[4],uf=acordo[5])}}">
+            <a href="{{url_for('acordos.lista_bolsistas_acordo',acordo_id=acordo[0])}}">
               <small> {{acordo[18]}}</small></a></p></td>
         {% endif %}
 

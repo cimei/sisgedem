@@ -953,7 +953,7 @@ def lista_programas_acordo(id_acordo):
     +---------------------------------------------------------------------------------------+
     |Lista programas que o acordo usa para efeturar pagamentos.                             |
     |                                                                                       |
-    |Recebe o ID do acordo como parâmetro.                                                |
+    |Recebe o ID do acordo como parâmetro.                                                  |
     +---------------------------------------------------------------------------------------+
     """
 
@@ -963,6 +963,7 @@ def lista_programas_acordo(id_acordo):
                                        Programa_CNPq.NOME_PROGRAMA)\
                                 .join(Programa_CNPq, grupo_programa_cnpq.cod_programa == Programa_CNPq.COD_PROGRAMA)\
                                 .filter(grupo_programa_cnpq.id_acordo == id_acordo)\
+                                .order_by(grupo_programa_cnpq.cod_programa)\
                                 .all()
     qtd_progs = len(lista_programas)
 
@@ -1255,8 +1256,8 @@ def deleta_processo_mae(id,acordo_id,edic,epe,uf):
 
 ### LISTAR processos filho de um processo mãe
 
-@acordos.route("/<proc_mae>/<edic>/<epe>/<uf>/lista_processos_filho")
-def lista_processos_filho(proc_mae,edic,epe,uf):
+@acordos.route("/<proc_mae>/lista_processos_filho")
+def lista_processos_filho(proc_mae):
     """
     +---------------------------------------------------------------------------------------+
     |Lista os processos filho de um determinado processo mãe.                               |
@@ -1282,9 +1283,11 @@ def lista_processos_filho(proc_mae,edic,epe,uf):
 
     qtd_filhos = len(filhos_banco)
 
-    ult_pag = [filho.dt_ult_pag for filho in filhos_banco]
-
-    max_ult_pag = max(ult_pag)
+    if filhos_banco:
+        ult_pag = [filho.dt_ult_pag for filho in filhos_banco]
+        max_ult_pag = max(ult_pag).strftime("%m/%Y")
+    else:
+        max_ult_pag = 0
 
     filhos = []
 
@@ -1303,11 +1306,9 @@ def lista_processos_filho(proc_mae,edic,epe,uf):
                        filho.mens_apagar,
                        locale.currency(filho.valor_apagar, symbol=False, grouping = True)])
 
-
-
     return render_template('lista_processos_filho.html',proc_mae=proc_mae,filhos=filhos,
                                                    qtd_filhos=qtd_filhos,lista=lista,
-                                                   prog='',edic=edic,epe=epe,uf=uf,max_ult_pag=max_ult_pag.strftime("%m/%Y"))
+                                                   prog='',edic='',epe='',uf='',max_ult_pag=max_ult_pag)
 #
 
 @acordos.route("/<proc_mae>/<edic>/<epe>/<uf>/carrega_sit_sigef", methods=['GET', 'POST'])
@@ -1336,15 +1337,15 @@ def carrega_sit_sigef(proc_mae,edic,epe,uf):
 
         registra_log_auto(current_user.id,None,'car')
 
-        return redirect(url_for('acordos.lista_processos_filho', proc_mae=proc_mae, edic=edic, epe=epe, uf=uf))
+        return redirect(url_for('acordos.lista_processos_filho', proc_mae=proc_mae))
 
     return render_template('grab_file.html',form=form,data_ref="sigef")
 
 #
 ### LISTAR bolsistas (cpf) de um processo mãe
 
-@acordos.route("/<proc_mae>/<edic>/<epe>/<uf>/lista_bolsistas")
-def lista_bolsistas(proc_mae,edic,epe,uf):
+@acordos.route("/<proc_mae>/lista_bolsistas")
+def lista_bolsistas(proc_mae):
     """
     +---------------------------------------------------------------------------------------+
     |Lista bolsistas (cpfs) de um determinado processo mãe.                                 |
@@ -1392,12 +1393,12 @@ def lista_bolsistas(proc_mae,edic,epe,uf):
 
     return render_template('lista_bolsistas.html',proc_mae=proc_mae,cpfs=cpfs,
                                                    qtd_cpfs=qtd_cpfs,
-                                                   prog='',edic=edic,epe=epe,uf=uf)
+                                                   prog='',edic='',epe='',uf='')
 #
 ### LISTAR processos filhos de um acordo
 
-@acordos.route("/<int:acordo_id>/<edic>/<epe>/<uf>/lista_processos_filho_por_acordo")
-def lista_processos_filho_por_acordo(acordo_id,edic,epe,uf):
+@acordos.route("/<int:acordo_id>/lista_processos_filho_por_acordo")
+def lista_processos_filho_por_acordo(acordo_id):
     """
     +---------------------------------------------------------------------------------------+
     |Lista os processos filhos vinculados a um acordo.                                      |
@@ -1435,9 +1436,12 @@ def lista_processos_filho_por_acordo(acordo_id,edic,epe,uf):
 
         qtd_filhos += len(filhos_banco)
 
-        ult_pag = [filho.dt_ult_pag for filho in filhos_banco]
-
-        ultimo_pag.append(max(ult_pag))
+        if filhos_banco:
+            ult_pag = [filho.dt_ult_pag for filho in filhos_banco]
+            ultimo_pag.append(max(ult_pag))
+            max_ult_pag = max(ultimo_pag).strftime("%m/%Y")
+        else:
+            max_ult_pag = 0    
 
 
         for filho in filhos_banco:
@@ -1455,19 +1459,16 @@ def lista_processos_filho_por_acordo(acordo_id,edic,epe,uf):
                           filho.mens_apagar,
                           locale.currency(filho.valor_apagar, symbol=False, grouping = True)])
 
-
-    max_ult_pag = max(ultimo_pag)
-
     return render_template('lista_processos_filho.html',filhos=filhos,qtd_maes=qtd_maes,
                                                         qtd_filhos=qtd_filhos,lista=lista,acordo_id=acordo_id,
-                                                        prog='',edic=edic,epe=epe,uf=uf,max_ult_pag=max_ult_pag.strftime("%m/%Y"))
+                                                        prog='',edic='',epe='',uf='',max_ult_pag=max_ult_pag)
 #
 
 #
 ### LISTAR bolsistas (cpf) de um acordo
 
-@acordos.route("/<int:acordo_id>/<edic>/<epe>/<uf>/lista_bolsistas")
-def lista_bolsistas_acordo(acordo_id,edic,epe,uf):
+@acordos.route("/<int:acordo_id>/lista_bolsistas")
+def lista_bolsistas_acordo(acordo_id):
     """
     +---------------------------------------------------------------------------------------+
     |Lista bolsistas (cpfs) de um acordo especifico.                                        |
@@ -1527,7 +1528,7 @@ def lista_bolsistas_acordo(acordo_id,edic,epe,uf):
 
     return render_template('lista_bolsistas.html',proc_mae=l_procs_mae,cpfs=cpfs,
                                                    qtd_cpfs=qtd_cpfs,
-                                                   prog='',edic=edic,epe=epe,uf=uf)
+                                                   prog='',edic='',epe='',uf='')
 #
 ## RESUMO acordos
 
@@ -1667,6 +1668,8 @@ def brasil_acordos():
     +---------------------------------------------------------------------------------------+
     """
 
+    hoje = dt.today()
+
     gps = {'AC':[-9.977916,-67.826068],
            'AL':[-9.649433,-35.709335],
            'AM':[-3.074759,-60.028723],
@@ -1703,6 +1706,7 @@ def brasil_acordos():
                                  Acordo.epe,
                                  label('qtd_acordos',func.count(Acordo.id)))\
                           .join(Acordo, Acordo.programa_cnpq == Programa_CNPq.COD_PROGRAMA)\
+                          .filter(Acordo.data_fim >= hoje)\
                           .order_by(Programa_CNPq.SIGLA_PROGRAMA)\
                           .group_by(Acordo.uf,
                                     Programa_CNPq.SIGLA_PROGRAMA,
@@ -1725,9 +1729,9 @@ def brasil_acordos():
         pop = '<b>Acordos - '+uf+':</b><br>'
         for p in programas:
             if p.uf == uf:
-                tip = '<b>'+uf+'</b><br>EPE: '+p.epe
-                pop += '<p>'+p.SIGLA_PROGRAMA+' ('+str(p.qtd_acordos)+')</p>'
                 qtd_na_uf += p.qtd_acordos
+                tip = '<b>'+uf+'</b><br>'+str(qtd_na_uf)+' acordos vigentes'
+                pop += '<p>'+p.SIGLA_PROGRAMA+' ('+str(p.qtd_acordos)+')</p>'
         if pop == '<b>Acordos - '+uf+':</b><br>':
             tip = '<b>'+uf+'</b>'
             pop = 'N&atilde;o h&aacute; Acordos celebrados com <b>'+uf+'</b>.'
