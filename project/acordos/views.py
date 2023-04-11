@@ -567,12 +567,12 @@ def lista_acordos(lista,coord):
                     situ = 'RTF aprovado, mas há processo(s) à finalizar'
                     alterar_sit = True
                 if (situ[0:8] == 'Expirado' or situ == 'Vigente' or situ == 'Preparação' or situ == 'Esquecido' or situ == '' or situ == 'Consta indicação de bolsista') and\
-                            qtd_proc_mae == 0 and acordo.data_fim > hoje and indic == 0 and\
+                            qtd_proc_mae == 0 and acordo.data_fim > hoje and indic == 0 and acordo.data_inicio != None and\
                             (acordo.data_inicio+datetime.timedelta(days=90)) >= hoje:
                     situ = 'Assinado'
                     alterar_sit = True
                 if (situ[0:8] == 'Expirado' or situ == 'Vigente' or situ == 'Assinado' or situ == 'Preparação' or situ == '' or situ == 'Consta indicação de bolsista') and\
-                            qtd_proc_mae == 0 and acordo.data_fim > hoje and indic == 0 and\
+                            qtd_proc_mae == 0 and acordo.data_fim > hoje and indic == 0 and acordo.data_inicio != None and\
                             (acordo.data_inicio+datetime.timedelta(days=90)) < hoje:
                     situ = 'Esquecido'
                     alterar_sit = True

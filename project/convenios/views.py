@@ -191,7 +191,7 @@ def prog_pref_update(cod_prog):
 def lista_convenios_SICONV(lista,coord):
     """
     +---------------------------------------------------------------------------------------+
-    |Apresenta uma lista dos convênios de responsabilidade da COPES no SICONV.              |
+    |Apresenta uma lista dos convênios.                                                     |
     |                                                                                       |
     +---------------------------------------------------------------------------------------+
     """
@@ -380,8 +380,8 @@ def lista_convenios_SICONV(lista,coord):
         send_from_directory('/app/project/static', 'convenios.csv') 
 
         return render_template('list_convenios.html', convenio = convenio,   
-                                                      quantidade=quantidade, 
-                                                      lista=lista,
+                                                      quantidade = quantidade, 
+                                                      lista = lista,
                                                       form = form,
                                                       data_carga = str(data_carga[0]))
 

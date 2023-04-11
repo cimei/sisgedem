@@ -591,8 +591,12 @@ def cargaSICONV():
 
             # gera a lista propostas pegando somente os que coincidem com a programa_proposta,
             # incluindo o id_programa na primeira posição
+            # ID_PROPOSTA está como chave primária em Proposta, então evitarei ocorrências repetidas
+
+            set_id_proposta = set([item['ID_PROPOSTA'] for item in programa_proposta])
+
             for line in data_lines:
-                if line[id_proposta_campo] in [item['ID_PROPOSTA'] for item in programa_proposta]:
+                if line[id_proposta_campo] in set_id_proposta:
                     propostas.append([line[id_proposta_campo],line[campos_proposta[1]],line[campos_proposta[2]],line[campos_proposta[3]]])
 
             db.session.query(Proposta).delete()
@@ -603,6 +607,8 @@ def cargaSICONV():
                 for item in programa_proposta:
                     if item['ID_PROPOSTA'] == proposta[0]:
                         proposta.insert(0,item[id_programa_campo])
+                        # deve parar quando achar a primeira equivalência de forma a não violar a chave primária de Proposta
+                        break
 
                 proposta_gravar = Proposta(ID_PROGRAMA      = proposta[0],
                                            ID_PROPOSTA      = proposta[1],
