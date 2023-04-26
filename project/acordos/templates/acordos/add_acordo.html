@@ -5,9 +5,9 @@
 <div class="jumbotron">
 
 {% if acordo_id != 0 %}
-<h1>Visualizar/Alterar detalhes do Acordo</h1>
+<h1>Visualizar/Alterar detalhes do Acordo/TED</h1>
 {% else %}
-<h1>Inserir detalhes de um Acordo</h1>
+<h1>Inserir detalhes de um Acordo/TED</h1>
 {% endif %}
 
 {% macro render_field(field,obr) %}
@@ -54,12 +54,17 @@
         {{ render_field(form.sei,class="form-control", placeholder="01300.nnnnnn/nnnn-nn",obr=True) }}
       </div>
     </div>
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.siafi,class="form-control",obr=False) }}
+      </div>
+    </div>
     <div class="col-3">
       <div class="form-group">
         {{ render_field(form.situ,class="form-control",obr=False) }}
       </div>
     </div>
-    <div class="col-6">
+    <div class="col-4">
         <b>Programa(s):</b>
         {% for p in l_programas%}
          {{ p }} 
@@ -75,7 +80,7 @@
     </div>
     <div class="col-2">
       <div class="form-group">
-        {{ render_field(form.uf,class="form-control",obr=True) }}
+        {{ render_field(form.uf,class="form-control",size=2, maxlength=2,obr=True) }}
       </div>
     </div>
     <div class="col-1">
@@ -96,14 +101,12 @@
 
     <div class="col-2">
       <div class="form-group">
-        {{ render_field(form.valor_cnpq,class="form-control",obr=True) }}
-        <small id="valorCNPqHelp" class="form-text text-muted">Não informar moeda. Use . para separar milhar e , para separar centavos.</small>
+        {{ render_field(form.valor_cnpq,class="form-control",placeholder="0,0",obr=True) }}
       </div>
     </div>
     <div class="col-2">
       <div class="form-group">
-        {{ render_field(form.valor_epe,class="form-control",obr=True) }}
-        <small id="valorEPEHelp" class="form-text text-muted">Não informar moeda. Use . para separar milhar e , para separar centavos.</small>
+        {{ render_field(form.valor_epe,class="form-control",placeholder="0,0",obr=True) }}
       </div>
     </div>
     <div class="col-1">
@@ -135,6 +138,26 @@
     </div>
 
   </div>
+
+  <div class="form-row">
+
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.capital,class="form-control",placeholder="0,0",obr=True) }}
+      </div>
+    </div>
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.custeio,class="form-control",placeholder="0,0",obr=True) }}
+      </div>
+    </div>
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.bolsas,class="form-control",placeholder="0,0",obr=True) }}
+      </div>
+    </div>
+
+  </div>  
 
 <div class="row justify-content-center">
   <div class="col-7">

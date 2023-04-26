@@ -75,21 +75,20 @@
     <thead>
       <tr>
         <th scope="col"><p align = "center">#</p></th>
-        <th scope="col"data-field="Coord" data-filter-control="input" data-sortable="true"><p align = "center">Coord.</p></th>
-        <th scope="col" data-sortable="true"><p align = "center">Qtd Prog.</p></th>
-        <th scope="col" data-field="Edição" data-filter-control="input" data-sortable="true"><p align = "center">Edição</p></th>
+        <th scope="col"data-field="Unid." data-filter-control="input" data-sortable="true"><p align = "center">Unid.</p></th>
+        <th scope="col" data-sortable="true"><p align = "center">Progs.</p></th>
+        <th scope="col" data-field="Edição" data-filter-control="input" data-sortable="true"><p align = "center">Edição/Sigla</p></th>
         <th scope="col" data-sortable="true"><p align = "center">SEI</p></th>
-        <th scope="col" data-field="EPE UF" data-filter-control="input" data-sortable="true"><p align = "center">EPE UF</p></th>
+        <th scope="col" data-field="EP UF" data-filter-control="input" data-sortable="true"><p align = "center">EP UF</p></th>
         <th scope="col" data-field="Situação" data-filter-control="input" data-sortable="true"><p align = "center">Situação</p></th>
-        <th scope="col" data-sortable="true"><p align = "center">Início</p></th>
-        <th scope="col" data-sortable="true"><p align = "center">Término</p></th>
-        <th scope="col"><p align = "center">Valor EPE</p></th>
-        <th scope="col"><p align = "center">Valor CNPq</p></th>
-        <th scope="col"><p align = "center">QTD Mães</p></th>
-        <th scope="col"><p align = "center">QTD Filhos</p></th>
-        <th scope="col"><p align = "center">QTD CPFs</p></th>
-        <th scope="col"><p align = "center">Pago</p></th>
-        <th scope="col"><p align = "center">A pagar</p></th>
+        <th scope="col" data-sortable="true"><p align = "center">Ini.</p></th>
+        <th scope="col" data-sortable="true"><p align = "center">Fim</p></th>
+        <th scope="col"><p align = "center">Global (R$)</p></th>
+        <th scope="col"><p align = "center">Mães</p></th>
+        <th scope="col"><p align = "center">Filhos</p></th>
+        <th scope="col"><p align = "center">CPFs</p></th>
+        <th scope="col"><p align = "center">Pago (B)</p></th>
+        <th scope="col"><p align = "center">A pagar (B)</p></th>
         <th scope="col"><p align = "center">Saldo</p></th>
       </tr>
     </thead>
@@ -106,7 +105,8 @@
               <a href="{{url_for('acordos.lista_programas_acordo', id_acordo=acordo[0])}}"><abbr title="Clique para programas"><small> {{acordo[21]}}</small></abbr></a>
             </p></td>
         <td><p align = "center">
-              <abbr title="{{acordo[20]}}"><small> {{acordo[2]}}</small></abbr>
+              <a href="{{url_for('acordos.update', acordo_id=acordo[0], lista=lista)}}">
+              <abbr title="{% if acordo[22] %} {{acordo[20]}} - SIAFI: {{acordo[22]}} {% else %} {{acordo[20]}} {% endif %}"> <small> {{acordo[2]}}</small></abbr></a>
             </p></td>
         {% if acordo[3] != None%}
           <td><p align = "center"> <a href="{{url_for('acordos.acordo_demandas', acordo_id=acordo[0])}}"><abbr title="Clique aqui para ver demandas deste acordo"><small> {{acordo[3]}} </small></abbr></a> </p></td>
@@ -115,7 +115,7 @@
         {% endif %}
         <td><p align = "center"><small> {{acordo[4]}} {{acordo[5]}}</small></p></td>
         <td><p align = "center"><small> {% if acordo[19] == "Esquecido"%}
-                                          <abbr title="Vigência registrada, mas sem processo-mãe associado a mais de 90 dias!"><span class='text-danger'>{{acordo[19]}}</span></abbr>
+                                          <abbr title="Vigência registrada, mas sem processo-mãe associado a mais de 90 dias!"><span class='text-danger'>Vigente</span></abbr>
                                         {% elif acordo[19] == "Preparação"%}
                                           <abbr title="Como não tem vigência registrada, deve estar em preparação ainda!"><span class='text-warning'>{{acordo[19]}}</span></abbr>
                                         {% elif acordo[19] == "Vigente"%}
@@ -155,7 +155,6 @@
           {% endif %}
         {% endif %}
         <td><p align = "right"><small>  {{acordo[8]}}</small></p></td>
-        <td><p align = "right"><small>  {{acordo[9]}}</small></p></td>
         {% if acordo[1] != None%}
           <td><p align = "center">
             <a href="{{url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo[0])}}">

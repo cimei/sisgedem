@@ -59,7 +59,7 @@
           {% if current_user.is_authenticated and current_user.trab_acordo == 1 %}
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Acordos
+                Acordos/TEDs
               </a>
               <div class="dropdown-menu" aria-labelledby="navbarDropdown2">
                 <a class="dropdown-item" href="{{url_for('acordos.lista_programa_cnpq')}}">Programas CNPq</a>
@@ -162,7 +162,7 @@
             </div>
           </li>
 
-          {% set ver = namespace(num='4.12.2') %}
+          {% set ver = namespace(num='4.13.0') %}
 
           {% if current_user.is_authenticated and current_user.sversion != ver.num %}
             <li class="nav-item">

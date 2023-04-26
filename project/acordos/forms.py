@@ -34,16 +34,16 @@ class ProgAcordoForm(FlaskForm):
 class AcordoForm(FlaskForm):
 
     #programa_cnpq    = SelectMultipleField('Programa CNPq:')
-    nome             = StringField('Edição:',validators=[DataRequired(message="Informe um nome ou edição!")])
+    nome             = StringField('Edição/Sigla:',validators=[DataRequired(message="Informe um nome ou edição!")])
     desc             = StringField('Descrição:')
     unid             = StringField('Unidade:')
     sei              = StringField('Número SEI:',validators=[DataRequired(message="Informe o Programa!")]) # incluir regex para sei
-    epe              = StringField('Sigla da EPE:',validators=[DataRequired(message="Informe a Instituição!")])
+    epe              = StringField('Sigla da EP:',validators=[DataRequired(message="Informe a Instituição!")])
     uf               = StringField('UF (sigla):',validators=[DataRequired(message="Informe a sigla da UF!")])
     data_inicio      = DateField('Data de início:',format='%Y-%m-%d', validators=(Optional(),))#,validators=[DataRequired(message="Informe data do início!")])
     data_fim         = DateField('Data de término:',format='%Y-%m-%d', validators=(Optional(),))#,validators=[DataRequired(message="Informe data do término!")])
     valor_cnpq       = StringField('Valor CNPq:',validators=[DataRequired(message="Informe o valor!")])
-    valor_epe        = StringField('Valor EPE:',validators=[DataRequired(message="Informe o valor!")])
+    valor_epe        = StringField('Valor EP:',validators=[DataRequired(message="Informe o valor!")])
     situ             = SelectField('Situação:',choices=[('',''),
                                   ('Preparação','Preparação'),
                                   ('Assinado','Assinado'),
@@ -57,6 +57,10 @@ class AcordoForm(FlaskForm):
                                   ('Expirado (sit. 71 mãe(s), mas há filho(s) pendente(s))','Expirado (sit. 71 mãe(s), mas há filho(s) pendente(s))'),
                                   ('Expirado (sit. 71 mãe(s) e filho(s))','Expirado (sit. 71 mãe(s) e filho(s))'),
                                   ('Não executado','Não executado')])
+    capital          = StringField('Capital:',validators=[DataRequired(message="Informe o valor destinado a capital!")])
+    custeio          = StringField('Custeio:',validators=[DataRequired(message="Informe o valor destinado a custeio!")])
+    bolsas           = StringField('Bolsas:',validators=[DataRequired(message="Informe o valor destinado a bolsas!")]) 
+    siafi            = StringField('SIAFI:')                             
 
     submit           = SubmitField('Registrar')
 

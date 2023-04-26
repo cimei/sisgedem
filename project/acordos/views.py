@@ -246,10 +246,11 @@ def lista_acordos(lista,coord):
                                             label('unid',Acordo.programa_cnpq),
                                             Acordo.situ,
                                             Acordo.desc,
-                                            cont_prog.c.qtd_prog)\
+                                            cont_prog.c.qtd_prog,
+                                            Acordo.siafi)\
                                     .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                     .filter(Acordo.programa_cnpq.like(unid))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()
+                                    .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()
                 # acordos onde o cod_programa está no campo programa_cnpq
                 acordos_2 = db.session.query(label('id',distinct(Acordo.id)),
                                             Acordo.nome,
@@ -263,13 +264,14 @@ def lista_acordos(lista,coord):
                                             label('unid',Programa_CNPq.COORD),
                                             Acordo.situ,
                                             Acordo.desc,
-                                            cont_prog.c.qtd_prog)\
+                                            cont_prog.c.qtd_prog,
+                                            Acordo.siafi)\
                                     .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                     .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
                                     .join(Programa_CNPq,Programa_CNPq.COD_PROGRAMA==grupo_programa_cnpq.cod_programa)\
                                     .filter(Programa_CNPq.COORD.like(unid),
                                             not_(Acordo.programa_cnpq.like(unid)))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()  
+                                    .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()  
                 # união das duas consultas
                 acordos_v = acordos_1 + acordos_2        
 
@@ -287,10 +289,11 @@ def lista_acordos(lista,coord):
                                              label('unid',Acordo.programa_cnpq),
                                              Acordo.situ,
                                              Acordo.desc,
-                                             cont_prog.c.qtd_prog)\
+                                             cont_prog.c.qtd_prog,
+                                             Acordo.siafi)\
                                     .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                     .filter(Acordo.programa_cnpq.in_(unid))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all() 
+                                    .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all() 
                 # acordos onde o cod_programa está no campo programa_cnpq
                 acordos_2 = db.session.query(label('id',distinct(Acordo.id)),
                                              Acordo.nome,
@@ -304,13 +307,14 @@ def lista_acordos(lista,coord):
                                              label('unid',Programa_CNPq.COORD),
                                              Acordo.situ,
                                              Acordo.desc,
-                                             cont_prog.c.qtd_prog)\
+                                             cont_prog.c.qtd_prog,
+                                             Acordo.siafi)\
                                     .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                     .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
                                     .join(Programa_CNPq,Programa_CNPq.COD_PROGRAMA==grupo_programa_cnpq.cod_programa)\
                                     .filter(Programa_CNPq.COORD.in_(unid),
                                             not_(Acordo.programa_cnpq.in_(unid)))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()  
+                                    .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()  
                 # união das duas consultas
                 acordos_v = acordos_1 + acordos_2                                                            
 
@@ -330,11 +334,12 @@ def lista_acordos(lista,coord):
                                             label('unid',Acordo.programa_cnpq),
                                             Acordo.situ,
                                             Acordo.desc,
-                                            cont_prog.c.qtd_prog)\
+                                            cont_prog.c.qtd_prog,
+                                            Acordo.siafi)\
                                     .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                     .filter(Acordo.programa_cnpq.like(unid),
                                             Acordo.data_fim >= datetime.date.today())\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()
+                                    .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()
                 # acordos onde o cod_programa está no campo programa_cnpq
                 acordos_2 = db.session.query(label('id',distinct(Acordo.id)),
                                             Acordo.nome,
@@ -348,14 +353,15 @@ def lista_acordos(lista,coord):
                                             label('unid',Programa_CNPq.COORD),
                                             Acordo.situ,
                                             Acordo.desc,
-                                            cont_prog.c.qtd_prog)\
+                                            cont_prog.c.qtd_prog,
+                                            Acordo.siafi)\
                                     .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                     .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
                                     .join(Programa_CNPq,Programa_CNPq.COD_PROGRAMA==grupo_programa_cnpq.cod_programa)\
                                     .filter(Programa_CNPq.COORD.like(unid),
                                             Acordo.data_fim >= datetime.date.today(),
                                             not_(Acordo.programa_cnpq.like(unid)))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()  
+                                    .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()  
                 # união das duas consultas
                 acordos_v = acordos_1 + acordos_2        
 
@@ -373,11 +379,12 @@ def lista_acordos(lista,coord):
                                              label('unid',Acordo.programa_cnpq),
                                              Acordo.situ,
                                              Acordo.desc,
-                                             cont_prog.c.qtd_prog)\
+                                             cont_prog.c.qtd_prog,
+                                             Acordo.siafi)\
                                     .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                     .filter(Acordo.programa_cnpq.in_(unid),
                                             Acordo.data_fim >= datetime.date.today())\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all() 
+                                    .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all() 
                 # acordos onde o cod_programa está no campo programa_cnpq
                 acordos_2 = db.session.query(label('id',distinct(Acordo.id)),
                                              Acordo.nome,
@@ -391,14 +398,15 @@ def lista_acordos(lista,coord):
                                              label('unid',Programa_CNPq.COORD),
                                              Acordo.situ,
                                              Acordo.desc,
-                                             cont_prog.c.qtd_prog)\
+                                             cont_prog.c.qtd_prog,
+                                             Acordo.siafi)\
                                     .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                     .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
                                     .join(Programa_CNPq,Programa_CNPq.COD_PROGRAMA==grupo_programa_cnpq.cod_programa)\
                                     .filter(Programa_CNPq.COORD.in_(unid),
                                             Acordo.data_fim >= datetime.date.today(),
                                             not_(Acordo.programa_cnpq.in_(unid)))\
-                                    .order_by(Acordo.epe,Acordo.data_fim).all()  
+                                    .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()  
                 # união das duas consultas
                 acordos_v = acordos_1 + acordos_2 
 
@@ -421,10 +429,11 @@ def lista_acordos(lista,coord):
                                          label('unid',Acordo.programa_cnpq),
                                          Acordo.situ,
                                          Acordo.desc,
-                                         cont_prog.c.qtd_prog)\
+                                         cont_prog.c.qtd_prog,
+                                         Acordo.siafi)\
                                   .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                   .filter(Acordo.programa_cnpq.in_(l_unidades))\
-                                  .order_by(Acordo.epe,Acordo.data_fim).all()
+                                  .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()
             # acordos com cod_programa no campo programa_cnpq
             acordos_2 = db.session.query(Acordo.id,
                                          Acordo.nome,
@@ -438,11 +447,12 @@ def lista_acordos(lista,coord):
                                          label('unid',Acordo.programa_cnpq),
                                          Acordo.situ,
                                          Acordo.desc,
-                                         cont_prog.c.qtd_prog)\
+                                         cont_prog.c.qtd_prog,
+                                         Acordo.siafi)\
                                   .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                   .filter(Acordo.programa_cnpq == lista[8:],
                                           not_(Acordo.programa_cnpq.in_(l_unidades)))\
-                                  .order_by(Acordo.epe,Acordo.data_fim).all()
+                                  .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()
             # união das duas consultas
             acordos_v = acordos_1 + acordos_2                      
     #
@@ -459,10 +469,11 @@ def lista_acordos(lista,coord):
                                        label('unid',Acordo.programa_cnpq),
                                        Acordo.situ,
                                        Acordo.desc,
-                                       cont_prog.c.qtd_prog)\
+                                       cont_prog.c.qtd_prog,
+                                       Acordo.siafi)\
                                   .outerjoin(cont_prog,cont_prog.c.id_acordo == Acordo.id)\
                                   .filter(Acordo.nome == lista[4:])\
-                                  .order_by(Acordo.epe,Acordo.data_fim).all()
+                                  .order_by(Acordo.data_fim,Acordo.nome,Acordo.epe).all()
         #
 
         quantidade = len(acordos_v)
@@ -490,8 +501,9 @@ def lista_acordos(lista,coord):
                 fim = None
                 dias = 999
 
-            valor_cnpq = locale.currency(acordo.valor_cnpq, symbol=False, grouping = True)
-            valor_epe  = locale.currency(acordo.valor_epe, symbol=False, grouping = True)
+            valor_cnpq   = locale.currency(acordo.valor_cnpq, symbol=False, grouping = True)
+            valor_epe    = locale.currency(acordo.valor_epe, symbol=False, grouping = True)
+            valor_global = locale.currency((acordo.valor_epe+acordo.valor_cnpq), symbol=False, grouping = True)
 
             # pega quantidade de mães, filhos do acordo e totaliza o que foi pago
             procs_mae = db.session.query(Acordo_ProcMae.proc_mae_id,
@@ -542,6 +554,10 @@ def lista_acordos(lista,coord):
                     a_pagar += 0
                 else:
                     a_pagar += float(filhos[0][2])
+
+            # ver como receber valores pagos em capital e custeio para abater no calculo do saldo
+            # pago_capital = ....
+            # pago_custeio = ....
 
             #
             # verifica ser o acordo tem demandas de indicação de bolsisstas
@@ -597,8 +613,8 @@ def lista_acordos(lista,coord):
                             acordo.uf,
                             início,
                             fim,
-                            valor_epe,
-                            valor_cnpq,
+                            valor_global,
+                            0,
                             qtd_proc_mae,
                             qtd_filhos_acordo,
                             locale.currency(pago_acordo, symbol=False, grouping = True),
@@ -610,11 +626,12 @@ def lista_acordos(lista,coord):
                             qtd_cpfs,
                             situ,
                             acordo.desc,
-                            qtd_prog])
+                            qtd_prog,
+                            acordo.siafi])
 
         cria_csv('/app/project/static/acordos.csv',
                  ['id','prog','nome','sei','epe','uf','ini','fim','valor_epe','valor_cnpq','qtd_proc_mae','qtd_filhos','pago','a_pagar','saldo',\
-                  'coord','dias','id_prog','qtd_cpfs','situ','desc','qtd_prog'],
+                  'coord','dias','id_prog','qtd_cpfs','situ','desc','qtd_prog','siafi'],
                  acordos)    
 
         # o comandinho mágico que permite fazer o download de um arquivo
@@ -682,17 +699,34 @@ def update(acordo_id,lista):
 
     if form.validate_on_submit():
 
-        acordo.nome             = form.nome.data
-        acordo.sei              = form.sei.data
-        acordo.epe              = form.epe.data
-        acordo.uf               = form.uf.data
-        acordo.data_inicio      = form.data_inicio.data
-        acordo.data_fim         = form.data_fim.data
-        acordo.valor_cnpq       = float(form.valor_cnpq.data.replace('.','').replace(',','.'))
-        acordo.valor_epe        = float(form.valor_epe.data.replace('.','').replace(',','.'))
-        acordo.programa_cnpq    = form.unid.data
-        acordo.situ             = form.situ.data
-        acordo.desc             = form.desc.data
+        valor_cnpq    = float(form.valor_cnpq.data.replace('.','').replace(',','.'))
+        valor_epe     = float(form.valor_epe.data.replace('.','').replace(',','.'))
+        capital       = float(form.capital.data.replace('.','').replace(',','.'))
+        custeio       = float(form.custeio.data.replace('.','').replace(',','.'))
+        bolsas        = float(form.bolsas.data.replace('.','').replace(',','.'))
+
+        valor = valor_cnpq + valor_epe
+        nds = capital + custeio + bolsas
+
+        if nds != valor and (capital != 0 or custeio != 0 or bolsas != 0):
+            flash('Soma dos valores das NDs não corresponde à soma dos valores do acordo/TED!','erro')
+            return redirect(url_for('acordos.update', acordo_id=acordo_id, lista=lista))
+
+        acordo.nome          = form.nome.data
+        acordo.sei           = form.sei.data
+        acordo.epe           = form.epe.data
+        acordo.uf            = form.uf.data
+        acordo.data_inicio   = form.data_inicio.data
+        acordo.data_fim      = form.data_fim.data
+        acordo.valor_cnpq    = valor_cnpq
+        acordo.valor_epe     = valor_epe
+        acordo.programa_cnpq = form.unid.data
+        acordo.situ          = form.situ.data
+        acordo.desc          = form.desc.data
+        acordo.capital       = capital
+        acordo.custeio       = custeio
+        acordo.bolsas        = bolsas
+        acordo.siafi         = form.siafi.data
 
         db.session.commit()
 
@@ -725,6 +759,10 @@ def update(acordo_id,lista):
         else:
             form.unid.data = acordo.programa_cnpq  
         form.situ.data        = acordo.situ
+        form.capital.data  = locale.currency( acordo.capital, symbol=False, grouping = True )
+        form.custeio.data  = locale.currency( acordo.custeio, symbol=False, grouping = True )
+        form.bolsas.data   = locale.currency( acordo.bolsas, symbol=False, grouping = True )
+        form.siafi.data = acordo.siafi
 
 
     return render_template('add_acordo.html', title='Update',
@@ -795,17 +833,34 @@ def cria_acordo():
 
     if form.validate_on_submit():
 
-        acordo = Acordo(nome             = form.nome.data,
-                        desc             = form.desc.data,
-                        sei              = form.sei.data,
-                        epe              = form.epe.data,
-                        uf               = form.uf.data,
-                        data_inicio      = form.data_inicio.data,
-                        data_fim         = form.data_fim.data,
-                        valor_cnpq       = float(form.valor_cnpq.data.replace('.','').replace(',','.')),
-                        valor_epe        = float(form.valor_epe.data.replace('.','').replace(',','.')),
-                        programa_cnpq    = form.unid.data,
-                        situ             = form.situ.data)
+        valor_cnpq    = float(form.valor_cnpq.data.replace('.','').replace(',','.'))
+        valor_epe     = float(form.valor_epe.data.replace('.','').replace(',','.'))
+        capital       = float(form.capital.data.replace('.','').replace(',','.'))
+        custeio       = float(form.custeio.data.replace('.','').replace(',','.'))
+        bolsas        = float(form.bolsas.data.replace('.','').replace(',','.'))
+
+        valor = valor_cnpq + valor_epe
+        nds = capital + custeio + bolsas
+
+        if nds != valor and (capital != 0 or custeio != 0 or bolsas != 0):
+            flash('Soma dos valores das NDs não corresponde à soma dos valores do acordo/TED!','erro')
+            return redirect(url_for('acordos.cria_acordo'))
+
+        acordo = Acordo(nome          = form.nome.data,
+                        desc          = form.desc.data,
+                        sei           = form.sei.data,
+                        epe           = form.epe.data,
+                        uf            = form.uf.data,
+                        data_inicio   = form.data_inicio.data,
+                        data_fim      = form.data_fim.data,
+                        valor_cnpq    = valor_cnpq,
+                        valor_epe     = valor_cnpq,
+                        programa_cnpq = form.unid.data,
+                        situ          = form.situ.data,
+                        capital       = capital,
+                        custeio       = custeio,
+                        bolsas        = bolsas,
+                        siafi         = form.siafi.data)
 
         db.session.add(acordo)
         db.session.commit()

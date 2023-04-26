@@ -34,7 +34,7 @@ class SEIForm(FlaskForm):
 
     nr_convenio = IntegerField('SICONV:', render_kw={'readonly': True})
     sei         = StringField('SEI:',validators=[DataRequired(message="Informe o Processo!")]) # incluir regex para sei... um dia....
-    epe         = StringField('EPE (sigla):',validators=[DataRequired(message="Informe a instituição!")])
+    epe         = StringField('EP (sigla):',validators=[DataRequired(message="Informe a instituição!")])
     fiscal      = SelectField('Fiscal:',choices= lista_pessoal)
     submit      = SubmitField('Atualizar')
 

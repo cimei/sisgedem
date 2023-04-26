@@ -297,37 +297,46 @@ class Acordo(db.Model):
 
     __tablename__ = 'acordos'
 
-    id               = db.Column(db.Integer,primary_key=True)
-    nome             = db.Column(db.String)
-    sei              = db.Column(db.String,unique=True,index=True)
-    epe              = db.Column(db.String)
-    uf               = db.Column(db.String)
-    data_inicio      = db.Column(db.Date)
-    data_fim         = db.Column(db.Date)
-    valor_cnpq       = db.Column(db.Float)
-    valor_epe        = db.Column(db.Float)
-    programa_cnpq    = db.Column(db.String)
-    situ             = db.Column(db.String)
-    desc             = db.Column(db.String)
+    id            = db.Column(db.Integer,primary_key=True)
+    nome          = db.Column(db.String)
+    sei           = db.Column(db.String,unique=True,index=True)
+    epe           = db.Column(db.String)
+    uf            = db.Column(db.String)
+    data_inicio   = db.Column(db.Date)
+    data_fim      = db.Column(db.Date)
+    valor_cnpq    = db.Column(db.Float)
+    valor_epe     = db.Column(db.Float)
+    programa_cnpq = db.Column(db.String)
+    situ          = db.Column(db.String)
+    desc          = db.Column(db.String)
+    capital       = db.Column(db.Float)
+    custeio       = db.Column(db.Float)
+    bolsas        = db.Column(db.Float)
+    siafi         = db.Column(db.String)
 
     #AcordoEpeEdic = db.relationship('ProcessoMae', primaryjoin="_and(ProcessoMae.epe==Acordo.epe, ProcessoMae.acordo_nome=Acordo.nome)")
 
-    def __init__(self,nome,sei,epe,uf,data_inicio,data_fim,valor_cnpq,valor_epe,programa_cnpq,situ,desc):
-        self.nome             = nome
-        self.sei              = sei
-        self.epe              = epe
-        self.uf               = uf
-        self.data_inicio      = data_inicio
-        self.data_fim         = data_fim
-        self.valor_cnpq       = valor_cnpq
-        self.valor_epe        = valor_epe
-        self.programa_cnpq    = programa_cnpq
-        self.situ             = situ
-        self.desc             = desc
+    def __init__(self,nome,sei,epe,uf,data_inicio,data_fim,valor_cnpq,valor_epe,programa_cnpq,situ,desc,capital,custeio,bolsas,siafi):
+        self.nome          = nome
+        self.sei           = sei
+        self.epe           = epe
+        self.uf            = uf
+        self.data_inicio   = data_inicio
+        self.data_fim      = data_fim
+        self.valor_cnpq    = valor_cnpq
+        self.valor_epe     = valor_epe
+        self.programa_cnpq = programa_cnpq
+        self.situ          = situ
+        self.desc          = desc
+        self.capital       = capital
+        self.custeio       = custeio
+        self.bolsas        = bolsas
+        self.siafi         = siafi
 
     def __repr__(self):
 
-        return f"{self.nome};{self.sei};{self.epe};{self.uf};{self.data_inicio};{self.data_fim};{self.valor_cnpq};{self.valor_epe};{self.programa_cnpq};{self.situ}"
+        return f"{self.nome};{self.sei};{self.epe};{self.uf};{self.data_inicio};{self.data_fim};{self.valor_cnpq};\
+                 {self.valor_epe};{self.programa_cnpq};{self.situ};{self.capital};{self.custeio};{self.bolsas};{self.siafi}"
 
 
 ## tabela com os dados dos processos mãe e seus respectivos acordos

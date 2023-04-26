@@ -1,5 +1,11 @@
 ## Atualizações ##
 
+
+14/04/2023
+Inclusao dos campos capital, custeio, bolsas e siafi em acordos.
+Alterações de layout.
+v4.13.0
+
 10/04/2023
 Correção na carga de convênios (problema em programa proposta).
 v4.12.2
