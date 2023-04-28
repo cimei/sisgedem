@@ -679,9 +679,6 @@ def update(acordo_id,lista):
                                 Chamadas.obs).filter(Chamadas.sei == acordo.sei).all()
     qtd_chamadas = len(chamadas)                            
 
-    valor_cnpq = locale.currency(acordo.valor_cnpq, symbol=False, grouping = True)
-    valor_epe  = locale.currency(acordo.valor_epe, symbol=False, grouping = True)
-
     chamadas_s = []
     chamadas_tot = 0
     qtd_proj = 0
@@ -699,17 +696,17 @@ def update(acordo_id,lista):
 
     if form.validate_on_submit():
 
-        valor_cnpq    = float(form.valor_cnpq.data.replace('.','').replace(',','.'))
-        valor_epe     = float(form.valor_epe.data.replace('.','').replace(',','.'))
-        capital       = float(form.capital.data.replace('.','').replace(',','.'))
-        custeio       = float(form.custeio.data.replace('.','').replace(',','.'))
-        bolsas        = float(form.bolsas.data.replace('.','').replace(',','.'))
+        valor_cnpq = float(form.valor_cnpq.data.replace('.','').replace(',','.'))
+        valor_epe  = float(form.valor_epe.data.replace('.','').replace(',','.'))
+        capital    = float(form.capital.data.replace('.','').replace(',','.'))
+        custeio    = float(form.custeio.data.replace('.','').replace(',','.'))
+        bolsas     = float(form.bolsas.data.replace('.','').replace(',','.'))
 
         valor = valor_cnpq + valor_epe
         nds = capital + custeio + bolsas
 
-        if nds != valor and (capital != 0 or custeio != 0 or bolsas != 0):
-            flash('Soma dos valores das NDs não corresponde à soma dos valores do acordo/TED!','erro')
+        if round(nds,2) != round(valor,2) and (capital > 0 or custeio > 0 or bolsas > 0):
+            flash('Soma dos valores das NDs não corresponde à soma dos valores do acordo/TED (Aporte: '+str(round(valor,2))+', Soma NDs: '+str(round(nds,2))+')!','erro')
             return redirect(url_for('acordos.update', acordo_id=acordo_id, lista=lista))
 
         acordo.nome          = form.nome.data
@@ -743,26 +740,24 @@ def update(acordo_id,lista):
         return redirect(url_for('acordos.update', acordo_id=acordo_id, lista=lista))
 
     # traz a informação atual do acordo
-    elif request.method == 'GET':
-
-        form.nome.data        = acordo.nome
-        form.desc.data        = acordo.desc
-        form.sei.data         = acordo.sei
-        form.epe.data         = acordo.epe
-        form.uf.data          = acordo.uf
-        form.data_inicio.data = acordo.data_inicio
-        form.data_fim.data    = acordo.data_fim
-        form.valor_cnpq.data  = locale.currency( acordo.valor_cnpq, symbol=False, grouping = True )
-        form.valor_epe.data   = locale.currency( acordo.valor_epe, symbol=False, grouping = True )
-        if acordo.programa_cnpq.isdigit():
-            form.unid.data = None 
-        else:
-            form.unid.data = acordo.programa_cnpq  
-        form.situ.data        = acordo.situ
-        form.capital.data  = locale.currency( acordo.capital, symbol=False, grouping = True )
-        form.custeio.data  = locale.currency( acordo.custeio, symbol=False, grouping = True )
-        form.bolsas.data   = locale.currency( acordo.bolsas, symbol=False, grouping = True )
-        form.siafi.data = acordo.siafi
+    form.nome.data        = acordo.nome
+    form.desc.data        = acordo.desc
+    form.sei.data         = acordo.sei
+    form.epe.data         = acordo.epe
+    form.uf.data          = acordo.uf
+    form.data_inicio.data = acordo.data_inicio
+    form.data_fim.data    = acordo.data_fim
+    form.valor_cnpq.data  = locale.currency( acordo.valor_cnpq, symbol=False, grouping = True )
+    form.valor_epe.data   = locale.currency( acordo.valor_epe, symbol=False, grouping = True )
+    if acordo.programa_cnpq.isdigit():
+        form.unid.data = None 
+    else:
+        form.unid.data = acordo.programa_cnpq  
+    form.situ.data        = acordo.situ
+    form.capital.data  = locale.currency( acordo.capital, symbol=False, grouping = True )
+    form.custeio.data  = locale.currency( acordo.custeio, symbol=False, grouping = True )
+    form.bolsas.data   = locale.currency( acordo.bolsas, symbol=False, grouping = True )
+    form.siafi.data = acordo.siafi
 
 
     return render_template('add_acordo.html', title='Update',
@@ -842,8 +837,9 @@ def cria_acordo():
         valor = valor_cnpq + valor_epe
         nds = capital + custeio + bolsas
 
-        if nds != valor and (capital != 0 or custeio != 0 or bolsas != 0):
-            flash('Soma dos valores das NDs não corresponde à soma dos valores do acordo/TED!','erro')
+
+        if round(nds,2) != round(valor,2) and (capital != 0 or custeio != 0 or bolsas != 0):
+            flash('Soma dos valores das NDs não corresponde à soma dos valores do acordo/TED (Aporte: '+str(round(valor,2))+', Soma NDs: '+str(round(nds,2))+')!','erro')
             return redirect(url_for('acordos.cria_acordo'))
 
         acordo = Acordo(nome          = form.nome.data,
