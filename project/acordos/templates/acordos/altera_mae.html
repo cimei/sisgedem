@@ -3,7 +3,8 @@
 <div class="container">
 
 <div class="jumbotron">
-<h4>Alterar/Consultar Dados do Processo-Mãe {{proc_mae.replace('_','/')}} ({{prog}} - {{edic}} - {{epe}}/{{uf}}) </h4>
+
+<h4>Alterar/Consultar Dados do Processo-Mãe {{proc_mae.replace('_','/')}}</h4>
 <br>
 
 {% macro render_field(field,obr) %}
@@ -27,7 +28,7 @@
   {{ form.hidden_tag() }}
 
 
-    <div class="col-4">
+    <div class="col-6">
       <div class="form-group">
         {{ render_field(form.coordenador,class="form-control",obr=True) }}
         <small id="programaHelp" class="form-text text-muted">Se não hover, escreva "Não há registro".</small>
@@ -35,7 +36,7 @@
     </div>
 
 
-  <div class="col-2">
+  <div class="col-4">
     <div class="form-group">
       {{ render_field(form.situ_mae,class="form-control",obr=True) }}
       <small id="seiHelp" class="form-text text-muted">A situação atual conforme o SIGEF.</small>

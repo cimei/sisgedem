@@ -204,17 +204,21 @@ class Processo_Mae (db.Model):
 
     __tablename__ = 'processo_mae'
 
-    id                = db.Column(db.Integer,primary_key = True)
-    cod_programa      = db.Column(db.String)
-    nome_chamada      = db.Column(db.String)
-    proc_mae          = db.Column(db.String)
-    inic_mae          = db.Column(db.Date)
-    term_mae          = db.Column(db.Date)
-    coordenador       = db.Column(db.String)
-    situ_mae          = db.Column(db.String)
+    id           = db.Column(db.Integer,primary_key = True)
+    cod_programa = db.Column(db.String)
+    nome_chamada = db.Column(db.String)
+    proc_mae     = db.Column(db.String)
+    inic_mae     = db.Column(db.Date)
+    term_mae     = db.Column(db.Date)
+    coordenador  = db.Column(db.String)
+    situ_mae     = db.Column(db.String)
+    id_chamada   = db.Column(db.Integer)
+    pago_capital = db.Column(db.Float)
+    pago_custeio = db.Column(db.Float)
+    pago_bolsas  = db.Column(db.Float)
 
     def __init__ (self,cod_programa,nome_chamada,proc_mae,
-                  inic_mae, term_mae,coordenador,situ_mae):
+                  inic_mae, term_mae,coordenador,situ_mae,id_chamada,pago_capital,pago_custeio,pago_bolsas):
         self.cod_programa = cod_programa
         self.nome_chamada = nome_chamada
         self.proc_mae     = proc_mae
@@ -222,9 +226,13 @@ class Processo_Mae (db.Model):
         self.term_mae     = term_mae
         self.coordenador  = coordenador
         self.situ_mae     = situ_mae
+        self.id_chamada   = id_chamada
+        self.pago_capital = pago_capital
+        self.pago_custeio = pago_custeio
+        self.pago_bolsas  = pago_bolsas
 
     def __repr__ (self):
-        return f"{self.proc_mae};{self.inic_mae};{self.term_mae};{self.situ_mae}"
+        return f"{self.proc_mae};{self.inic_mae};{self.term_mae};{self.situ_mae};{self.id_chamada}"
 
 #
 
@@ -262,9 +270,8 @@ class Programa_CNPq(db.Model):
     SIGLA_PROGRAMA = db.Column(db.String)
     COORD          = db.Column(db.String)
 
-    def __init__(self, ID_PROGRAMA, COD_PROGRAMA, NOME_PROGRAMA,SIGLA_PROGRAMA,COORD):
+    def __init__(self, COD_PROGRAMA, NOME_PROGRAMA,SIGLA_PROGRAMA,COORD):
 
-        self.ID_PROGRAMA     = ID_PROGRAMA
         self.COD_PROGRAMA    = COD_PROGRAMA
         self.NOME_PROGRAMA   = NOME_PROGRAMA
         self.SIGLA_PROGRAMA  = SIGLA_PROGRAMA
@@ -282,15 +289,17 @@ class grupo_programa_cnpq(db.Model):
 
     id_grupo     = db.Column(db.Integer, primary_key = True)
     id_acordo    = db.Column(db.Integer)
+    id_programa  = db.Column(db.Integer)
     cod_programa = db.Column(db.String)
 
     def __init__(self, id_acordo, cod_programa):
 
         self.id_acordo    = id_acordo
+        self.id_programa  = id_programa
         self.cod_programa = cod_programa
 
     def __repr__ (self):
-        return f"{self.id_acordo};{self.cod_programa}"        
+        return f"{self.id_acordo};{self.cod_programa};{self.id_programa}"        
 
 # dados dos vários acordos
 class Acordo(db.Model):
@@ -306,7 +315,7 @@ class Acordo(db.Model):
     data_fim      = db.Column(db.Date)
     valor_cnpq    = db.Column(db.Float)
     valor_epe     = db.Column(db.Float)
-    programa_cnpq = db.Column(db.String)
+    unidade_cnpq = db.Column(db.String) # está recebendo a sigla da unidade no CNPq
     situ          = db.Column(db.String)
     desc          = db.Column(db.String)
     capital       = db.Column(db.Float)
@@ -316,7 +325,7 @@ class Acordo(db.Model):
 
     #AcordoEpeEdic = db.relationship('ProcessoMae', primaryjoin="_and(ProcessoMae.epe==Acordo.epe, ProcessoMae.acordo_nome=Acordo.nome)")
 
-    def __init__(self,nome,sei,epe,uf,data_inicio,data_fim,valor_cnpq,valor_epe,programa_cnpq,situ,desc,capital,custeio,bolsas,siafi):
+    def __init__(self,nome,sei,epe,uf,data_inicio,data_fim,valor_cnpq,valor_epe,unidade_cnpq,situ,desc,capital,custeio,bolsas,siafi):
         self.nome          = nome
         self.sei           = sei
         self.epe           = epe
@@ -325,7 +334,7 @@ class Acordo(db.Model):
         self.data_fim      = data_fim
         self.valor_cnpq    = valor_cnpq
         self.valor_epe     = valor_epe
-        self.programa_cnpq = programa_cnpq
+        self.unidade_cnpq = unidade_cnpq
         self.situ          = situ
         self.desc          = desc
         self.capital       = capital
@@ -336,7 +345,29 @@ class Acordo(db.Model):
     def __repr__(self):
 
         return f"{self.nome};{self.sei};{self.epe};{self.uf};{self.data_inicio};{self.data_fim};{self.valor_cnpq};\
-                 {self.valor_epe};{self.programa_cnpq};{self.situ};{self.capital};{self.custeio};{self.bolsas};{self.siafi}"
+                 {self.valor_epe};{self.unidade_cnpq};{self.situ};{self.capital};{self.custeio};{self.bolsas};{self.siafi}"
+
+# valores pagos em acordos/TEDs
+
+class capital_custeio(db.Model):
+
+    __tablename__ = 'capital_custeio'
+
+    id         = db.Column(db.Integer, primary_key = True)
+    id_acordo  = db.Column(db.Integer)
+    capital_pg = db.Column(db.Float)
+    custeio_pg = db.Column(db.Float)
+    bolsa_pg   = db.Column(db.Float)
+
+    def __init__(self, id_acordo, capital_pg, custeio_pg, bolsa_pg):
+
+        self.id_acordo  = id_acordo
+        self.capital_pg = capital_pg
+        self.custeio_pg = custeio_pg
+        self.bolsa_pg   = bolsa_pg
+
+    def __repr__ (self):
+        return f"{self.id_acordo};{self.capital_pg};{self.custeio_pg};{self.bolsa_pg}"   
 
 
 ## tabela com os dados dos processos mãe e seus respectivos acordos
@@ -374,6 +405,53 @@ class Programa_Interesse(db.Model):
     def __repr__ (self):
         return f"{self.cod_programa};{self.sigla};{self.coord}"
 
+
+## tabela com os dados de chamadas do CNPq obtidos do DW
+
+class chamadas_cnpq(db.Model):
+
+    __tablename__ = 'chamadas_cnpq'
+
+    id            = db.Column(db.Integer,primary_key = True)
+    tipo          = db.Column(db.String)
+    nome          = db.Column(db.String)
+    sigla         = db.Column(db.String)
+    valor         = db.Column(db.Float)
+    cod_programa  = db.Column(db.String)
+    id_dw         = db.Column(db.Integer)
+    qtd_processos = db.Column(db.Integer)
+
+    def __init__ (self,tipo,nome,sigla,valor,cod_programa,id_dw,qtd_processos):
+        self.tipo          = tipo
+        self.nome          = nome
+        self.sigla         = sigla
+        self.valor         = valor
+        self.cod_programa  = cod_programa
+        self.id_dw         = id_dw
+        self.qtd_processos = qtd_processos
+
+    def __repr__ (self):
+        return f"{self.tipo};{self.nome};{self.sigla};{self.valor};{self.cod_programa};{self.id_dw};{self.qtd_processos}"
+
+#
+## tabela que relaciona chamadas_cnpq com acordos
+
+class chamadas_cnpq_acordos(db.Model):
+
+    __tablename__ = 'chamadas_cnpq_acordos'
+
+    id              = db.Column(db.Integer,primary_key = True)
+    acordo_id       = db.Column(db.Integer)
+    chamada_cnpq_id = db.Column(db.Integer)
+
+    def __init__ (self,acordo_id,chamada_cnpq_id):
+        self.acordo_id       = acordo_id
+        self.chamada_cnpq_id = chamada_cnpq_id
+
+    def __repr__ (self):
+        return f"{self.acordo_id};{self.chamada_cnpq_id}"    
+
+
 ## tabela com os dados básicos dos convênios e respectivos processos SEI
 
 class DadosSEI(db.Model):
@@ -409,17 +487,21 @@ class Chamadas(db.Model):
     vl_total_chamada = db.Column(db.Float)
     doc_sei          = db.Column(db.String)
     obs              = db.Column(db.String)
+    id_relaciona     = db.Column(db.String)
+    qtd_processos    = db.Column(db.Integer)
 
-    def __init__ (self,sei,chamada,qtd_projetos,vl_total_chamada,doc_sei,obs):
+    def __init__ (self,sei,chamada,qtd_projetos,vl_total_chamada,doc_sei,obs,id_relaciona,qtd_processos):
         self.sei              = sei
         self.chamada          = chamada
         self.qtd_projetos     = qtd_projetos
         self.vl_total_chamada = vl_total_chamada
         self.doc_sei          = doc_sei
         self.obs              = obs
+        self.id_relaciona     = id_relaciona
+        self.qtd_processos    = qtd_processos
 
     def __repr__ (self):
-        return f"{self.sei};{self.chamada};{self.qtd_projetos};{self.vl_total_chamada};{self.doc_sei};{self.obs}"
+        return f"{self.sei};{self.chamada};{self.qtd_projetos};{self.vl_total_chamada};{self.doc_sei};{self.obs};{self.id_relaciona};{self.qtd_processos}"
 
 #
 ## tabela de homologados (projetos ou bolsistas)
@@ -806,18 +888,20 @@ class Tipos_Demanda(db.Model):
     __tablename__ = 'tipos_demanda'
     __table_args__ = {"schema": "dem"}
 
-    id                  = db.Column(db.Integer, primary_key=True)
-    tipo                = db.Column(db.String,nullable=False)
-    relevancia          = db.Column(db.Integer,nullable=False)
+    id         = db.Column(db.Integer, primary_key=True)
+    tipo       = db.Column(db.String,nullable=False)
+    relevancia = db.Column(db.Integer,nullable=False)
+    unidade    = db.Column(db.String)
 
-    def __init__(self, tipo, relevancia):
+    def __init__(self, tipo, relevancia, unidade):
 
         self.tipo       = tipo
         self.relevancia = relevancia
+        self.unidade    = unidade
 
     def __repr__(self):
 
-        return f"{self.tipo}"
+        return f"{self.tipo};{self.unidade}"
 
 #
 class Passos_Tipos(db.Model):
@@ -853,19 +937,21 @@ class Plano_Trabalho(db.Model):
     atividade_desc  = db.Column(db.String,nullable=False)
     natureza        = db.Column(db.String,nullable=False)
     meta            = db.Column(db.Float,nullable=False)
-    situa          = db.Column(db.String)
-
-    def __init__(self, atividade_sigla, atividade_desc, natureza, meta, situa):
+    situa           = db.Column(db.String)
+    unidade         = db.Column(db.String)
+ 
+    def __init__(self, atividade_sigla, atividade_desc, natureza, meta, situa, unidade):
 
         self.atividade_sigla = atividade_sigla
         self.atividade_desc  = atividade_desc
         self.natureza        = natureza
         self.meta            = meta
-        self.situa          = situa
+        self.situa           = situa
+        self.unidade         = unidade
 
     def __repr__(self):
 
-        return f"{self.atividade_sigla};{self.atividade_desc};{self.natureza};{self.meta};{self.situa}"
+        return f"{self.atividade_sigla};{self.atividade_desc};{self.natureza};{self.meta};{self.situa};{self.unidade}"
 
 #
 class Ativ_Usu(db.Model):

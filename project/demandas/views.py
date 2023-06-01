@@ -62,7 +62,7 @@ from sqlalchemy.orm import aliased
 from sqlalchemy.sql.functions import coalesce
 from project import db, mail, app
 from project.models import Demanda, Providencia, Despacho, User, Tipos_Demanda, DadosSEI, Acordo, Log_Auto, Plano_Trabalho,\
-                           Sistema, Ativ_Usu, Passos_Tipos, Msgs_Recebidas, Proposta, Convenio
+                           Sistema, Ativ_Usu, Passos_Tipos, Msgs_Recebidas, Proposta, Convenio, grupo_programa_cnpq, Coords
 from project.demandas.forms import DemandaForm1, DemandaForm, Demanda_ATU_Form, DespachoForm, ProvidenciaForm, PesquisaForm,\
                                    Tipos_DemandaForm, TransferDemandaForm, Admin_Altera_Demanda_Form, PesosForm, Afere_Demanda_Form,\
                                    Plano_TrabalhoForm, Pdf_Form, CoordForm, Passos_Tipos_Form
@@ -130,10 +130,21 @@ def registra_log_auto(user_id,demanda_id,tipo_registro,atividade=None,duracao=0)
 def plano_trabalho():
     """
     +---------------------------------------------------------------------------------------+
-    |Apresenta o plano de trabalho da coordenação.                                          |
+    |Apresenta o plano de trabalho da unidade do usuário logado.                            |
     |                                                                                       |
     +---------------------------------------------------------------------------------------+
     """
+
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
 
     user_titular = db.session.query(Ativ_Usu.atividade_id,
                                     User.username)\
@@ -154,10 +165,13 @@ def plano_trabalho():
                                   Plano_Trabalho.meta,
                                   label('titular',user_titular.c.username),
                                   label('suplente',user_suplente.c.username),
-                                  Plano_Trabalho.situa)\
-                                  .outerjoin(user_titular, Plano_Trabalho.id == user_titular.c.atividade_id)\
-                                  .outerjoin(user_suplente, Plano_Trabalho.id == user_suplente.c.atividade_id)\
-                                  .order_by(Plano_Trabalho.atividade_sigla).all()
+                                  Plano_Trabalho.situa,
+                                  Plano_Trabalho.unidade)\
+                           .outerjoin(user_titular, Plano_Trabalho.id == user_titular.c.atividade_id)\
+                           .outerjoin(user_suplente, Plano_Trabalho.id == user_suplente.c.atividade_id)\
+                           .filter(Plano_Trabalho.unidade.in_(l_unid))\
+                           .order_by(Plano_Trabalho.atividade_sigla)\
+                           .all()
 
     quantidade = len(atividades)
 
@@ -189,6 +203,7 @@ def update_plano_trabalho(id):
         atividade.natureza        = form.natureza.data
         atividade.meta            = form.horas_semana.data
         atividade.situa           = form.situa.data
+        atividade.unidade         = form.unidade.data
 
         db.session.commit()
 
@@ -204,6 +219,7 @@ def update_plano_trabalho(id):
         form.natureza.data        = atividade.natureza
         form.horas_semana.data    = atividade.meta
         form.situa.data           = atividade.situa
+        form.unidade.data         = atividade.unidade
 
     return render_template('add_atividade.html', form=form, id=id)
 
@@ -225,7 +241,8 @@ def cria_atividade():
                                    atividade_desc  = form.atividade_desc.data,
                                    natureza        = form.natureza.data,
                                    meta            = form.horas_semana.data,
-                                   situa           = form.situa.data)
+                                   situa           = form.situa.data,
+                                   unidade         = form.unidade.data)
         db.session.add(atividade)
         db.session.commit()
 
@@ -273,11 +290,26 @@ def lista_tipos():
     |                                                                                       |
     +---------------------------------------------------------------------------------------+
     """
+
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
     form = Tipos_DemandaForm()
+
     ## lê tabela tipos_demanda
     tipos = db.session.query(Tipos_Demanda.id,
                              Tipos_Demanda.tipo,
-                             Tipos_Demanda.relevancia)\
+                             Tipos_Demanda.relevancia,
+                             Tipos_Demanda.unidade)\
+                      .filter(Tipos_Demanda.unidade.in_(l_unid))\
                       .order_by(Tipos_Demanda.tipo).all()
 
     quantidade = len(tipos)
@@ -288,16 +320,19 @@ def lista_tipos():
 
         qtd_passos = db.session.query(func.count(Passos_Tipos.tipo_id)).filter(Passos_Tipos.tipo_id == tipo.id).all()
         demandas_qtd = db.session.query(Demanda.id).filter(Demanda.tipo == tipo.tipo).count()
+
         tipo_s = list(tipo)
+
         tipo_s.append(dict(form.relevancia.choices)[str(tipo.relevancia)])
         tipo_s.append(qtd_passos[0][0])
         tipo_s.append(demandas_qtd)
+
         tipos_s.append(tipo_s)
 
 
 
-#
-# gera um pdf com lista de todos os procedientos (tipos e passos)
+    #
+    # gera um pdf com lista de todos os procedimentos (tipos e passos)
 
     form2 = Pdf_Form()
 
@@ -363,13 +398,12 @@ def lista_tipos():
                 pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
 
 
-        pasta_pdf = os.path.normpath('/temp/procedimentos.pdf')
-        if not os.path.exists(os.path.normpath('/temp/')):
-            os.makedirs(os.path.normpath('/temp/'))
+        pasta_pdf = os.path.normpath('/app/project/static/procedimentos.pdf')
+
         pdf.output(pasta_pdf, 'F')
 
-        flash ('Manual de procedimentos gerado! Verifique na pasta temp do disco C: o arquivo procedimentos.pdf','sucesso')
-
+        # o comandinho mágico que permite fazer o download de um arquivo
+        send_from_directory('/app/project/static', 'procedimentos.pdf') 
 
     return render_template('lista_tipos.html', tipos = tipos_s, quantidade=quantidade, form = form2)
 
@@ -432,6 +466,7 @@ def tipos_update(id):
 
         tipo.tipo       = form.tipo.data
         tipo.relevancia = form.relevancia.data
+        tipo.unidade    = form.unidade.data
 
         db.session.commit()
 
@@ -447,8 +482,10 @@ def tipos_update(id):
         return redirect(url_for('demandas.lista_tipos'))
 
     elif request.method == 'GET':
-        form.tipo.data = tipo.tipo
+
+        form.tipo.data       = tipo.tipo
         form.relevancia.data = str(tipo.relevancia)
+        form.unidade.data    = tipo.unidade
 
     return render_template('add_tipo.html',
                            form=form, id=id)
@@ -468,7 +505,8 @@ def cria_tipo_demanda():
 
     if form.validate_on_submit():
         tipo = Tipos_Demanda(tipo       = form.tipo.data,
-                             relevancia = form.relevancia.data)
+                             relevancia = form.relevancia.data,
+                             unidade    = form.unidade.data)
         db.session.add(tipo)
         db.session.commit()
 
@@ -637,12 +675,27 @@ def cria_demanda():
     if current_user.ativo == 0:
         abort(403)
 
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]    
+
     # o choices do campo tipo são definidos aqui e não no form
     tipos = db.session.query(Tipos_Demanda.tipo)\
-                      .order_by(Tipos_Demanda.tipo).all()
-    lista_tipos = [(t[0],t[0]) for t in tipos]
+                      .filter(Tipos_Demanda.unidade.in_(l_unid))\
+                      .order_by(Tipos_Demanda.tipo)\
+                      .all()
+    lista_tipos = [(t.tipo,t.tipo) for t in tipos]
     lista_tipos.insert(0,('',''))
+
     form = DemandaForm1()
+
     form.tipo.choices = lista_tipos
 
     if form.validate_on_submit():
@@ -650,7 +703,8 @@ def cria_demanda():
         verif_demanda = db.session.query(Demanda)\
                                   .filter(Demanda.sei == form.sei.data,
                                           Demanda.tipo == form.tipo.data,
-                                          Demanda.conclu == '0').first()
+                                          Demanda.conclu == '0')\
+                                  .first()
 
         if verif_demanda == None:
             mensagem = 'OK'
@@ -673,15 +727,28 @@ def confirma_cria_demanda(sei,tipo,mensagem):
        |O título tem no máximo 140 caracteres.                                                |
        +--------------------------------------------------------------------------------------+
     """
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
 
     sistema = db.session.query(Sistema.funcionalidade_conv,Sistema.funcionalidade_acordo).first()
 
     # o choices do campo atividade são definidos aqui e não no form
-    atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
-                      .order_by(Plano_Trabalho.atividade_sigla).all()
-    lista_atividades = [(str(a[1]),a[0]) for a in atividades]
+    atividades = db.session.query(Plano_Trabalho.id, Plano_Trabalho.atividade_sigla)\
+                           .filter(Plano_Trabalho.unidade.in_(l_unid))\
+                           .order_by(Plano_Trabalho.atividade_sigla).all()
+    lista_atividades = [(str(a.id),a.atividade_sigla) for a in atividades]
     lista_atividades.insert(0,('',''))
+
     form = DemandaForm()
+
     form.atividade.choices = lista_atividades
 
     if form.validate_on_submit():
@@ -771,7 +838,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
                 html = render_template('email_demanda_conclu.html',demanda=demanda.id,user=current_user.username,
                                         titulo=form.titulo.data, sistema=sistema.nome_sistema)
 
-                pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==form.atividade.data).first()
+                pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id == form.atividade.data).first()
 
                 send_email('Demanda ' + str(demanda.id) + ' foi concluída (' + pt.atividade_sigla + ')', destino,'', html)
 
@@ -845,12 +912,27 @@ def acordo_convenio_demanda(prog,sei,conv,ano):
     if current_user.ativo == 0:
         abort(403)
 
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]    
+
     # o choices do campo tipo são definidos aqui e não no form
     tipos = db.session.query(Tipos_Demanda.tipo)\
-                      .order_by(Tipos_Demanda.tipo).all()
-    lista_tipos = [(t[0],t[0]) for t in tipos]
+                      .filter(Tipos_Demanda.unidade.in_(l_unid))\
+                      .order_by(Tipos_Demanda.tipo)\
+                      .all()
+    lista_tipos = [(t.tipo,t.tipo) for t in tipos]
     lista_tipos.insert(0,('',''))
+
     form = DemandaForm1()
+
     form.tipo.choices = lista_tipos
 
     if form.validate_on_submit():
@@ -858,7 +940,8 @@ def acordo_convenio_demanda(prog,sei,conv,ano):
         verif_demanda = db.session.query(Demanda)\
                                   .filter(Demanda.sei == form.sei.data,
                                           Demanda.tipo == form.tipo.data,
-                                          Demanda.conclu == '0').first()
+                                          Demanda.conclu == '0')\
+                                  .first()
 
         if verif_demanda == None:
             mensagem = 'OK'
@@ -897,14 +980,28 @@ def confirma_acordo_convenio_demanda(prog,sei,conv,ano,tipo,mensagem):
        +--------------------------------------------------------------------------------------+
     """
 
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
     sistema = db.session.query(Sistema.funcionalidade_conv,Sistema.funcionalidade_acordo).first()
 
     # o choices do campo atividade são definidos aqui e não no form
-    atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
-                      .order_by(Plano_Trabalho.atividade_sigla).all()
-    lista_atividades = [(str(a[1]),a[0]) for a in atividades]
+    atividades = db.session.query(Plano_Trabalho.id, Plano_Trabalho.atividade_sigla)\
+                           .filter(Plano_Trabalho.unidade.in_(l_unid))\
+                           .order_by(Plano_Trabalho.atividade_sigla).all()
+    lista_atividades = [(str(a.id),a.atividade_sigla) for a in atividades]
     lista_atividades.insert(0,('',''))
+
     form = DemandaForm()
+
     form.atividade.choices= lista_atividades
 
     if form.validate_on_submit():
@@ -1120,15 +1217,18 @@ def demanda(demanda_id):
 
     # verifica se a demanda tem relação com um acordo
 
-    acordo = db.session.query(Acordo.id, Acordo.uf, Acordo.programa_cnpq).filter(Acordo.sei == demanda.sei).first()
+    acordo = db.session.query(Acordo.id, Acordo.uf, grupo_programa_cnpq.cod_programa)\
+                       .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
+                       .filter(Acordo.sei == demanda.sei)\
+                       .first()
     if acordo != None:
         acordo_id = acordo.id
-        lista = 'uf'+str(acordo.uf)+str(acordo.programa_cnpq)
+        lista = 'uf'+str(acordo.uf)+str(acordo.cod_programa)
     else:
         acordo_id = ''
         lista = ''
 
-    # restata tipo_id do tipo da demanda para resgatar os passos
+    # resgata tipo_id do tipo da demanda para resgatar os passos
     tipo_demanda = db.session.query(Tipos_Demanda.id).filter(Tipos_Demanda.tipo == demanda.tipo).first()
 
     # gera um pdf com todo o histórico da demanda
@@ -1656,15 +1756,30 @@ def update_demanda(demanda_id):
     if current_user.ativo == 0:
         abort(403)
 
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
     # o choices do campo tipo e do campo atividade são definidos aqui e não no form
     tipos = db.session.query(Tipos_Demanda.tipo)\
-                      .order_by(Tipos_Demanda.tipo).all()
-    lista_tipos = [(t[0],t[0]) for t in tipos]
+                      .filter(Tipos_Demanda.unidade.in_(l_unid))\
+                      .order_by(Tipos_Demanda.tipo)\
+                      .all()
+    lista_tipos = [(t.tipo,t.tipo) for t in tipos]
     lista_tipos.insert(0,('',''))
 
     atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
-                      .order_by(Plano_Trabalho.atividade_sigla).all()
-    lista_atividades = [(str(a[1]),a[0]) for a in atividades]
+                           .filter(Plano_Trabalho.unidade.in_(l_unid))\
+                           .order_by(Plano_Trabalho.atividade_sigla)\
+                           .all()
+    lista_atividades = [(str(a.id),a.atividade_sigla) for a in atividades]
     lista_atividades.insert(0,('',''))
 
     form = Demanda_ATU_Form()
@@ -2735,7 +2850,7 @@ def demandas_resumo(coord):
                                                            User.coord.like(coord))\
                                                    .group_by(Demanda.tipo)
 
-        demandas_tipos = db.session.query(Tipos_Demanda.tipo).order_by(Tipos_Demanda.tipo).all()
+        demandas_tipos = db.session.query(Tipos_Demanda.tipo).filter(Tipos_Demanda.unidade.like(coord)).order_by(Tipos_Demanda.tipo).all()
 
         ## calcula a vida média das demandas por tipo
         vida_m_por_tipo = []

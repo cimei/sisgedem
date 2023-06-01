@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="jumbotron">
-  <h5>Lista dos Homologados no(a) <b>{{chamada.chamada}}</b></h5>
+  <h5>Lista dos Projetos no(a) <b>{{chamada.chamada}}</b></h5>
 
   {% if current_user.is_authenticated %}
     <div class="row">
@@ -11,7 +11,7 @@
       </div>
       <div class="col">
         <a href="{{url_for('core.carrega_homologados',chamada_id=chamada_id)}}" class="btn btn-success" role="button" aria-pressed="false">
-          <abbr title="Inserir vários registros de um arquivo Excel.">Carregar homologados</a>
+          <abbr title="Inserir vários registros de um arquivo Excel.">Carregar lista</a>
       </div>
     </div>
   {% endif %}
@@ -20,13 +20,13 @@
 <caption>
   <div class="row">
       <div class="col">
-        <p>Lista dos <span class="badge badge-pill badge-primary">{{qtd_homologados}}</span> projetos/bolsistas homologados.</p>
+        <p>Lista dos <span class="badge badge-pill badge-primary">{{qtd_homologados}}</span> projetos/bolsistas.</p>
       </div>
   </div>
 </caption>
 
   <table class="table table-striped table-hover table-sm">
-    <caption>Homologados</caption>
+    <caption>Projetos/bolsistas</caption>
     <thead>
       <tr>
         <th scope="col"><p align = "center">#</p></th>

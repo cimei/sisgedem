@@ -86,8 +86,10 @@
         <th scope="col" data-field="Situação" data-filter-control="input" data-sortable="true"><p align = "center">Situação</p></th>
         <th scope="col"><p align = "center">Subsituação</p></th>
         <th scope="col" data-sortable="true"><p align = "center"><abbr title="Vermelho: vence em menos de 30 dias. Laranja: vence em menos de 60 dias. Cinza: vence em menos de 90 dias.">Final de Vigência</p></th>
-        <th scope="col" data-sortable="true"><p align = "center">Repasse (% exec.)</p></th>
-        <th scope="col" data-sortable="true"><p align = "center">Contrapartida (% exec.)</p></th>
+        <th scope="col" data-sortable="true"><p align = "center">Repasse</p></th>
+        <th scope="col" data-sortable="true"><p align = "center">Desemb. (% exec.)</p></th>
+        <th scope="col" data-sortable="true"><p align = "center">Contrap.</p></th>
+        <th scope="col" data-sortable="true"><p align = "center">Ingr. Contrap. (% exec.)</p></th>
       </tr>
     </thead>
 
@@ -138,14 +140,23 @@
             {% endif %}
           </p></td>
         {% endif %}
+
         <td><p align = "right">
           {% if conv.VL_REPASSE_CONV != None %}
             {{conv.VL_REPASSE_CONV|converte_para_real}}
           {% else %} 
             0,00
           {% endif %}
+        </p></td>
 
-          {% if conv.VL_DESEMBOLSADO_CONV == 0 or conv.VL_DESEMBOLSADO_CONV == None %}
+        <td><p align = "right">
+          {% if conv.VL_DESEMBOLSADO_CONV != None %}
+            {{conv.VL_DESEMBOLSADO_CONV|converte_para_real}}
+          {% else %} 
+            0,00
+          {% endif %}
+
+          {% if conv.VL_REPASSE_CONV == 0 or conv.VL_REPASSE_CONV == None %}
             (<span class="text-danger">0 %</span>)
           {% else %}
             {% if (100*conv.VL_DESEMBOLSADO_CONV/conv.VL_REPASSE_CONV) == 100 %}
@@ -154,12 +165,19 @@
               (<span class="text-danger">{{(100*conv.VL_DESEMBOLSADO_CONV/conv.VL_REPASSE_CONV)|round|int}} %</span>)
             {% endif %}
           {% endif %}
-
-
         </p></td>
+
         <td><p align = "right"> 
           {% if conv.VL_CONTRAPARTIDA_CONV != None %}
             {{conv.VL_CONTRAPARTIDA_CONV|converte_para_real}}
+          {% else %} 
+            0,00
+          {% endif %} 
+        </p></td>
+
+        <td><p align = "right"> 
+          {% if conv.VL_INGRESSO_CONTRAPARTIDA != None %}
+            {{conv.VL_INGRESSO_CONTRAPARTIDA|converte_para_real}}
           {% else %} 
             0,00
           {% endif %} 
@@ -173,8 +191,8 @@
               (<span class="text-danger">{{(100*conv.VL_INGRESSO_CONTRAPARTIDA/conv.VL_CONTRAPARTIDA_CONV)|round|int}} %</span>)
             {% endif %}
           {% endif %}
-
         </p></td>
+
       </tr>
 
       {% endfor %}

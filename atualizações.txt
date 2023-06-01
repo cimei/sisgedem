@@ -1,5 +1,9 @@
 ## Atualizações ##
 
+29/05/2023
+Atualizações diversas para que o sistema possa pegar dados do DW (DM Pagamento).
+v5.0.0
+
 28/04/2023
 Correção do tipo de campo de valores em acordos no banco para NUMERIC.
 v4.13.1

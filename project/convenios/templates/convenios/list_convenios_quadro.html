@@ -6,8 +6,8 @@
 <caption>
   <div class="row">
       <div class="col">
-        <p>Lista dos <span class="badge badge-pill badge-primary">{{quantidade}}</span> convênios
-          da UF <b>{{uf}}</b>
+        <p>Lista dos <span class="badge badge-pill badge-primary">{{quantidade}}</span> convênios EM EXECUÇÃO 
+          {% if uf != '*' %}da UF <b>{{uf}}</b>{% endif %}
           {% if programa != 'todos' %}
             no programa <b>{{programa}}</b>
           {% endif %}

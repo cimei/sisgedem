@@ -52,8 +52,230 @@ from threading import Thread
 from werkzeug.utils import secure_filename
 import tempfile
 import zipfile
+import oracledb
 
 core = Blueprint("core",__name__)
+
+# função que pega dados do DW
+
+def consultaDW(**entrada):
+
+    if entrada['tipo'] == 'chamadas': # chamadas associadas as TEDs 
+
+        sql = "SELECT DISTINCT\
+                DWDIM.di_unidade_organizacional.SGL_UNID_ORG UNIDADE,\
+                DWDIM.DI_CHAMADA.sgl_chamada SIGLA_CHAMDADA,\
+                DWDIM.DI_CHAMADA.NME_CHAMADA CHAMADA,\
+                DWDIM.DI_CHAMADA.nme_tipo_chamada TIPO_CHAMADA,\
+                COUNT(DISTINCT dwdim.di_processo.cod_proc) PROCESSOS,\
+                SUM(dwfato.ft_pagamento.vlr_total_item_despesa) VALOR\
+                DWDIM.DI_CHAMADA.seq_id_chamada ID_CHAMADA\
+                FROM  DWFATO.FT_PAGAMENTO \
+                JOIN DWDIM.DI_CHAMADA ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA = DWFATO.FT_PAGAMENTO.SEQ_ID_CHAMADA\
+                JOIN DWDIM.di_unidade_organizacional ON dwdim.di_unidade_organizacional.seq_id_unid_org = DWFATO.FT_PAGAMENTO.SEQ_ID_UNID_ORG\
+                JOIN DWDIM.DI_FONTE_RECURSO ON dwdim.di_fonte_recurso.seq_id_fonte_recurso = DWFATO.FT_PAGAMENTO.SEQ_ID_FONTE_RECURSO\
+                JOIN DWDIM.DI_PROCESSO ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
+                WHERE (dwdim.di_unidade_organizacional.sgl_unid_nivel2 = '"+ entrada['unid'] +"') \
+                    AND DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO LIKE '%TED%'\
+                    AND DWDIM.DI_PROCESSO.NME_ESTADO_FOMENTO <> 'Submetido'\
+                    AND DWDIM.DI_PROCESSO.NME_ESTADO_FOMENTO <> 'Cancelado'\
+                    AND DWDIM.DI_PROCESSO.NME_ESTADO_FOMENTO <> 'Em preparação'\
+                GROUP BY DWDIM.di_unidade_organizacional.SGL_UNID_ORG,\
+                DWDIM.DI_CHAMADA.sgl_chamada, DWDIM.DI_CHAMADA.NME_CHAMADA, DWDIM.DI_CHAMADA.nme_tipo_chamada\
+                order by DWDIM.DI_CHAMADA.sgl_chamada"
+
+    elif entrada['tipo'] == 'programas_unid': # programas associados a uma unidade, procura no FT_PAGAMENTO por seq_id_programa_PROC e seq_id_programa
+
+        sql = "SELECT DISTINCT \
+                    p.cod_programa COD_PROGRAMA,\
+                    p.nme_programa NOME_PROGRAMA,\
+                    p.dsc_programa_abrev SIGLA_PROGRAMA,\
+                    u.SGL_UNID_ORG UNIDADE\
+                FROM  DWFATO.FT_PAGAMENTO \
+                JOIN DWDIM.di_programa p ON p.seq_id_programa = dwfato.ft_pagamento.seq_id_programa_PROC\
+                JOIN DWDIM.di_unidade_organizacional u ON u.seq_id_unid_org = DWFATO.FT_PAGAMENTO.SEQ_ID_UNID_ORG\
+                WHERE u.SGL_UNID_ORG = '"+ entrada['unid'] +"'\
+                UNION \
+                SELECT DISTINCT\
+                    p.cod_programa COD_PROGRAMA,\
+                    p.nme_programa NOME_PROGRAMA,\
+                    p.dsc_programa_abrev SIGLA_PROGRAMA,\
+                    u.SGL_UNID_ORG UNIDADE\
+                FROM  DWFATO.FT_PAGAMENTO \
+                JOIN DWDIM.di_programa p ON p.seq_id_programa = dwfato.ft_pagamento.seq_id_programa\
+                JOIN DWDIM.di_unidade_organizacional u ON u.seq_id_unid_org = DWFATO.FT_PAGAMENTO.SEQ_ID_UNID_ORG\
+                WHERE u.SGL_UNID_ORG = '"+ entrada['unid'] +"'\
+                ORDER BY UNIDADE, SIGLA_PROGRAMA"
+    
+    elif entrada['tipo'] == 'chamadas_programas': # chamadas associadas a um programa
+
+        sql = "select \
+                    DWDIM.DI_CHAMADA.nme_tipo_chamada                            TIPO_CHAMADA,\
+                    DWDIM.DI_CHAMADA.sgl_chamada                                 SIGLA_CHAMADA,\
+                    DWDIM.DI_CHAMADA.NME_CHAMADA                                 CHAMADA,\
+                    COUNT(DISTINCT dwdim.di_processo.cod_proc_mae)               PROCESSOS_MAE,\
+                    DWDIM.DI_CHAMADA.seq_id_chamada                              ID_CHAMADA,\
+                    (select \
+                            SUM (vlr_total_item_despesa_folha)\
+                        FROM  DWFATO.FT_PAGAMENTO FT2\
+                        JOIN DWDIM.DI_CHAMADA CH2 ON CH2.SEQ_ID_CHAMADA = FT2.SEQ_ID_CHAMADA\
+                        WHERE FT2.seq_id_chamada = DWDIM.DI_CHAMADA.seq_id_chamada\
+                        GROUP BY FT2.seq_id_chamada)                                        VALOR_FOLHA,\
+                    (select \
+                            SUM (vlr_total_item_despesa)\
+                        FROM  DWFATO.FT_PAGAMENTO FT2\
+                        JOIN DWDIM.DI_CHAMADA CH2 ON CH2.SEQ_ID_CHAMADA = FT2.SEQ_ID_CHAMADA\
+                        WHERE FT2.seq_id_chamada = DWDIM.DI_CHAMADA.seq_id_chamada\
+                        GROUP BY FT2.seq_id_chamada)                                       VALOR,\
+                    DWDIM.DI_PROGRAMA.COD_PROGRAMA                                         COD_PROGRAMA\
+                FROM  DWFATO.FT_PAGAMENTO FT1\
+                JOIN DWDIM.DI_CHAMADA  ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA   = FT1.SEQ_ID_CHAMADA\
+                JOIN DWDIM.di_programa ON DWDIM.di_programa.seq_id_programa = FT1.seq_id_programa\
+                JOIN DWDIM.DI_PROCESSO ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO = FT1.SEQ_ID_PROCESSO\
+                WHERE (DWDIM.di_programa.cod_programa = '"+ entrada['cod_programa'] +"') \
+                GROUP BY DWDIM.DI_CHAMADA.seq_id_chamada, dwdim.di_programa.cod_programa, DWDIM.DI_CHAMADA.sgl_chamada, DWDIM.DI_CHAMADA.NME_CHAMADA,DWDIM.DI_CHAMADA.nme_tipo_chamada\
+                order by DWDIM.DI_CHAMADA.sgl_chamada"
+
+    elif entrada['tipo'] == 'processos_chamadas': # processos mãe associados a uma chamada
+
+        sql = "SELECT DISTINCT DWDIM.DI_PROGRAMA.COD_PROGRAMA             COD_PROGRAMA,\
+                               DWDIM.DI_CHAMADA.NME_CHAMADA               NOME_CHAMADA,\
+                               DWDIM.DI_PROCESSO.COD_PROC_MAE             PROC_MAE,\
+                               COUNT(DISTINCT DWDIM.DI_PROCESSO.COD_PROC) QTD_FILHOS,\
+                               (select DTA_INICIO from DWDIM.DI_PROCESSO           PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) INICIO,\
+                               (select DTA_TERMINO from DWDIM.DI_PROCESSO          PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) FIM,\
+                               (select DSC_SIT_PROC from DWDIM.DI_PROCESSO         PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) SIT,\
+                               (select DSC_DETALHE_SIT_PROC from DWDIM.DI_PROCESSO PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) SIT_DETALHE,\
+                               (select TXT_TITULO_PROC from DWDIM.DI_PROCESSO      PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) TITULO,\
+                               (select PE.NME_PESSOA \
+                                       FROM DWFATO.FT_PAGAMENTO FT\
+                                       JOIN DWDIM.DI_PROCESSO PR ON PR.SEQ_ID_PROCESSO = FT.SEQ_ID_PROCESSO\
+                                       JOIN DWDIM.DI_PESSOA   PE ON PE.SEQ_ID_PESSOA   = FT.SEQ_ID_PESSOA_BENEF\
+                                       where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1)        PESSOA,\
+                               (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
+                                       FROM  DWFATO.FT_PAGAMENTO FT2 \
+                                       JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
+                                       JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
+                                       where DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA = 'Capital' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE)  PAGO_CAPITAL,\
+                               (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
+                                       FROM  DWFATO.FT_PAGAMENTO FT2 \
+                                       JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
+                                       JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
+                                       where DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA = 'Custeio' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE)  PAGO_CUSTEIO,\
+                               (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
+                                       FROM  DWFATO.FT_PAGAMENTO FT2 \
+                                       JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
+                                       JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
+                                       where DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA = 'Bolsa' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE)    PAGO_BOLSA\
+                               FROM  DWFATO.FT_PAGAMENTO \
+                        JOIN DWDIM.DI_CHAMADA      ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA           = DWFATO.FT_PAGAMENTO.SEQ_ID_CHAMADA\
+                        JOIN DWDIM.di_programa     ON DWDIM.di_programa.seq_id_programa         = DWFATO.FT_PAGAMENTO.seq_id_programa\
+                        JOIN DWDIM.DI_PROCESSO     ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO         = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
+                        JOIN DWDIM.DI_ITEM_DESPESA ON DWDIM.DI_ITEM_DESPESA.SEQ_ID_ITEM_DESPESA = DWFATO.FT_PAGAMENTO.SEQ_ID_ITEM_DESPESA\
+                        WHERE DWDIM.DI_CHAMADA.seq_id_chamada = '"+ entrada['id_chamada'] +"' \
+                        GROUP BY DWDIM.DI_PROCESSO.cod_proc_mae, DWDIM.DI_PROGRAMA.COD_PROGRAMA, DWDIM.DI_CHAMADA.NME_CHAMADA,DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA\
+                        order by DWDIM.DI_PROCESSO.COD_PROC_MAE"                
+
+    elif entrada['tipo'] == 'filhos_chamadas': # processos filho associados a uma chamada
+
+        sql = "SELECT DWDIM.DI_PROGRAMA.COD_PROGRAMA           COD_PROGRAMA,\
+                        DWDIM.DI_CHAMADA.NME_CHAMADA           NOME_CHAMADA,\
+                        DWDIM.DI_PROCESSO.COD_PROC             PROCESSO,\
+                        DWDIM.DI_PROCESSO.COD_PROC_MAE         PROCESSO_MAE,\
+                        DWDIM.DI_PROCESSO.DTA_INICIO           INICIO,\
+                        DWDIM.DI_PROCESSO.DTA_TERMINO          FIM,\
+                        DWDIM.DI_PROCESSO.DSC_SIT_PROC         SIT,\
+                        DWDIM.DI_PROCESSO.DSC_DETALHE_SIT_PROC SIT_DETALHE,\
+                        DWDIM.DI_PROCESSO.TXT_TITULO_PROC      TITULO,\
+                        DWDIM.DI_PESSOA.CPF_PESSOA             CPF,\
+                        DWDIM.DI_PESSOA.NME_PESSOA             PESSOA,\
+                        DWDIM.DI_MODALIDADE.COD_MODAL          MODAL,\
+                        DWDIM.DI_MODALIDADE.COD_CATEG_NIVEL    NIVEL,\
+                        SUM(DWFATO.FT_PAGAMENTO.QTD_BOLSAS)                   QTD_BOLSAS,\
+                        SUM(DWFATO.FT_PAGAMENTO.VLR_TOTAL_ITEM_DESPESA_FOLHA) VALOR_BOLSAS,\
+                        SUM(DWFATO.FT_PAGAMENTO.QTD_ITEM_DESPESA)             QTD_DESPESAS,\
+                        SUM(DWFATO.FT_PAGAMENTO.VLR_TOTAL_ITEM_DESPESA)       VALOR_DESPESAS,\
+                        DWDIM.DI_PROCESSO.DTA_CARGA                           DTA_CARGA\
+                        FROM  DWFATO.FT_PAGAMENTO \
+            JOIN DWDIM.DI_PESSOA     ON DWDIM.DI_PESSOA.SEQ_ID_PESSOA         = DWFATO.FT_PAGAMENTO.SEQ_ID_PESSOA_BENEF  \
+            JOIN DWDIM.DI_CHAMADA    ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA       = DWFATO.FT_PAGAMENTO.SEQ_ID_CHAMADA\
+            JOIN DWDIM.di_programa   ON DWDIM.di_programa.seq_id_programa     = DWFATO.FT_PAGAMENTO.seq_id_programa\
+            JOIN DWDIM.DI_PROCESSO   ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO     = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
+            JOIN DWDIM.DI_MODALIDADE ON DWDIM.DI_MODALIDADE.SEQ_ID_MODALIDADE = DWFATO.FT_PAGAMENTO.SEQ_ID_MODALIDADE\
+            WHERE DWDIM.DI_CHAMADA.seq_id_chamada = '"+ entrada['id_chamada'] +"' \
+            GROUP BY DWDIM.DI_PROGRAMA.COD_PROGRAMA     ,\
+                    DWDIM.DI_CHAMADA.NME_CHAMADA           ,\
+                    DWDIM.DI_PROCESSO.COD_PROC             ,\
+                    DWDIM.DI_PROCESSO.COD_PROC_MAE         ,\
+                    DWDIM.DI_PROCESSO.DTA_INICIO           ,\
+                    DWDIM.DI_PROCESSO.DTA_TERMINO          ,\
+                    DWDIM.DI_PROCESSO.DSC_SIT_PROC         ,\
+                    DWDIM.DI_PROCESSO.DSC_DETALHE_SIT_PROC ,\
+                    DWDIM.DI_PROCESSO.TXT_TITULO_PROC      ,\
+                    DWDIM.DI_PESSOA.CPF_PESSOA             ,\
+                    DWDIM.DI_PESSOA.NME_PESSOA             ,\
+                    DWDIM.DI_MODALIDADE.COD_MODAL          ,\
+                    DWDIM.DI_MODALIDADE.COD_CATEG_NIVEL    ,\
+                    DWDIM.DI_PROCESSO.DTA_CARGA\
+            order by DWDIM.DI_PROCESSO.COD_PROC"
+
+    elif entrada['tipo'] == 'valores': # pegar valores por ND em processos-mae
+
+        sql = "SELECT DWDIM.di_unidade_organizacional.SGL_UNID_ORG UNIDADE,\
+                      DWDIM.DI_PROCESSO.COD_PROC_MAE PROCESSO_MAE,\
+                      DWDIM.DI_PROCESSO.COD_PROC PROCESSO,\
+                      DWDIM.DI_PESSOA.NME_PESSOA BENEFICIADO,\
+                      DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO FONTE,\
+                      DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA ND,\
+                      SUM(DWFATO.FT_PAGAMENTO.VLR_TOTAL_ITEM_DESPESA) VALOR,\
+                      SUM(DWFATO.FT_PAGAMENTO.QTD_ITEM_DESPESA) QUANTIDADE\
+                FROM  DWFATO.FT_PAGAMENTO\
+                JOIN DWDIM.DI_PROCESSO ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
+                JOIN DWDIM.DI_PESSOA ON DWDIM.DI_PESSOA.SEQ_ID_PESSOA = DWFATO.FT_PAGAMENTO.SEQ_ID_PESSOA_BENEF\
+                JOIN DWDIM.DI_ITEM_DESPESA ON DWDIM.DI_ITEM_DESPESA.SEQ_ID_ITEM_DESPESA = DWFATO.FT_PAGAMENTO.SEQ_ID_ITEM_DESPESA\
+                JOIN DWDIM.DI_FONTE_RECURSO ON dwdim.di_fonte_recurso.seq_id_fonte_recurso = DWFATO.FT_PAGAMENTO.SEQ_ID_FONTE_RECURSO\
+                JOIN DWDIM.di_unidade_organizacional ON dwdim.di_unidade_organizacional.seq_id_unid_org = DWFATO.FT_PAGAMENTO.SEQ_ID_UNID_ORG\
+                WHERE dwdim.di_unidade_organizacional.sgl_unid_nivel2 = '"+ entrada['unid'] +"' AND DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO LIKE '%TED%' AND DWDIM.DI_PROCESSO.COD_PROC_MAE is null\
+                GROUP BY DWDIM.DI_PROCESSO.COD_PROC, DWDIM.DI_PESSOA.NME_PESSOA, DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA,\
+                    DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO, DWDIM.di_unidade_organizacional.SGL_UNID_ORG,DWDIM.DI_PROCESSO.COD_PROC_MAE\
+                ORDER BY DWDIM.DI_PESSOA.NME_PESSOA"
+
+    else:
+        flash('TIPO INVÁLIDO','erro')
+        return res
+
+    dsn = """(DESCRIPTION = \
+                (ADDRESS = (PROTOCOL = TCP)\
+                    (HOST = dw1-vip.cnpq.br)\
+                    (PORT = 1521))\
+                (ADDRESS = (PROTOCOL = TCP)\
+                    (HOST = dw2-vip.cnpq.br)\
+                    (PORT = 1521))\
+                (LOAD_BALANCE = yes)\
+                (FAILOVER = ON)\
+                (CONNECT_DATA = \
+                    (SERVICE_NAME = dw.cnpq.br)\
+                    (FAILOVER_MODE = \
+                        (TYPE = SELECT)\
+                        (METHOD = BASIC)\
+                        (RETRIES = 180)(DELAY = 5))))"""
+
+    oracledb.init_oracle_client()
+
+    conn = oracledb.connect(
+                            user='usr_sicopes', 
+                            password='sicopes', 
+                            dsn=dsn,
+                            encoding="UTF-8"
+                            )
+    c = conn.cursor()
+    c.execute(sql)
+    res = c.fetchall()
+            
+    c.close()
+    conn.close()
+
+    return res
 
 
 # função que executa carga de dados PDCTR
@@ -1080,60 +1302,53 @@ def carregaSICONV():
 
 
 #
-### inserir dados sobre chamadas homologadas
+### inserir chamadas
 
-@core.route("/<sei>/<prog>/<edic>/<epe>/<uf>/criar_chamada", methods=['GET', 'POST'])
+@core.route("/<id_acordo_convenio>/criar_chamada", methods=['GET', 'POST'])
 @login_required
-def cria_chamada(sei,prog,edic,epe,uf):
+def cria_chamada(id_acordo_convenio):
     """
     +---------------------------------------------------------------------------------------+
-    |Permite registrar os dados de uma chamada homolada pelo CNPq.                          |
+    |Permite registrar os dados de uma chamada e associa-la a um acordo/convenio.           |
     |                                                                                       |
-    |Recebe o número SEI como parâmetro.                                                    |
+    |Recebe o id do acordo/convênio.                                                        |
     +---------------------------------------------------------------------------------------+
     """
 
     form = ChamadaForm()
 
     if form.validate_on_submit():
-        chamada = Chamadas( sei              = form.sei.data,
-                            chamada          = form.chamada.data,
-                            qtd_projetos     = form.qtd_projetos.data,
-                            vl_total_chamada = float(form.vl_total_chamada.data.replace('.','').replace(',','.')),
-                            doc_sei          = form.doc_sei.data,
-                            obs              = form.obs.data)
+        chamada = Chamadas(sei              = form.sei.data,
+                           chamada          = form.chamada.data,
+                           qtd_projetos     = form.qtd_projetos.data,
+                           vl_total_chamada = float(form.vl_total_chamada.data.replace('.','').replace(',','.')),
+                           doc_sei          = form.doc_sei.data,
+                           obs              = form.obs.data,
+                           id_relaciona     = str(id_acordo_convenio))
 
         db.session.add(chamada)
         db.session.commit()
 
         registra_log_auto(current_user.id,None,'hom')
 
-        sei = str(sei).split('_')[0]+'/'+str(sei).split('_')[1]
-        conv = db.session.query(DadosSEI.nr_convenio).filter(DadosSEI.sei == sei).first()
+        flash('Chamada registrada!','sucesso')
 
-        acordo_id = db.session.query(Acordo.id).filter(Acordo.sei == sei).first()
-
-        flash('Chamada homologada registrada!','sucesso')
-        if conv == None or conv == ':':
-            return redirect(url_for('acordos.update', acordo_id=acordo_id[0], lista='todos'))
+        if str(id_acordo_convenio).isdigit():
+            return redirect(url_for('acordos.update', acordo_id=int(id_acordo_convenio), lista='todos'))
         else:
-            return redirect(url_for('convenios.convenio_detalhes', conv=conv[0], form = SEIForm()))
-    #
-    # traz a informação atual do registro SEI
-    elif request.method == 'GET':
-        form.sei.data = str(sei).split('_')[0]+'/'+str(sei).split('_')[1]
+            return redirect(url_for('convenios.convenio_detalhes', conv=str(id_acordo_convenio)[1:], form = SEIForm()))
 
     return render_template('add_chamada.html', form=form)
 
 #
-### altera dados de chamada homologada
+### altera dados de uma chamada
 
-@core.route("/<int:id>/<prog>/<edic>/<epe>/<uf>/update_chamada", methods=['GET', 'POST'])
+@core.route("/<int:id>/update_chamada", methods=['GET', 'POST'])
 @login_required
-def update_chamada(id,prog,edic,epe,uf):
+def update_chamada(id):
     """
     +---------------------------------------------------------------------------------------+
-    |Permite alterar os dados de uma chamada homolada pelo CNPq.                            |
+    |Permite alterar os dados de uma chamada.                                               |
     |                                                                                       |
     |Recebe o id da chamada como parâmetro.                                                 |
     +---------------------------------------------------------------------------------------+
@@ -1156,15 +1371,8 @@ def update_chamada(id,prog,edic,epe,uf):
 
         registra_log_auto(current_user.id,None,'hom')
 
-        conv = db.session.query(DadosSEI.nr_convenio).filter(DadosSEI.sei == form.sei.data).first()
-
-        acordo_id = db.session.query(Acordo.id).filter(Acordo.sei == form.sei.data).first()
-
         flash('Chamada homologada atualizada!','sucesso')
-        if conv == None or conv == '' or conv == ':':
-            return redirect(url_for('acordos.update', acordo_id=acordo_id[0],lista='todos'))
-        else:
-            return redirect(url_for('convenios.convenio_detalhes', conv=conv[0], form = SEIForm()))
+        return redirect(url_for('core.index'))
     #
     # traz a informação atual do registro SEI
     elif request.method == 'GET':
@@ -1552,3 +1760,7 @@ def carregaMSG():
     data_ref = ''
 
     return render_template('grab_file.html',form=form,data_ref=data_ref)
+
+
+
+

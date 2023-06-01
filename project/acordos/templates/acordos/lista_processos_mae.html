@@ -1,26 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="jumbotron">
-  <h5>Lista de Processos Mãe</h5>
+  {% if acordo_id != None %}
+  <h5>Lista de Processos Mãe do Acordo {{acordo_tit}}</h5>
 
-  {% if current_user.is_authenticated %}
-    <div>
-      <a href="{{url_for('acordos.processo_mae_acordo',acordo_id=acordo_id,edic=edic,epe=epe,uf=uf)}}" class="btn btn-primary active" role="button" aria-pressed="true">Inserir novo</a>
-    </div>
+    {% if current_user.is_authenticated %}
+      <div>
+        <a href="{{url_for('acordos.processo_mae_acordo',acordo_id=acordo_id)}}" class="btn btn-primary active" role="button" aria-pressed="true">Associar Novo</a>
+      </div>
+    {% endif %}
+    <br>
+
+  {% else %}  
+  <h5>Lista de Processos da chamada CNPq: {{chamada}}</h5>
   {% endif %}
-<br>
 
 <caption>
   <div class="row">
       <div class="col">
-        <p>Lista dos <span class="badge badge-pill badge-primary">{{qtd_maes}}</span> <b>Processos mãe</b> cadastrados
+        <p>Lista dos <span class="badge badge-pill badge-primary">{{qtd_processos}}</span> <b>Processos</b> cadastrados
         </p>
       </div>
   </div>
 </caption>
 
   <table class="table table-striped table-hover table-sm">
-    <caption>Processos mãe do Acordo {{edic}} - {{epe}}-{{uf}}</caption>
+    <caption>Processos</caption>
     <thead>
       <tr>
         <th scope="col"><p align = "center">#</p></th>
@@ -29,73 +34,75 @@
         <th scope="col"><p align = "center">Situação</p></th>
         <th scope="col"><p align = "center">Vigência</p></th>
         <th scope="col"><p align = "center">Fihos</p></th>
-        <th scope="col"><p align = "center">CPFs</p></th>
-        <th scope="col"><p align = "center">Últ. Pag.</p></th>
         <th scope="col"><p align = "center">Pago</p></th>
-        <th scope="col"><p align = "center">À pagar</p></th>
       </tr>
     </thead>
     <tbody>
       {% for proc in procs_mae %}
         <tr>
           <th scope="row"><p align = "center">
+              {% if current_user.is_authenticated and acordo_id != None %}
+                <abbr title="ATENÇÃO!! AO CLICAR NESTE BOTÃO, A ASSOCIAÇÃO SERÁ DESFEITA.">
+                <button type="button" class="btn btn-danger" data-toggle='modal' data-target='#del_modal{{proc.proc_mae_id}}'>
+                  {{procs_mae.index(proc) + 1}}</button>
 
-              {% if current_user.is_authenticated %}
-              <abbr title="ATENÇÃO!! AO CLICAR NESTE BOTÃO, A ASSOCIAÇÃO SERÁ DESFEITA.">
+                {# modal para desassociação de processo mãe #}
 
-              <button type="button" class="btn btn-danger" data-toggle='modal' data-target='#del_modal{{proc[0]}}'>{{procs_mae.index(proc) + 1}}</button>
-
-              {# modal para desassociação de processo mãe #}
-
-              <div class="modal" tabindex="-1" role="dialog" id="del_modal{{proc[0]}}">
-                <div class="modal-dialog" role="document">
-                  <div class="modal-content">
-                    <div class="modal-header">
-                      <div class="p-3 mb-2 bg-danger text-white">
-                      <h5 class="modal-title">Desassociar o processo-mae?</h5>
+                <div class="modal" tabindex="-1" role="dialog" id="del_modal{{proc.proc_mae_id}}">
+                  <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <div class="p-3 mb-2 bg-danger text-white">
+                        <h5 class="modal-title">Desassociar o processo-mae?</h5>
+                        </div>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                          <span aria-hidden="true">&times;</span>
+                        </button>
                       </div>
-                      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                      </button>
-                    </div>
-                    <div class="modal-body">
-                      <p>Deseja realmente retirar a associação deste processo mãe com o acordo?</p>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                      <div class="modal-body">
+                        <p>Deseja realmente retirar a associação deste processo mãe com o acordo?</p>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
 
-                      <form action="{{url_for('acordos.deleta_processo_mae',id=proc[0],acordo_id=acordo_id,edic=edic,epe=epe,uf=uf)}}" method="post">
-                        <input class="btn btn-danger" type="submit" name="" value="Excluir">
-                      </form>
+                        <form action="{{url_for('acordos.deleta_processo_mae',processo_mae_id=proc.proc_mae_id,acordo_id=acordo_id)}}" method="post">
+                          <input class="btn btn-danger" type="submit" name="" value="Excluir">
+                        </form>
 
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-
               {% else %}
-                {{proc[0]}}
+                {{procs_mae.index(proc) + 1}}
               {% endif %}
-
           </th>
-          <td><p align = "center"> <a href="{{url_for('acordos.altera_mae', acordo_id=acordo_id, edic=edic, epe=epe, uf=uf, proc_mae=proc[1].replace('/','_'))}}">
-                                   <abbr title="Clique aqui para alterar dados deste processo-mãe.">{{proc[1]}} </p></td>
-          <td><p align = "center"> {{proc[9]}} </p></td>
-          <td><p align = "center"> {{proc[10]}} </p></td>
-          {% if proc[2] != None and proc[3] != None %}
-            <td><p align = "center"> {{proc[2].strftime("%x")}} a {{proc[3].strftime("%x")}} </p></td>
+          <td><p align = "center"> 
+            {% if acordo_id %}
+              <a href="{{url_for('acordos.altera_mae', acordo_id=acordo_id, proc_mae=proc.proc_mae.replace('/','_'))}}">
+              <abbr title="Clique aqui para alterar dados deste processo-mãe.">{{proc.proc_mae}} </abbr></a>
+            {% elif proc.proc_mae_id %} 
+                <span class="text-success"><b><abbr title="Este processo já está associadoa a um acordo/TED.">{{proc.proc_mae}}</abbr></b></span>
+            {% else %}
+              {{proc.proc_mae}}
+            {% endif %}  
+          </p></td>
+          <td><p align = "center"> 
+            {% if proc.coordenador %}
+              {{proc.coordenador}} 
+            {% else %}
+              N.I.
+            {% endif %}    
+          </p></td>
+          <td><p align = "center"> {{proc.situ_mae}} </p></td>
+          {% if proc.inic_mae != None and proc.term_mae != None %}
+            <td><p align = "center"> {{proc.inic_mae.strftime("%x")}} a {{proc.term_mae.strftime("%x")}} </p></td>
           {% else %}
-            <td><p align = "center"> {{proc[2]}} {{proc[3]}}</p></td>
+            <td><p align = "center">#</p></td>
           {% endif %}
-
-          <td><p align = "center"> <a href="{{url_for('acordos.lista_processos_filho', proc_mae=proc[1].replace('/','_'))}}">
-                                   <abbr title="Clique aqui para ver a lista de filhos.">{{proc[4]}} </p></td>
-          <td><p align = "center"><a href="{{url_for('acordos.lista_bolsistas', proc_mae=proc[1].replace('/','_'))}}">
-                                   <abbr title="Clique aqui para ver a lista de bolsistas."> {{proc[7]}} </p></td>
-          <td><p align = "center"> {{proc[8]}} </p></td>
-          <td><p align = "right"> {{proc[5]}} </p></td>
-          <td><p align = "right"> {{proc[6]}} </p></td>
+          <td><p align = "center"> <a href="{{url_for('acordos.lista_processos_filho', proc_mae=proc.proc_mae.replace('/','_'))}}">
+                                   <abbr title="Clique aqui para ver a lista de filhos.">{{proc.qtd_filhos}}</abbr> </p></td>
+          <td><p align = "right"> {{proc.pago|converte_para_real}} </p></td>
         </tr>
       {% endfor %}
     </tbody>

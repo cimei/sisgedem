@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="jumbotron">
-  <h5>Lista dos Programas para Acordos (CNPq)</h5>
+  <h5>Lista dos Programas CNPq (Acordos/TEDs) da sua unidade</h5>
 
   {% if current_user.is_authenticated %}
     <div>
@@ -14,7 +14,7 @@
 <caption>
   <div class="row">
       <div class="col">
-        <p>Lista dos <span class="badge badge-pill badge-primary">{{quantidade}}</span> programas do CNPq cadastrados
+        <p>Lista dos <span class="badge badge-pill badge-primary">{{quantidade}}</span> programas CNPq cadastrados
         </p>
       </div>
 
@@ -31,7 +31,6 @@
         <th scope="col"><p align = "center">Nome</p></th>
         <th scope="col"><p align = "center">Sigla</p></th>
         <th scope="col"><p align = "center">Coordenação</p></th>
-        <th scope="col"><p align = "center">Últ. pag. registr.</p></th>
       </tr>
     </thead>
     <tbody>
@@ -39,18 +38,17 @@
       {% for prog in programas %}
 
       <tr>
-        <th scope="row"><p align = "center">
-          <a href="{{url_for('acordos.atualiza_programa_cnpq', id=prog[0])}}"><abbr title="Clique aqui atualizar">{{prog[0]}}</abbr></a>
-        </p></th>
-        <td><p align = "center"> {{ prog[1] }} </p></td>
-        <td><p align = "center"> {{ prog[2] }} </p></td>
-        <td><p align = "center"> {{ prog[3] }} </p></td>
-        <td><p align = "center"> {{ prog[4] }} </p></td>
-        {% if prog[5] != None %}
-          <td><p align = "center"> {{ prog[5].strftime("%x") }} </p></td>
-        {% else %}
-          <td><p align = "center"> n.e. </p></td>
-        {% endif %}
+        <th scope="row">
+          <p align = "center">
+            {% if (programas.index(prog) + 1) <= quantidade %}
+              {{programas.index(prog) + 1}}
+            {% endif %}
+          </p>
+        </th>  
+        <td><p align = "center"> {{prog.COD_PROGRAMA}} </p></td>
+        <td><p align = "center"> {{ prog.NOME_PROGRAMA }} </p></td>
+        <td><p align = "center"> {{ prog.SIGLA_PROGRAMA }} </p></td>
+        <td><p align = "center"> {{ prog.COORD }} </p></td>
       </tr>
 
       {% endfor %}

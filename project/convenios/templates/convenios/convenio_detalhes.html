@@ -62,7 +62,7 @@
                   {% if form.sei.data != '' %}
                   <a href="{{url_for('convenios.SEI_demandas', conv=convenio.NR_CONVENIO)}}">
                     <abbr title="Clique aqui para ver demandas relacionadas"><button type="button" class="btn btn-info" data-toggle='' data-target=''>
-                      <b>Demandas relacionadas ao convenio</b></button></abbr></a>
+                      <b>Demandas</b></button></abbr></a>
                   {% endif %}
                 </div>
                 <div class="col">
@@ -207,10 +207,13 @@
               <button type="button" class="btn btn-primary" data-toggle='modal' data-target='#desemb_modal'>Desembolsos</button>
             </div>
             <div class="col" >
-              <button type="button" class="btn btn-warning" data-toggle='modal' data-target='#chamadas_modal'>Chamadas Homologadas</button>
+              <button type="button" class="btn btn-warning" data-toggle='modal' data-target='#chamadas_modal'>Chamadas</button>
             </div>
             <div class="col">
-              <button type="button" class="btn btn-success" data-toggle='modal' data-target='#pag_modal'>Pagamentos efetuados pela EP</button>
+              <button type="button" class="btn btn-success" data-toggle='modal' data-target='#pag_modal'>Pagamentos</button>
+            </div>
+            <div class = "col">
+              <p align="right"><a href=/static/convenio.pdf class="btn btn-outline-primary" role="button" aria-pressed="true">PDF</a></p>
             </div>
           </div>
         </div>
@@ -391,7 +394,7 @@
 {# modal para visualizar desembolsos #}
 
 <div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" id="desemb_modal">
-  <div class="modal-dialog modal-sm" role="document">
+  <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
 
@@ -406,6 +409,7 @@
           <thead>
             <tr>
               <th scope="col"><p align = "center">Data</p></th>
+              <th scope="col"><p align = "center">Nr SIAFI</p></th>
               <th scope="col"><p align = "center">Valor (R$)</p></th>
             </tr>
           </thead>
@@ -414,6 +418,7 @@
             {% for item in desembolso %}
               <tr>
                 <td><p align = "center"> {{item[0].strftime('%x')}} </p></td>
+                <td><p align = "center"> {{item[2]}} </p></td>
                 <td><p align = "right"> {{item[1]}} </p></td>
               </tr>
             {% endfor %}
@@ -436,14 +441,14 @@
   </div>
 </div>
 
-{# modal para visualizar chamadas homologadas #}
+{# modal para visualizar chamadas #}
 
 <div class="modal fade" tabindex="-1" role="dialog" id="chamadas_modal">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
 
-        <h5 class="modal-title">Chamadas Homologadas</h5>
+        <h5 class="modal-title">Chamadas</h5>
 
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
@@ -456,21 +461,54 @@
               <th scope="col"><p align = "center">ID</p></th>
               <th scope="col"><p align = "center">Chamada</p></th>
               <th scope="col"><p align = "center">Projetos</p></th>
-              <th scope="col"><p align = "center">Valor Homolog.</p></th>
+              <th scope="col"><p align = "center">Valor</p></th>
               <th scope="col"><p align = "center">Ref. SEI</p></th>
               <th scope="col"><p align = "center">Obs.</p></th>
+              <th scope="col"><p align = "center">x</p></th>
             </tr>
           </thead>
 
           <tbody>
             {% for chamada in chamadas %}
               <tr>
-                <td><p align = "left">  <a href="{{url_for('core.update_chamada', id=chamada[0],sei=sei,prog='*',edic='*',epe='*',uf='*')}}"><abbr title="Clique aqui atualizar esta chamada">{{chamada[0]}}</abbr></a> </p></td>
-                <td><p align = "center"><a href="{{url_for('core.lista_homologados',chamada_id=chamada[0])}}"><abbr title="Clique aqui para ver lista de homologados">{{chamada[1]}} </p></td>
+                <td><p align = "left">  <a href="{{url_for('core.update_chamada', id=chamada[0])}}"><abbr title="Clique aqui atualizar esta chamada">{{chamada[0]}}</abbr></a> </p></td>
+                <td><p align = "center"><a href="{{url_for('core.lista_homologados',chamada_id=chamada[0])}}"><abbr title="Clique aqui para ver lista de projetos">{{chamada[1]}} </p></td>
                 <td><p align = "center"> {{chamada[2]}} </p></td>
                 <td><p align = "right"> {{chamada[3]}} </p></td>
                 <td><p align = "center"> {{chamada[4]}} </p></td>
                 <td><p align = "left"> {{chamada[5]}} </p></td>
+                <td>
+                  <abbr title="ATENÇÃO!! AO CLICAR NESTE BOTÃO, A ASSOCIAÇÃO SERÁ DESFEITA.">
+                  <button type="button" class="btn btn-danger" data-toggle='modal' data-target='#del_modal{{chamada[0]}}'>X</button>
+
+                  {# modal para desassociação de chamada #}
+
+                    <div class="modal" tabindex="-1" role="dialog" id="del_modal{{chamada[0]}}">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <div class="p-3 mb-2 bg-danger text-white">
+                            <h5 class="modal-title">Desassociar a chamada?</h5>
+                            </div>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                              <span aria-hidden="true">&times;</span>
+                            </button>
+                          </div>
+                          <div class="modal-body">
+                            <p>Deseja realmente retirar a associação desta chamada com o convênio?</p>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+
+                            <form action="{{url_for('convenios.desassocia_chamada',id=chamada[0],conv=convenio.NR_CONVENIO)}}" method="post">
+                              <input class="btn btn-danger" type="submit" name="" value="Confirmar">
+                            </form>
+
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                </td>
               </tr>
             {% endfor %}
           </tbody>
@@ -481,7 +519,7 @@
       <div class="modal-footer">
         <p>{{qtd_chamadas}} registro(s): {{qtd_proj}} projetos, totalizando R$ {{chamadas_tot}}</p>
         <br>
-        <p><a href="{{url_for('core.cria_chamada',sei=sei,prog='*',edic='*',epe='*',uf='*')}}" class="btn btn-primary active" role="button" aria-pressed="true">Inserir novo</a></p>
+        <p><a href="{{url_for('convenios.associa_chamada',conv=convenio.NR_CONVENIO)}}" class="btn btn-primary" role="button" aria-pressed="true">Associar chamada</a></p>
       </div>
     </div>
   </div>

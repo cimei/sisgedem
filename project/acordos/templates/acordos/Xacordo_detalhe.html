@@ -78,7 +78,7 @@
     <div class="modal-content">
       <div class="modal-header">
 
-        <h5 class="modal-title">Chamadas Homologadas</h5>
+        <h5 class="modal-title">Chamadas</h5>
 
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
@@ -116,7 +116,7 @@
       <div class="modal-footer">
         <p>{{qtd_chamadas}} registro(s): {{qtd_proj}} projetos, totalizando R$ {{chamadas_tot}}</p>
         <br>
-        <p><a href="{{url_for('core.cria_chamada',sei=sei)}}" class="btn btn-primary active" role="button" aria-pressed="true">Inserir novo</a></p>
+        <p><a href="{{url_for('core.cria_chamada',id_acordo_convenio=acordo.id)}}" class="btn btn-primary active" role="button" aria-pressed="true">Inserir nova</a></p>
       </div>
     </div>
   </div>

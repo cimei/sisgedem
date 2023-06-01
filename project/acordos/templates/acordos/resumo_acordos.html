@@ -24,8 +24,8 @@
                 <div class="card">
 
                   <div class="card-header">
-                    <h5><a href="{{url_for('acordos.lista_acordos',lista='programa'+programa[0],coord='*')}}" data-toggle="tooltip" title="Clique aqui para ver todos os Acordos deste Programa">
-                      {{programa[1]}} ({{programa[0]}})</a></h5>
+                    <h5><a href="{{url_for('acordos.lista_acordos',lista='programa'+programa.COD_PROGRAMA,coord='*')}}" data-toggle="tooltip" title="Clique aqui para ver todos os Acordos deste Programa">
+                      {{programa.SIGLA_PROGRAMA}} ({{programa.COD_PROGRAMA}})</a></h5>
                     <h5></h5>
                   </div>
 
@@ -34,12 +34,12 @@
                     <div class="row">
                       <div class="col">
                         <h5>
-                          {% if programa[5] == 1 %}
-                            <a href="{{url_for('acordos.edic_programa',cod_programa=programa[0],sigla=programa[1])}}" data-toggle="tooltip" title="Clique aqui para ver a Edição deste Programa">
-                              {{programa[5]}} Edição</a>
+                          {% if programa.qtd_edic == 1 %}
+                            <a href="{{url_for('acordos.edic_programa',cod_programa=programa.COD_PROGRAMA,sigla=programa.SIGLA_PROGRAMA)}}" data-toggle="tooltip" title="Clique aqui para ver a Edição deste Programa">
+                              {{programa.qtd_edic}} Nome</a>
                           {% else %}
-                            <a href="{{url_for('acordos.edic_programa',cod_programa=programa[0],sigla=programa[1])}}" data-toggle="tooltip" title="Clique aqui para ver as Edições deste Programa">
-                              {{programa[5]}} Edições</a>
+                            <a href="{{url_for('acordos.edic_programa',cod_programa=programa.COD_PROGRAMA,sigla=programa.SIGLA_PROGRAMA)}}" data-toggle="tooltip" title="Clique aqui para ver as Edições deste Programa">
+                              {{programa.qtd_edic}} Nomes</a>
                           {% endif %} </h5>
                       </div>
                     </div>
@@ -47,34 +47,34 @@
                     <div class="row">
                       <div class="col">
                         <span class="font-weight-light">Acordos:</span>
-                        <h5 align = "center">{{programa[4]}} </h5>
+                        <h5 align = "center">{{programa.qtd}} </h5>
                       </div>
                       <div class="col">
-                        <span class="font-weight-light">Valor CNPq:</span> <h5 align = "center">{{programa[2]}}</h5>
+                        <span class="font-weight-light">R$ CNPq:</span> <h5 align = "center">{{programa.vl_cnpq|converte_para_real}}</h5>
                       </div>
                       <div class="col">
-                        <span class="font-weight-light">Valor EPs:</span> <h5 align = "center">{{programa[3]}}</h5>
+                        <span class="font-weight-light">R$ EPs:</span> <h5 align = "center">{{programa.vl_epe|converte_para_real}}</h5>
                       </div>
                       <div class="col">
-                        <span class="font-weight-light">Valor pago:</span> <h5 align = "center">{{programa[9]}}</h5>
-                      </div>
+                        <span class="font-weight-light">R$ pago bolsas:</span> <h5 align = "center">{{programa.pago_bolsas|converte_para_real}}</h5>
+                      </div>  
                       <div class="col">
-                        <span class="font-weight-light">Valor a pagar:</span> <h5 align = "center">{{programa[10]}}</h5>
+                        <span class="font-weight-light">R$ pago chamadas:</span> <h5 align = "center">{{programa.pago_chamadas|converte_para_real}}</h5>
                       </div>
                     </div>
 
                     <div class="row">
                       <div class="col">
                         <span class="font-weight-light">Mães:</span>
-                        <h5 align = "center">{{programa[6]}} </h5>
+                        <h5 align = "center">{{programa.qtd_maes}} </h5>
                       </div>
                       <div class="col">
                         <span class="font-weight-light">Filhos:</span>
-                        <h5 align = "center">{{programa[7]}} </h5>
+                        <h5 align = "center">{{programa.qtd_filhos}} </h5>
                       </div>
                       <div class="col">
                         <span class="font-weight-light">Bolsistas:</span>
-                        <h5 align = "center">{{programa[8]}} </h5>
+                        <h5 align = "center">{{programa.qtd_cpfs}} </h5>
                       </div>
                     </div>
 
@@ -133,8 +133,8 @@
           <tbody>
             {% for mae in maes_sem_acordo %}
               <tr>
-                <td><p align = "center"> {{mae[0]}} </p></td>
-                <td><p align = "center"> {{mae[1]}} </p></td>
+                <td><p align = "center"> {{mae.cod_programa}} </p></td>
+                <td><p align = "center"> {{mae.proc_mae}} </p></td>
               </tr>
             {% endfor %}
           </tbody>

@@ -35,6 +35,7 @@
     <thead>
       <tr>
         <th scope="col"><p align = "center">#</p></th>
+        <th scope="col" data-sortable="true"><p align = "center">Unidade</p></th>
         <th scope="col" data-sortable="true"><p align = "center">Sigla</p></th>
         <th scope="col" data-sortable="true"><p align = "center">Descrição</p></th>
         <th scope="col" data-sortable="true"><p align = "center">Natureza</p></th>
@@ -53,8 +54,9 @@
         {% else %}
           <th scope="row"><p align = "center"> {{atividades.index(atividade) + 1}} </p></th>
         {% endif %}
+        <td><p align = "center"> {{atividade.unidade}} </p></td>
         <td><p align = "center"> {{atividade.atividade_sigla}} </p></td>
-        <td><p align = "left"> {{atividade.atividade_desc}} </p></td>
+        <td><p align = "left">   {{atividade.atividade_desc}} </p></td>
         <td><p align = "center"> {{atividade.natureza}} </p></td>
         <td><p align = "center"> {{atividade.meta}} </p></td>
         {% if atividade.status != 'Desativada' %}

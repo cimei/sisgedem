@@ -30,6 +30,12 @@ class ProgAcordoForm(FlaskForm):
 
     submit           = SubmitField('Registrar')
 
+class ChamadaAcordoForm(FlaskForm):
+
+    chamada = SelectMultipleField('Chamada:')
+
+    submit  = SubmitField('Associar')    
+
 
 class AcordoForm(FlaskForm):
 
@@ -92,7 +98,7 @@ class Inclui_proc_mae_Form(FlaskForm):
     proc_mae      = StringField('Processo_Mãe:',validators=[DataRequired(message="Informe número do processo_mãe!")])
     coordenador   = StringField('Coordenador:',validators=[DataRequired(message="Informe o nome do coordenador ou que não há registro!")])
     programa_cnpq = SelectField('Programa CNPq:')
-    nome_chamada  = StringField('Chamada:')
+    # nome_chamada  = StringField('Chamada:')
     inic_mae      = DateField('Data de início:',format='%Y-%m-%d', validators=(Optional(),))
     term_mae      = DateField('Data de término:',format='%Y-%m-%d', validators=(Optional(),))
     situ_mae      = StringField('Situação:')
@@ -120,6 +126,11 @@ def func_ProcMae_Acordo(programas):
     return ProcMae_Acordo()
 
 #
+class EscolheMaeForm(FlaskForm):
+
+    mae    = SelectMultipleField('Processo:')
+    submit = SubmitField('Associar')
+
 # form para escolher a coordenação na lista de acordos
 class ListaForm(FlaskForm):
 

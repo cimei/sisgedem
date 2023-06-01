@@ -1,11 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="jumbotron">
-<h5>Lista de Acordos</h5>
-
-
-<div>
-
+<h5>Lista de Acordos/TEDs</h5>
 
       <div class="row">
         {% if current_user.is_authenticated %}
@@ -45,13 +41,19 @@
             <span class="text-info font-weight-bold">(em execução)</span>
           {% endif %}
           {% if lista[:8] == 'programa' %}
-            <span class="text-info font-weight-bold">({{acordos[0][1]}})</span>
+            <span class="text-info font-weight-bold">(Prog. {{lista[8:]}})</span>
+          {% endif %}
+          {% if lista[:10] == 'v_programa' %}
+            <span class="text-info font-weight-bold">(Prog. {{lista[10:]}} - Em execução)</span>
           {% endif %}
           {% if lista[:4] == 'edic' %}
-            <span class="text-info font-weight-bold">({{acordos[0][1]}} Edição {{lista[4:]}})</span>
+            <span class="text-info font-weight-bold">(Nome {{lista[4:]|replace('#$','/')}})</span>
           {% endif %}
-          {% if lista[:2] == 'uf' %}
-            <span class="text-info font-weight-bold">({{acordos[0][5]}} - {{acordos[0][1]}})</span>
+          {% if lista[:2] == 'UF' %}
+            <span class="text-info font-weight-bold">(UF: {{acordos[0][5]}} - Em execução)</span>
+          {% endif %}
+          {% if lista[:7] == 'PROG_UF' %}
+            <span class="text-info font-weight-bold">(UF: {{lista[7:9]}} - Prog. {{lista[9:]}} - Em execução)</span>
           {% endif %}
         </p>
       </div>
@@ -77,19 +79,17 @@
         <th scope="col"><p align = "center">#</p></th>
         <th scope="col"data-field="Unid." data-filter-control="input" data-sortable="true"><p align = "center">Unid.</p></th>
         <th scope="col" data-sortable="true"><p align = "center">Progs.</p></th>
-        <th scope="col" data-field="Edição" data-filter-control="input" data-sortable="true"><p align = "center">Edição/Sigla</p></th>
+        <th scope="col" data-field="Edição" data-filter-control="input" data-sortable="true"><p align = "center">Nome</p></th>
         <th scope="col" data-sortable="true"><p align = "center">SEI</p></th>
         <th scope="col" data-field="EP UF" data-filter-control="input" data-sortable="true"><p align = "center">EP UF</p></th>
         <th scope="col" data-field="Situação" data-filter-control="input" data-sortable="true"><p align = "center">Situação</p></th>
         <th scope="col" data-sortable="true"><p align = "center">Ini.</p></th>
         <th scope="col" data-sortable="true"><p align = "center">Fim</p></th>
         <th scope="col"><p align = "center">Global (R$)</p></th>
+        <th scope="col"><p align = "center">Cham./Enc.</p></th>
         <th scope="col"><p align = "center">Mães</p></th>
         <th scope="col"><p align = "center">Filhos</p></th>
-        <th scope="col"><p align = "center">CPFs</p></th>
         <th scope="col"><p align = "center">Pago (B)</p></th>
-        <th scope="col"><p align = "center">A pagar (B)</p></th>
-        <th scope="col"><p align = "center">Saldo</p></th>
       </tr>
     </thead>
     <tbody>
@@ -98,23 +98,34 @@
       <tr>
         <th scope="row"><p align = "center">
           {% if (acordos.index(acordo) + 1) <= quantidade %}
-            <a href="{{url_for('acordos.update', acordo_id=acordo[0], lista=lista)}}"><abbr title="Clique aqui para detalhes do Acordo">{{acordos.index(acordo) + 1}}</abbr></a>
+            <a href="{{url_for('acordos.update', acordo_id=acordo[0], lista=lista)}}"><abbr title="Ver detalhes do Acordo">{{acordos.index(acordo) + 1}}</abbr></a>
           {% endif %}
+        </th>  
+        <!-- unid -->  
         <td><p align = "center"><small> {{acordo[15]}}</small></p></td>
+        <!-- qtd_progs -->
         <td><p align = "center">
-              <a href="{{url_for('acordos.lista_programas_acordo', id_acordo=acordo[0])}}"><abbr title="Clique para programas"><small> {{acordo[21]}}</small></abbr></a>
-            </p></td>
+          {% if acordo[21] %}
+            <a href="{{url_for('acordos.lista_programas_acordo', id_acordo=acordo[0])}}"><abbr title="Ver programas"><small><b>{{acordo[21]}}</b></small></abbr></a>
+          {% else %} 
+          <a href="{{url_for('acordos.lista_programas_acordo', id_acordo=acordo[0])}}"><abbr title="Associar a programa"><small>0</small></abbr></a>
+          {% endif %}  
+        </p></td>
+        <!-- nome -->    
         <td><p align = "center">
               <a href="{{url_for('acordos.update', acordo_id=acordo[0], lista=lista)}}">
               <abbr title="{% if acordo[22] %} {{acordo[20]}} - SIAFI: {{acordo[22]}} {% else %} {{acordo[20]}} {% endif %}"> <small> {{acordo[2]}}</small></abbr></a>
             </p></td>
+        <!-- sei -->    
         {% if acordo[3] != None%}
           <td><p align = "center"> <a href="{{url_for('acordos.acordo_demandas', acordo_id=acordo[0])}}"><abbr title="Clique aqui para ver demandas deste acordo"><small> {{acordo[3]}} </small></abbr></a> </p></td>
         {% else %}
           <td><p align = "center"><small> {{acordo[3]}}</small></p></td>
         {% endif %}
+        <!-- ep e uf -->
         <td><p align = "center"><small> {{acordo[4]}} {{acordo[5]}}</small></p></td>
-        <td><p align = "center"><small> {% if acordo[19] == "Esquecido"%}
+        <!-- situação -->
+        <td><p align = "center"><small> {% if acordo[19] == "Vigente-Esquecido"%}
                                           <abbr title="Vigência registrada, mas sem processo-mãe associado a mais de 90 dias!"><span class='text-danger'>Vigente</span></abbr>
                                         {% elif acordo[19] == "Preparação"%}
                                           <abbr title="Como não tem vigência registrada, deve estar em preparação ainda!"><span class='text-warning'>{{acordo[19]}}</span></abbr>
@@ -135,65 +146,68 @@
                                         {% else %}
                                           <abbr title="Precisa ver a situação do RTF e, talvez, dos filhos!"><span class='text-warning bg-secondary'>{{acordo[19]}}</span></abbr>
                                         {% endif %}
-                                </small></p></td>
+                                </small></p>
+        </td>
+        <!-- início -->
         {% if acordo[6] == None or acordo[6] == '' %}
-          <td><p align = "center"><small>Não registrado</small></p></td>
+          <td><p align = "center"><small>n.r.</small></p></td>
         {% else %}
-          <td><p align = "center"><small> {{acordo[6]}}</small></p></td>
+          <td><p align = "center"><small> {{acordo[6].strftime('%x')}}</small></p></td>
         {% endif %}
+        <!-- fim -->
         {% if acordo[7] == None or acordo[7] == '' %}
-          <td><p align = "center"><small>Não registrado</small></p></td>
+          <td><p align = "center"><small>n.r.</small></p></td>
         {% else %}
           {% if acordo[16] <= 30 and acordo[16] >= 0 %}
-            <td><p align = "center" class="bg-danger text-white font-weight-bold"><small> {{acordo[7]}}</small> </p></td>
+            <td><p align = "center" class="bg-danger text-white font-weight-bold"><small> {{acordo[7].strftime('%x')}}</small> </p></td>
           {% elif acordo[16] <= 60 and acordo[16] > 30 %}
-            <td><p align = "center" class="bg-warning text-dark font-weight-bold"><small> {{acordo[7]}}</small> </p></td>
+            <td><p align = "center" class="bg-warning text-dark font-weight-bold"><small> {{acordo[7].strftime('%x')}}</small> </p></td>
           {% elif acordo[16] <= 90 and acordo[16] > 60 %}
-            <td><p align = "center" class="bg-secondary text-white font-weight-bold"><small> {{acordo[7]}}</small> </p></td>
+            <td><p align = "center" class="bg-secondary text-white font-weight-bold"><small> {{acordo[7].strftime('%x')}}</small> </p></td>
           {% else %}
-            <td><p align = "center"> <small> {{acordo[7]}}</small> </p></td>
+            <td><p align = "center"> <small> {{acordo[7].strftime('%x')}}</small> </p></td>
           {% endif %}
         {% endif %}
-        <td><p align = "right"><small>  {{acordo[8]}}</small></p></td>
+        <!-- valor_global -->
+        <td><p align = "right"><small>{{acordo[24]|converte_para_real}}</small></p></td>
+        <!-- qtd_cha -->
+        <td><p align = "center">
+          {% if acordo[23] %}
+            <a href="{{url_for('acordos.chamadas_acordo', acordo_id=acordo[0])}}"><abbr title="Ver chamadas deste acordo">
+              <small class="font-weight-bold">{{acordo[23]}} </small></abbr></a> 
+          {% else %}
+            <a href="{{url_for('acordos.chamadas_acordo', acordo_id=acordo[0])}}"><abbr title="Relacionar chamada ao acordo">
+              <small>0</small></abbr></a>
+          {% endif %}
+        </p></td>  
+        <!-- qtd_proc_mae -->
         {% if acordo[1] != None%}
           <td><p align = "center">
-            <a href="{{url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo[0])}}">
-              <small class="font-weight-bold"> {{acordo[10]}}</small></a></p></td>
+            <a href="{{url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo[0])}}"><abbr title="Ver processos-mãe deste acordo">
+              <small class="font-weight-bold">{{acordo[10]}}</small></abbr></a></p></td>
         {% else %}
           <td><p align = "center">
             <a href="{{url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo[0])}}">
-              <small> {{acordo[10]}}</small></a></p></td>
+              <small>{{acordo[10]}}</small></a></p></td>
         {% endif %}
-
+        <!-- qtd_filhos_acordo -->
         {% if acordo[1] != None%}
           <td><p align = "center">
-            <a href="{{url_for('acordos.lista_processos_filho_por_acordo',acordo_id=acordo[0])}}">
-              <small class="font-weight-bold"> {{acordo[11]}}</small></a></p></td>
+            <a href="{{url_for('acordos.lista_processos_filho_por_acordo',acordo_id=acordo[0])}}"><abbr title="Ver processos-filho deste acordo">
+              <small class="font-weight-bold"> {{acordo[11]}}</small></abbr></a></p></td>
         {% else %}
           <td><p align = "center">
             <a href="{{url_for('acordos.lista_processos_filho_por_acordo',acordo_id=acordo[0])}}">
               <small> {{acordo[11]}}</small></a></p></td>
         {% endif %}
-
-        {% if acordo[1] != None%}
-          <td><p align = "center">
-            <a href="{{url_for('acordos.lista_bolsistas_acordo',acordo_id=acordo[0])}}">
-              <small class="font-weight-bold"> {{acordo[18]}}</small></a></p></td>
-        {% else %}
-          <td><p align = "center">
-            <a href="{{url_for('acordos.lista_bolsistas_acordo',acordo_id=acordo[0])}}">
-              <small> {{acordo[18]}}</small></a></p></td>
-        {% endif %}
-
-        <td><p align = "center"><small> {{acordo[12]}}</small></p></td>
-        <td><p align = "right"><small>  {{acordo[13]}}</small></p></td>
-        <td><p align = "right"><small>  {{acordo[14]}}</small></p></td>
+        <!-- pago_acordo -->      
+        <td><p align = "center"><small> {{acordo[12]|converte_para_real}}</small></p></td>
       </tr>
 
       {% endfor %}
     </tbody>
   </table>
-</div>
+
 </div>
 
 {% endblock %}

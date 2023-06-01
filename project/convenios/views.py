@@ -42,13 +42,13 @@
 
 from flask import render_template,url_for,flash, redirect,request,Blueprint,send_from_directory
 from flask_login import current_user,login_required
-from sqlalchemy import func, distinct, literal, text
+from sqlalchemy import func, distinct, literal, text, or_
 from sqlalchemy.sql import label
 from sqlalchemy.orm import aliased
 from project import db
 from project.models import DadosSEI, Convenio, Demanda, User, Programa_Interesse, RefSICONV, Empenho,\
                            Desembolso, Pagamento, Chamadas, MSG_Siconv, Proposta, Programa, Coords, Emp_Cap_Cus, Crono_Desemb, Plano_Trabalho
-from project.convenios.forms import SEIForm, ProgPrefForm, ListaForm, NDForm
+from project.convenios.forms import SEIForm, ProgPrefForm, ListaForm, NDForm, ChamadaConvForm
 from project.demandas.views import registra_log_auto
 
 import locale
@@ -61,6 +61,9 @@ import folium
 from folium import Map, Circle, Popup
 from folium.plugins import FloatImage
 import math
+from fpdf import FPDF
+import os.path
+
 
 
 
@@ -359,10 +362,11 @@ def lista_convenios_SICONV(lista,coord):
                                         Convenio.VL_INGRESSO_CONTRAPARTIDA,
                                         (Convenio.VL_REPASSE_CONV - Convenio.VL_DESEMBOLSADO_CONV).label('vl_a_desembolsar'),
                                         (Convenio.DIA_FIM_VIGENC_CONV - datetime.date.today()).label('prazo'))\
-                                        .filter(Convenio.DIA_PUBL_CONV != '')\
                                         .join(programa, programa.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
                                         .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
-                                        .filter(programa.c.sigla == lista[8:])\
+                                        .filter(Convenio.DIA_PUBL_CONV != '',
+                                                programa.c.sigla == lista[21:],
+                                                programa.c.ANO_DISPONIBILIZACAO == lista[13:17])\
                                         .order_by(Convenio.SIT_CONVENIO,Convenio.DIA_FIM_VIGENC_CONV,
                                                   programa.c.sigla.desc())\
                                         .all()
@@ -481,10 +485,12 @@ def convenio_detalhes(conv):
                                              .order_by(Empenho.DATA_EMISSAO).all()
 
         desembolso_agrupado = db.session.query(Desembolso.DATA_DESEMBOLSO,
+                                               Desembolso.NR_SIAFI,
                                                label('vl_desemb_agru',func.sum(Desembolso.VL_DESEMBOLSADO)))\
-                                               .filter(Desembolso.NR_CONVENIO == conv)\
-                                               .order_by(Desembolso.DATA_DESEMBOLSO)\
-                                               .group_by(Desembolso.DATA_DESEMBOLSO).all()
+                                        .filter(Desembolso.NR_CONVENIO == conv)\
+                                        .order_by(Desembolso.DATA_DESEMBOLSO)\
+                                        .group_by(Desembolso.DATA_DESEMBOLSO, Desembolso.NR_SIAFI)\
+                                        .all()
 
         empenho_tot = db.session.query(label('emp_tot',func.sum(Empenho.VALOR_EMPENHO)))\
                                    .filter(Empenho.NR_CONVENIO == conv)
@@ -503,7 +509,9 @@ def convenio_detalhes(conv):
                                         Chamadas.qtd_projetos,
                                         Chamadas.vl_total_chamada,
                                         Chamadas.doc_sei,
-                                        Chamadas.obs).filter(Chamadas.sei == dadosSEI.sei).all()
+                                        Chamadas.obs,
+                                        Chamadas.id_relaciona)\
+                                 .filter(Chamadas.id_relaciona == 'C'+conv).all()
         else:
             chamadas = None
 
@@ -581,6 +589,8 @@ def convenio_detalhes(conv):
                                    atraso,
                                    data_prorrog,
                                    data_ref_atraso])
+
+            crono_desemb=list(enumerate(crono_desemb_l,1))                       
 
             acu = valor_repasse_acumulado
 
@@ -671,7 +681,8 @@ def convenio_detalhes(conv):
         for desemb in desembolso_agrupado:
 
             desembolso_l.append([desemb.DATA_DESEMBOLSO,
-                                 locale.currency(desemb.vl_desemb_agru, symbol=False, grouping = True)])
+                                 locale.currency(desemb.vl_desemb_agru, symbol=False, grouping = True),
+                                 desemb.NR_SIAFI])
 
         chamadas_s = []
         chamadas_tot = 0
@@ -695,6 +706,241 @@ def convenio_detalhes(conv):
             emp_total = 0
         else:
             emp_total = empenho_tot[0][0]
+
+
+    # Prepara um pdf com detalhes do convênio
+
+    class PDF_convenio(FPDF):
+        # cabeçalho
+        def header(self):
+
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(127,127,127)
+            self.cell(0, 10, 'Dados do Convênio '+ str(conv) +' - gerado em '+date.today().strftime('%d/%m/%Y'), 1, 1,'C')
+            self.ln(10)
+
+        # Rodape da página
+        def footer(self):
+            # Posicionado a 1,5 cm do final da página
+            self.set_y(-15)
+            # Arial italic 8 cinza
+            self.set_font('Arial', 'I', 8)
+            self.set_text_color(127,127,127)
+            # Numeração de página
+            self.cell(0, 10, 'Página ' + str(self.page_no()) + '/{nb}', 0, 0, 'C')
+
+    # Instanciando a classe herdada
+    pdf = PDF_convenio()
+    pdf.alias_nb_pages()
+    pdf.add_page()
+    pdf.set_font('Times', '', 12)
+
+    # Dados Gerais
+    pdf.set_text_color(0,0,0)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'Dados Gerais', 0, 0)
+    pdf.ln(7)
+
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(pdf.get_string_width('SEI: '), 10, 'SEI: ', 0, 0)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, dadosSEI.sei, 0, 0)
+    pdf.ln(7)
+
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(0, 10, 'EP: ', 0, 0)
+    pdf.ln(5)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, dadosSEI.epe, 0, 0)
+    pdf.ln(7)
+    pdf.multi_cell(0, 5, proposta.NM_PROPONENTE.encode('latin-1', 'replace').decode('latin-1'))
+
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(pdf.get_string_width('Fiscal: '), 10, 'Fiscal: ', 0, 0)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, dadosSEI.fiscal, 0, 0)
+    pdf.ln(7)
+
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(pdf.get_string_width('Ano: '), 10, 'Ano: ', 0, 0)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, programa.ANO_DISPONIBILIZACAO, 0, 0)
+    pdf.ln(7)
+
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(pdf.get_string_width('UF: '), 10, 'UF: ', 0, 0)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, proposta.UF_PROPONENTE, 0, 0)
+    pdf.ln(7)
+   
+    pdf.set_font('Arial', '', 10)
+    pdf.cell(0, 10, 'Programa: ', 0, 0)
+    pdf.ln(7)
+    pdf.set_font('Arial', 'B', 10)
+    pdf.multi_cell(0, 5, programa.COD_PROGRAMA+' - '+programa.NOME_PROGRAMA.encode('latin-1', 'replace').decode('latin-1'))
+
+    pdf.set_font('Arial', '', 10)
+
+    pdf.cell(0, 10, 'Assinado em: '+ convenio.DIA_ASSIN_CONV + '   Publicado em: '+convenio.DIA_PUBL_CONV + '   Início: '+convenio.DIA_INIC_VIGENC_CONV + '   Término: '+convenio.DIA_FIM_VIGENC_CONV.strftime('%x'), 0, 0)
+    pdf.ln(6)
+    pdf.cell(0, 10, 'Situação da contratação: '+ convenio.SITUACAO_CONTRATACAO + '  Situação do convênio: '+convenio.SIT_CONVENIO + '  Subsituação: '+convenio.SUBSITUACAO_CONV + '  Opera OBTV: '+convenio.IND_OPERA_OBTV, 0, 0)
+    pdf.ln(6)
+
+    vazio_zero = lambda a: 0 if a=='' else a
+    pdf.cell(0, 10, 'TAs já celebrados: '+str(vazio_zero(convenio.QTD_TA)) + '          Prorrogações já realizadas: '+str(vazio_zero(convenio.QTD_PRORROGA)), 0, 0)
+    pdf.ln(6)
+
+    pdf.cell(0, 10, 'Valor Global: R$ '+VL_GLOBAL_CONV, 0, 0)
+    pdf.ln(6)
+
+    pdf.cell(0, 10, 'Repasse: R$ '+ VL_REPASSE_CONV + '   Empenhado: R$ '+VL_EMPENHADO_CONV+' ('+str(percent_empen_repass)+'%)' + '   Desembolsado: R$ '+VL_DESEMBOLSADO_CONV+' ('+str(percent_desemb_repass)+'%) ', 0, 0)
+    pdf.ln(6)
+
+    pdf.cell(0, 10, 'Rendimento de aplicação: R$ '+ VL_RENDIMENTO_APLICACAO + '   A Empenhar: R$ '+vl_a_empenhar+' ('+str(100-percent_empen_repass)+'%)' + '   A Desembolsar: R$ '+vl_a_desembolsar+' ('+str(100-percent_desemb_repass)+'%)', 0, 0)
+    pdf.ln(6)
+
+    pdf.cell(0, 10, 'Contrapartida: R$ '+ VL_CONTRAPARTIDA_CONV +'     '+ 'Ingresso contrapartida: R$ '+VL_INGRESSO_CONTRAPARTIDA+' ('+str(percent_ingre_contrap)+'%)', 0, 0)
+    pdf.ln(6)
+
+    pdf.ln(6)
+    pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
+    pdf.ln(5)
+
+    # Crono desembolso
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'Crono Desembolso', 0, 0)
+    pdf.ln(15)
+
+    pdf.set_font('Times', '', 10)
+    pdf.cell(20, 10, 'PARCELA', 0, 0, 'C')
+    pdf.cell(20, 10, 'PREVISÃO', 0, 0, 'C')
+    pdf.cell(20, 10, 'RESP.', 0, 0, 'C')
+    pdf.cell(20, 10, 'VALOR', 0, 0, 'C')
+    pdf.cell(40, 10, 'SITUAÇÃO', 0, 0, 'C')
+    pdf.cell(20, 10, 'ATRASO', 0, 0, 'C')
+    pdf.cell(20, 10, 'NOVA DATA', 0, 0, 'C')
+    pdf.ln(5)
+
+    for parcela in crono_desemb:
+        # pdf.cell(w = 20, h = 0, txt = '', border = 0, ln = 0, align = '', fill = False, link = '')
+        pdf.cell(20, 10, str(parcela[0]), 0, 0, 'C')
+        pdf.cell(20, 10, parcela[1][1].strftime('%x'), 0, 0, 'C')
+        resp = lambda: 'CNPq' if parcela[1][2]=='Concedente' else ('Rendimento' if parcela[1][2][:10] == 'Rendimento' else dadosSEI.epe)
+        pdf.cell(20, 10, resp(), 0, 0, 'C')
+        pdf.cell(20, 10, parcela[1][3], 0, 0, 'C')
+        sit = lambda: 'Quitada em '+parcela[1][7].strftime('%x') if (parcela[1][2]=='Concedente' and parcela[1][4]=='Quitada' and parcela[1][7] != None) \
+                                                                else ('Quitada em ???' if parcela[1][2]=='Concedente' and parcela[1][4]=='Quitada' and parcela[1][7] == None else \
+                                                                parcela[1][4])                                                                         
+        pdf.cell(40, 10, sit(), 0, 0, 'C')
+        atraso = lambda: 'Não houve' if parcela[1][5] <= 0 else str(parcela[1][5])+' dias'
+        pdf.cell(20, 10, atraso(), 0, 0, 'C')
+        nova_data = lambda: parcela[1][6].strftime('%x') if parcela[1][5] > 0 else ''
+        pdf.cell(20, 10, nova_data(), 0, 0, 'C')
+        pdf.ln(5)
+
+    pdf.ln(5)
+    pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
+
+    # Empenhos
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'Empenhos', 0, 0)
+    pdf.ln(15)
+
+    pdf.set_font('Times', '', 10)
+    pdf.cell(35, 10, 'Empenho', 0, 0, 'C')
+    pdf.cell(45, 10, 'Tipo nota', 0, 0, 'C')
+    pdf.cell(25, 10, 'Data emissão', 0, 0, 'C')
+    pdf.cell(30, 10, 'Situação', 0, 0, 'C')
+    pdf.cell(25, 10, 'Valor (R$)', 0, 0, 'C')
+    pdf.cell(15, 10, 'ND', 0, 0, 'C')
+    pdf.ln(5)
+
+    for item in empenho_l:
+        # pdf.cell(w = 20, h = 0, txt = '', border = 0, ln = 0, align = '', fill = False, link = '')
+        pdf.cell(35, 10, str(item[0]), 0, 0, 'C')
+        pdf.cell(45, 10, str(item[1]), 0, 0, 'C')
+        none_vazio = lambda a: '' if a==None else a.strftime('%x')
+        pdf.cell(25, 10, str(none_vazio(item[2])), 0, 0, 'C')
+        pdf.cell(30, 10, str(item[3]), 0, 0, 'C')
+        pdf.cell(25, 10, str(item[4]), 0, 0, 'C')
+        pdf.cell(15, 10, str(item[5]), 0, 0, 'C')
+        pdf.ln(5)
+
+    pdf.ln(5)
+    pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
+
+    # Desembolsos
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'Desembolsos', 0, 0)
+    pdf.ln(15)
+
+    pdf.set_font('Times', '', 10)
+    pdf.cell(25, 10, 'Data', 0, 0, 'C')
+    pdf.cell(25, 10, 'Nr Siafi', 0, 0, 'C')
+    pdf.cell(25, 10, 'Valor (R$)', 0, 0, 'C')
+    pdf.ln(5)
+
+    for item in desembolso_l:
+        # pdf.cell(w = 20, h = 0, txt = '', border = 0, ln = 0, align = '', fill = False, link = '')
+        none_vazio = lambda a: '' if a==None else a.strftime('%x')
+        pdf.cell(25, 10, str(none_vazio(item[0])), 0, 0, 'C')
+        pdf.cell(25, 10, str(item[2]), 0, 0, 'C')
+        pdf.cell(25, 10, str(item[1]), 0, 0, 'C')
+        pdf.ln(5)
+
+    pdf.ln(5)
+    pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
+
+    # Chamadas 
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'Chamadas', 0, 0)
+    pdf.ln(15)
+
+    pdf.set_font('Times', '', 10)
+
+    for chamada in chamadas_s:
+        # pdf.cell(w = 20, h = 0, txt = '', border = 0, ln = 0, align = '', fill = False, link = '')
+        pdf.multi_cell(0, 5, str(chamada[1]).encode('latin-1', 'replace').decode('latin-1'), 0, 'L')
+        pdf.cell(pdf.get_string_width('Projetos: '+str(chamada[2])), 10, 'Projetos: '+str(chamada[2]), 0, 0, 'L')
+        pdf.cell(pdf.get_string_width('  Valor: '+str(chamada[3])), 10, '  Valor: '+str(chamada[3]), 0, 0, 'L')
+        pdf.cell(pdf.get_string_width('  Ref. SEI: '+str(chamada[4])), 10, '  Ref. SEI: '+str(chamada[4]), 0, 0, 'L')
+        pdf.ln(10)
+        pdf.multi_cell(0, 5, 'Obs: '+str(chamada[5]).encode('latin-1', 'replace').decode('latin-1'), 0, 'L')
+
+    pdf.ln(5)
+    pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
+
+    # Pagamentos
+    pdf.set_font('Arial', 'B', 10)
+    pdf.cell(0, 10, 'Pagamentos', 0, 0)
+    pdf.ln(15)
+
+    pdf.set_font('Times', '', 10)
+    pdf.cell(35, 10, 'ID', 0, 0, 'C')
+    pdf.cell(99, 10, 'NOME', 0, 0, 'C')
+    pdf.cell(20, 10, 'QTD', 0, 0, 'C')
+    pdf.cell(25, 10, 'VALOR', 0, 0, 'C')
+    pdf.ln(5)
+
+    for pag in pagamento_s:
+        # pdf.cell(w = 20, h = 0, txt = '', border = 0, ln = 0, align = '', fill = False, link = '')
+        pdf.cell(35, 10, str(pag[0]), 0, 0, 'C')
+        pdf.cell(100, 10, str(pag[1]), 0, 0, 'C')
+        pdf.cell(20, 10, str(pag[3]), 0, 0, 'C')
+        pdf.cell(25, 10, str(pag[2]), 0, 0, 'C')
+        pdf.ln(5)
+
+    pdf.ln(5)
+    pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
+          
+    pasta_pdf = os.path.normpath('/app/project/static/convenio.pdf')
+
+    pdf.output(pasta_pdf, 'F')
+
+    # o comandinho mágico que permite fazer o download de um arquivo
+    send_from_directory('/app/project/static', 'convenio.pdf') 
+
+
 
     return render_template('convenio_detalhes.html',convenio=convenio,
                                                    dadosSEI = dadosSEI,
@@ -725,10 +971,70 @@ def convenio_detalhes(conv):
                                                    percent_ingre_contrap=percent_ingre_contrap,
                                                    percent_empen_repass=percent_empen_repass,
                                                    programa=programa,
-                                                   crono_desemb=list(enumerate(crono_desemb_l,1)),
+                                                   crono_desemb=crono_desemb,
                                                    form=form)
 
 
+### associar chamada a Convênio
+
+@convenios.route("/associa_chamada/<conv>", methods=['GET', 'POST'])
+@login_required
+def associa_chamada(conv):
+    """
+    +---------------------------------------------------------------------------------------+
+    |Permite associar uma chamada presente em uma lista a um convênio.                      |
+    +---------------------------------------------------------------------------------------+
+    """
+
+    chamadas = db.session.query(Chamadas.id,Chamadas.chamada)\
+                         .filter(or_(Chamadas.id_relaciona == None, Chamadas.id_relaciona == ''))\
+                         .order_by(Chamadas.chamada)\
+                         .all()
+
+    lista_chamadas = [(str(c.id),c.chamada[:110]+'...') if len(c.chamada) >110 else (str(c.id),c.chamada) for c in chamadas]
+    lista_chamadas.insert(0,('',''))
+
+    form = ChamadaConvForm()
+
+    form.chamada.choices= lista_chamadas
+
+    if form.validate_on_submit():
+
+        for c in form.chamada.data:
+            chamada = Chamadas.query.get_or_404(int(c))
+            chamada.id_relaciona = 'C'+conv
+            db.session.commit()
+
+        flash('Chamada(s) associada(s) ao Convênio!','sucesso')
+
+        return redirect(url_for('convenios.convenio_detalhes', conv=conv))
+
+    return render_template('add_chamada_convenio.html',
+                            conv=conv,
+                            form=form)   
+
+
+### desassociar chamada de Convênio
+
+@convenios.route("<int:id>/<conv>/desassocia_chamada", methods=['GET', 'POST'])
+@login_required
+def desassocia_chamada(id,conv):
+    """
+    +---------------------------------------------------------------------------------------+
+    |Permite desassociar uma chamada de um convênio.                                        |
+    +---------------------------------------------------------------------------------------+
+    """
+
+    chamada = Chamadas.query.get_or_404(id)
+
+    chamada.id_relaciona = ''
+    
+    db.session.commit()
+
+    flash('Chamada desassociada do Convênio!','sucesso')
+
+    return redirect(url_for('convenios.convenio_detalhes', conv=conv))
+ 
 
 ### altera dados de natureza de despesa
 
@@ -880,35 +1186,50 @@ def quadro_convenios():
     """
     +---------------------------------------------------------------------------------------+
     |Apresenta um quadro de convênios selecionáveis por UF e Programa que estejam           |
-    |com os dados SEI preenchidos.                                                          |
+    |em execução.                                                                           |
     +---------------------------------------------------------------------------------------+
     """
-    programas = db.session.query(Programa_Interesse.sigla).order_by(Programa_Interesse.sigla).group_by(Programa_Interesse.sigla)
 
-    programa = db.session.query(Proposta.ID_PROPOSTA,
-                                Proposta.ID_PROGRAMA,
-                                Proposta.UF_PROPONENTE,
-                                Programa.COD_PROGRAMA,
-                                Programa_Interesse.sigla,
-                                Programa.ANO_DISPONIBILIZACAO)\
-                                .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
-                                .outerjoin(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
-                                .subquery()
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
+    programas = db.session.query(Programa.ID_PROGRAMA,
+                                 Programa_Interesse.sigla,
+                                 label('UF',Proposta.UF_PROPONENTE),
+                                 Proposta.ID_PROPOSTA)\
+                          .join(Proposta,Proposta.ID_PROGRAMA == Programa.ID_PROGRAMA)\
+                          .join(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
+                          .filter(Programa_Interesse.coord.in_(l_unid))\
+                          .subquery()
 
     convenios = db.session.query(func.count(Convenio.NR_CONVENIO),
-                                programa.c.sigla,
-                                func.sum(Convenio.VL_GLOBAL_CONV),
-                                Proposta.UF_PROPONENTE)\
-                                .filter(Convenio.DIA_PUBL_CONV != '')\
-                                .join(programa, programa.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
-                                .join(Proposta, Proposta.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
-                                .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
-                                .order_by(Proposta.UF_PROPONENTE,programa.c.sigla)\
-                                .group_by(Proposta.UF_PROPONENTE)\
-                                .group_by(programa.c.sigla)\
-                                .all()
+                                 programas.c.sigla,
+                                 func.sum(Convenio.VL_GLOBAL_CONV),
+                                 programas.c.UF)\
+                          .filter(Convenio.SIT_CONVENIO == "Em execução")\
+                          .join(programas, programas.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
+                          .order_by(programas.c.UF,programas.c.sigla)\
+                          .group_by(programas.c.UF, programas.c.sigla)\
+                          .all()
 
-    ufs = db.session.query(Proposta.UF_PROPONENTE).group_by(Proposta.UF_PROPONENTE).order_by(Proposta.UF_PROPONENTE)
+    ufs = [uf.UF for uf in convenios]
+    ufs = set(ufs)
+    ufs = list(ufs)
+    ufs.sort()
+
+    programas_int = [p.sigla for p in convenios]
+    programas_int = set(programas_int)
+    programas_int = list(programas_int)
+    programas_int.sort()
+
 
     ## lê data de carga dos dados dos convênios
     data_carga = db.session.query(RefSICONV.data_ref).first()
@@ -922,35 +1243,38 @@ def quadro_convenios():
 
         convenios_s.append(conv_s)
 
-    quantidade = len(list(ufs))
+    quantidade = len(ufs)
 
-    linha = []
+    linha  = []
     linhas = []
-    item = []
+    item   = []
 
     for uf in ufs:
-        for prog in programas:
+
+        for prog in programas_int:
+            
             flag = False
             for conv in convenios_s:
 
-                if conv[3] == uf.UF_PROPONENTE:
-                    if conv[1] == prog.sigla:
+                if conv[3] == uf:
+                    if conv[1] == prog:
                         linha.append(conv)
                         flag = True
                     else:
-                        item = [0,prog.sigla,'',uf.UF_PROPONENTE]
+                        item = [0,prog,'',uf]
 
             if not flag:
                 linha.append(item)
                 flag = False
 
-
         linhas.append(linha)
         linha=[]
 
-
-    return render_template('quadro_convenios.html', quantidade=quantidade,
-                            programas=programas,linhas=linhas,data_carga = str(data_carga[0]))
+    return render_template('quadro_convenios.html',
+                            quantidade=quantidade,
+                            programas=programas_int,
+                            linhas=linhas,
+                            data_carga = str(data_carga[0]))
 
 #
 ## convênios no mapa do Brasil
@@ -1082,7 +1406,7 @@ def brasil_convenios():
 #
 ## lista convênios do quadro por UF e por programa
 
-@convenios.route('/<uf>/<programa>/lista_convenios_mapa')
+@convenios.route('/<uf>/<programa>/lista_convenios_quadro')
 def lista_convenios_quadro(uf,programa):
     """
     +---------------------------------------------------------------------------------------+
@@ -1091,6 +1415,17 @@ def lista_convenios_quadro(uf,programa):
     +---------------------------------------------------------------------------------------+
     """
 
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
     programa_siconv = db.session.query(Proposta.ID_PROPOSTA,
                                        Proposta.ID_PROGRAMA,
                                        Proposta.UF_PROPONENTE,
@@ -1098,7 +1433,8 @@ def lista_convenios_quadro(uf,programa):
                                        Programa_Interesse.sigla,
                                        Programa.ANO_DISPONIBILIZACAO)\
                                 .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
-                                .outerjoin(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
+                                .join(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
+                                .filter(Programa_Interesse.coord.in_(l_unid))\
                                 .subquery()
 
     convenio = db.session.query(Convenio.NR_CONVENIO,
@@ -1117,12 +1453,11 @@ def lista_convenios_quadro(uf,programa):
                                 Convenio.VL_DESEMBOLSADO_CONV,
                                 Convenio.VL_CONTRAPARTIDA_CONV,
                                 Convenio.VL_INGRESSO_CONTRAPARTIDA)\
-                                .filter(Convenio.DIA_PUBL_CONV != '')\
-                                .join(programa_siconv, programa_siconv.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
-                                .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
-                                .order_by(Convenio.SIT_CONVENIO,Convenio.DIA_FIM_VIGENC_CONV,programa_siconv.c.ANO_DISPONIBILIZACAO.desc())\
-                                .filter(programa_siconv.c.UF_PROPONENTE == uf, programa_siconv.c.sigla == programa)\
-                                .all()
+                         .filter(Convenio.SIT_CONVENIO == "Em execução",programa_siconv.c.UF_PROPONENTE == uf, programa_siconv.c.sigla == programa)\
+                         .join(programa_siconv, programa_siconv.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
+                         .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
+                         .order_by(Convenio.DIA_FIM_VIGENC_CONV,programa_siconv.c.ANO_DISPONIBILIZACAO.desc())\
+                         .all()
 
     ## lê data de carga dos dados dos convênios
     data_carga = db.session.query(RefSICONV.data_ref).first()
@@ -1162,13 +1497,17 @@ def lista_convenios_quadro(uf,programa):
     quantidade = len(convenio)
 
 
-    return render_template('list_convenios_quadro.html', convenio = convenio_s, quantidade=quantidade,
-                            uf=uf,programa=programa,data_carga = str(data_carga[0]))
+    return render_template('list_convenios_quadro.html', 
+                           convenio = convenio_s,
+                           quantidade=quantidade,
+                           uf=uf,
+                           programa=programa,
+                           data_carga = str(data_carga[0]))
 
 #
 ## lista convênios do quadro por UF (todos os programas)
 
-@convenios.route('/<uf>/lista_convenios_mapa')
+@convenios.route('/<uf>/lista_convenios_uf')
 def lista_convenios_uf(uf):
     """
     +---------------------------------------------------------------------------------------+
@@ -1177,6 +1516,17 @@ def lista_convenios_uf(uf):
     +---------------------------------------------------------------------------------------+
     """
 
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
     programa_siconv = db.session.query(Proposta.ID_PROPOSTA,
                                        Proposta.ID_PROGRAMA,
                                        Proposta.UF_PROPONENTE,
@@ -1184,7 +1534,8 @@ def lista_convenios_uf(uf):
                                        Programa_Interesse.sigla,
                                        Programa.ANO_DISPONIBILIZACAO)\
                                 .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
-                                .outerjoin(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
+                                .join(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
+                                .filter(Programa_Interesse.coord.in_(l_unid))\
                                 .subquery()
 
     convenio = db.session.query(Convenio.NR_CONVENIO,
@@ -1203,12 +1554,12 @@ def lista_convenios_uf(uf):
                                 Convenio.VL_DESEMBOLSADO_CONV,
                                 Convenio.VL_CONTRAPARTIDA_CONV,
                                 Convenio.VL_INGRESSO_CONTRAPARTIDA)\
-                                .filter(Convenio.DIA_PUBL_CONV != '')\
-                                .join(programa_siconv, programa_siconv.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
-                                .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
-                                .order_by(programa_siconv.c.sigla,Convenio.SIT_CONVENIO,Convenio.DIA_FIM_VIGENC_CONV,programa_siconv.c.ANO_DISPONIBILIZACAO.desc())\
-                                .filter(programa_siconv.c.UF_PROPONENTE == uf)\
-                                .all()
+                         .filter(Convenio.SIT_CONVENIO == 'Em execução', programa_siconv.c.UF_PROPONENTE == uf)\
+                         .join(programa_siconv, programa_siconv.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
+                         .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
+                         .order_by(programa_siconv.c.sigla,Convenio.SIT_CONVENIO,Convenio.DIA_FIM_VIGENC_CONV,programa_siconv.c.ANO_DISPONIBILIZACAO.desc())\
+                         .filter()\
+                         .all()
 
     ## lê data de carga dos dados dos convênios
     data_carga = db.session.query(RefSICONV.data_ref).first()
@@ -1251,6 +1602,107 @@ def lista_convenios_uf(uf):
     return render_template('list_convenios_quadro.html', convenio = convenio_s, quantidade=quantidade,
                             uf=uf,programa='todos', data_carga = str(data_carga[0]))
 
+## lista convênios do quadro por programa
+
+@convenios.route('/<programa>/lista_convenios_prog')
+def lista_convenios_prog(programa):
+    """
+    +---------------------------------------------------------------------------------------+
+    |Apresenta uma lista dos convênios de um programa específico                            |
+    |                                                                                       |
+    +---------------------------------------------------------------------------------------+
+    """
+
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
+    programa_siconv = db.session.query(Proposta.ID_PROPOSTA,
+                                       Proposta.ID_PROGRAMA,
+                                       Proposta.UF_PROPONENTE,
+                                       Programa.COD_PROGRAMA,
+                                       Programa_Interesse.sigla,
+                                       Programa.ANO_DISPONIBILIZACAO)\
+                                .join(Programa,Programa.ID_PROGRAMA == Proposta.ID_PROGRAMA)\
+                                .join(Programa_Interesse,Programa_Interesse.cod_programa == Programa.COD_PROGRAMA)\
+                                .filter(Programa_Interesse.coord.in_(l_unid))\
+                                .subquery()
+
+    convenio = db.session.query(Convenio.NR_CONVENIO,
+                                DadosSEI.nr_convenio,
+                                programa_siconv.c.ANO_DISPONIBILIZACAO,
+                                DadosSEI.sei,
+                                DadosSEI.epe,
+                                programa_siconv.c.UF_PROPONENTE,
+                                programa_siconv.c.sigla,
+                                Convenio.SIT_CONVENIO,
+                                Convenio.SUBSITUACAO_CONV,
+                                Convenio.DIA_FIM_VIGENC_CONV,
+                                Convenio.VL_GLOBAL_CONV,
+                                DadosSEI.id,
+                                Convenio.VL_REPASSE_CONV,
+                                Convenio.VL_DESEMBOLSADO_CONV,
+                                Convenio.VL_CONTRAPARTIDA_CONV,
+                                Convenio.VL_INGRESSO_CONTRAPARTIDA)\
+                         .filter(Convenio.SIT_CONVENIO == "Em execução", programa_siconv.c.sigla == programa)\
+                         .join(programa_siconv, programa_siconv.c.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
+                         .outerjoin(DadosSEI, Convenio.NR_CONVENIO == DadosSEI.nr_convenio)\
+                         .order_by(Convenio.DIA_FIM_VIGENC_CONV,programa_siconv.c.ANO_DISPONIBILIZACAO.desc())\
+                         .all()
+
+    ## lê data de carga dos dados dos convênios
+    data_carga = db.session.query(RefSICONV.data_ref).first()
+
+    convenio_s = []
+
+    for conv in convenio:
+
+        conv_s = list(conv)
+        if conv_s[10] is not None:
+            conv_s[10] = locale.currency(conv_s[10], symbol=False, grouping = True)
+        if conv_s[12] is not None:
+            conv_s[12] = locale.currency(conv_s[12], symbol=False, grouping = True)
+        if conv_s[14] is not None:
+            conv_s[14] = locale.currency(conv_s[14], symbol=False, grouping = True)
+        if conv_s[9] is not None:
+            conv_s[9] = conv_s[9].strftime('%x')
+
+        if conv.VL_DESEMBOLSADO_CONV == 0 or conv.VL_DESEMBOLSADO_CONV == None:
+            percent_repass_desemb = 0
+        else:
+            percent_repass_desemb   = round(100*conv.VL_DESEMBOLSADO_CONV / conv.VL_REPASSE_CONV)
+
+        if conv.VL_CONTRAPARTIDA_CONV == 0 or conv.VL_CONTRAPARTIDA_CONV == None:
+            percent_ingre_contrap   = 0
+        else:
+            percent_ingre_contrap   = round(100*conv.VL_INGRESSO_CONTRAPARTIDA / conv.VL_CONTRAPARTIDA_CONV)
+
+        conv_s.append((conv.DIA_FIM_VIGENC_CONV - datetime.date.today()).days)
+
+        conv_s.append(percent_repass_desemb)
+
+        conv_s.append(percent_ingre_contrap)
+
+        convenio_s.append(conv_s)
+
+    quantidade = len(convenio)
+
+
+    return render_template('list_convenios_quadro.html', 
+                           convenio = convenio_s,
+                           quantidade=quantidade,
+                           programa=programa,
+                           data_carga = str(data_carga[0]),
+                           uf='*')
+
+
 #
 ## RESUMO convênios
 
@@ -1262,10 +1714,22 @@ def resumo_convenios():
     |                                                                                       |
     +---------------------------------------------------------------------------------------+
     """
+
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
     convenios_exec = db.session.query(Convenio.ID_PROPOSTA,
                                       label('conv_exec',Convenio.NR_CONVENIO))\
-                                      .filter(Convenio.SIT_CONVENIO=='Em execução')\
-                                      .subquery()
+                               .filter(Convenio.SIT_CONVENIO=='Em execução')\
+                               .subquery()
 
 
     programas = db.session.query(Programa_Interesse.cod_programa,
@@ -1278,14 +1742,14 @@ def resumo_convenios():
                                  label('vl_contrapartida',func.sum(Convenio.VL_CONTRAPARTIDA_CONV)),
                                  label('vl_ingresso_contra',func.sum(Convenio.VL_INGRESSO_CONTRAPARTIDA)),
                                  label('qtd_exec',func.count(convenios_exec.c.conv_exec)))\
-                                .join(Programa,Programa.COD_PROGRAMA==Programa_Interesse.cod_programa)\
-                                .join(Proposta,Proposta.ID_PROGRAMA==Programa.ID_PROGRAMA)\
-                                .join(Convenio,Convenio.ID_PROPOSTA==Proposta.ID_PROPOSTA)\
-                                .filter(Convenio.DIA_PUBL_CONV != '')\
-                                .outerjoin(convenios_exec,convenios_exec.c.ID_PROPOSTA==Proposta.ID_PROPOSTA)\
-                                .group_by(Programa_Interesse.sigla,Programa_Interesse.cod_programa)\
-                                .order_by(Programa_Interesse.sigla.desc(),Programa_Interesse.cod_programa)\
-                                .all()
+                          .join(Programa,Programa.COD_PROGRAMA==Programa_Interesse.cod_programa)\
+                          .join(Proposta,Proposta.ID_PROGRAMA==Programa.ID_PROGRAMA)\
+                          .join(Convenio,Convenio.ID_PROPOSTA==Proposta.ID_PROPOSTA)\
+                          .filter(Convenio.DIA_PUBL_CONV != '',Programa_Interesse.coord.in_(l_unid))\
+                          .outerjoin(convenios_exec,convenios_exec.c.ID_PROPOSTA==Proposta.ID_PROPOSTA)\
+                          .group_by(Programa_Interesse.sigla,Programa_Interesse.cod_programa)\
+                          .order_by(Programa_Interesse.sigla.desc(),Programa_Interesse.cod_programa)\
+                          .all()
 
     ## lê data de carga dos dados dos convênios
     data_carga = db.session.query(RefSICONV.data_ref).first()

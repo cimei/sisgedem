@@ -3,7 +3,7 @@
 <div class="container">
 
 <div class="jumbotron">
-<h1>Inserir/Alterar Chamada Homologada</h1>
+<h1>Inserir/Alterar Chamada</h1>
 
 {% macro render_field(field,obr) %}
   {% if obr == True %}
@@ -28,7 +28,7 @@
   <div class="form-row">
   <div class="col-3">
     <div class="form-group">
-      {{ render_field(form.sei,class="form-control", placeholder="Entre com o NUP",obr=True) }}
+      {{ render_field(form.sei,class="form-control", placeholder="Entre com o NUP",obr=False) }}
     </div>
   </div>
   </div>
@@ -53,7 +53,7 @@
     <div class="form-row">
     <div class="col-4">
       <div class="form-group">
-        {{ render_field(form.doc_sei,class="form-control",obr=True) }}
+        {{ render_field(form.doc_sei,class="form-control",obr=False) }}
       </div>
     </div>
     </div>

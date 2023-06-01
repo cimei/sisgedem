@@ -17,7 +17,7 @@
 # forms.py dentro de convenios
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, SubmitField, SelectField
+from wtforms import StringField, IntegerField, SubmitField, SelectField, SelectMultipleField
 from wtforms.validators import DataRequired, Regexp
 from sqlalchemy import distinct
 
@@ -38,6 +38,12 @@ class SEIForm(FlaskForm):
     fiscal      = SelectField('Fiscal:',choices= lista_pessoal)
     submit      = SubmitField('Atualizar')
 
+class ChamadaConvForm(FlaskForm):
+
+    chamada = SelectMultipleField('Chamada:')
+
+    submit  = SubmitField('Associar')      
+
 # form para inserir/atualizar programa preferencial
 class ProgPrefForm(FlaskForm):
 
@@ -57,11 +63,11 @@ class ProgPrefForm(FlaskForm):
 ## form para inserir dados de chamada homologadas
 class ChamadaForm(FlaskForm):
 
-    sei               = StringField('SEI (Acordo ou Convênio):',validators=[DataRequired(message="Informe o Processo!")]) # incluir regex para sei... um dia....
+    sei               = StringField('SEI:') 
     chamada           = StringField('Chamada:',validators=[DataRequired(message="Informe o nome da Chamada!")])
     qtd_projetos      = StringField('Quantidade de projetos:',validators=[DataRequired(message="Informe a quantidade de projetos!")])
     vl_total_chamada  = StringField('Valor total homologado:',validators=[DataRequired(message="Informe o valor!")])
-    doc_sei           = StringField('Doc. SEI com a lista de projetos:',validators=[DataRequired(message="Informe o número do documento!")])
+    doc_sei           = StringField('Doc. SEI com a lista de projetos:')
     obs               = StringField('Observações:')
     submit      = SubmitField('Registrar')
 

@@ -4,18 +4,17 @@
 
 <div class="jumbotron">
 <h4>Associar Processo Mãe a Acordo</h4>
-<h6>{{edic}} - {{epe}}-{{uf}}</h6>
 <form class="needs-validation form-inline" method='POST' >
   {{ form.hidden_tag() }}
 
   <div class="form-group">
      <div class="col-auto">
 
-      {{ form.proc_mae.label }}
+      {{ form.mae.label }}
           </div>
       <div class="col-auto">
 
-      {{ form.proc_mae(class="custom-select", size="10") }}
+      {{ form.mae(class="custom-select", size="10") }}
 
       </div>
 

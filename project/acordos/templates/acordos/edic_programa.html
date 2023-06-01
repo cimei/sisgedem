@@ -10,7 +10,7 @@
             <div class="container">
               <div class="row">
 
-                  <h3>Programas e Acordos (Edições do Programa {{sigla}})</h3>
+                  <h3>Programas e Acordos (Ocorrências no Programa {{sigla}})</h3>
 
               </div>
             </div>
@@ -24,8 +24,8 @@
                 <div class="card">
 
                   <div class="card-header">
-                    <h5><a href="{{url_for('acordos.lista_acordos',lista='edic'+edic[0],coord='*')}}" data-toggle="tooltip" title="Clique aqui para ver todos os Acordos desta Edição">
-                      {{edic[0]}}</a></h5>
+                    <h5><a href="{{url_for('acordos.lista_acordos',lista='edic'+edic.nome|replace('/','#$'),coord='*')}}" data-toggle="tooltip" title="Clique aqui para ver todos os Acordos desta Edição">
+                      {{edic.nome}}</a></h5>
                     <h5></h5>
                   </div>
 
@@ -34,34 +34,34 @@
                     <div class="row">
                       <div class="col">
                         <span class="font-weight-light">Acordos:</span>
-                        <h5 align = "center">{{edic[1]}} </h5>
+                        <h5 align = "center">{{edic.qtd}} </h5>
                       </div>
                       <div class="col">
-                        <span class="font-weight-light">Valor CNPq:</span> <h5 align = "center">{{edic[2]}}</h5>
+                        <span class="font-weight-light">R$ CNPq:</span> <h5 align = "center">{{edic.vl_cnpq|converte_para_real}}</h5>
                       </div>
                       <div class="col">
-                        <span class="font-weight-light">Valor EPs:</span> <h5 align = "center">{{edic[3]}}</h5>
+                        <span class="font-weight-light">R$ EPs:</span> <h5 align = "center">{{edic.vl_epe|converte_para_real}}</h5>
                       </div>
                       <div class="col">
-                        <span class="font-weight-light">Valor pago:</span> <h5 align = "center">{{edic[7]}}</h5>
+                        <span class="font-weight-light">R$ pago bolsas:</span> <h5 align = "center">{{edic.pago_bolsas|converte_para_real}}</h5>
                       </div>
                       <div class="col">
-                        <span class="font-weight-light">Valor a pagar:</span> <h5 align = "center">{{edic[8]}}</h5>
+                        <span class="font-weight-light">R$ pago chamadas:</span> <h5 align = "center">{{edic.pago_chamadas|converte_para_real}}</h5>
                       </div>
                     </div>
 
                     <div class="row">
                       <div class="col">
                         <span class="font-weight-light">Mães:</span>
-                        <h5 align = "center">{{edic[4]}} </h5>
+                        <h5 align = "center">{{edic.qtd_maes}} </h5>
                       </div>
                       <div class="col">
                         <span class="font-weight-light">Filhos:</span>
-                        <h5 align = "center">{{edic[5]}} </h5>
+                        <h5 align = "center">{{edic.qtd_filhos}} </h5>
                       </div>
                       <div class="col">
                         <span class="font-weight-light">Bolsistas:</span>
-                        <h5 align = "center">{{edic[6]}} </h5>
+                        <h5 align = "center">{{edic.qtd_cpfs}} </h5>
                       </div>
                     </div>
 
