@@ -561,7 +561,7 @@ def lista_acordos(lista,coord):
                                    .first()
                 if filhos:                   
                     qtd_filhos_acordo += int(filhos.qtd_filhos)
-                    pago_acordo += pago_filhos
+                    pago_acordo += filhos.pago_filhos
 
             # ver como receber valores pagos em capital e custeio para abater no calculo do saldo
             # pago_capital = ....
@@ -1921,8 +1921,6 @@ def resumo_acordos():
                            .all()
 
     return render_template('resumo_acordos.html',programas=programas,
-                                                 maes_sem_acordo=maes_sem_acordo,
-                                                 qtd_maes_sem_acordo=qtd_maes_sem_acordo,
                                                  unidade=unidade)
 
 #
