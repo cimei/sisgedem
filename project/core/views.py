@@ -138,86 +138,99 @@ def consultaDW(**entrada):
 
     elif entrada['tipo'] == 'processos_chamadas': # processos mãe associados a uma chamada
 
-        sql = "SELECT DISTINCT DWDIM.DI_PROGRAMA.COD_PROGRAMA             COD_PROGRAMA,\
-                               DWDIM.DI_CHAMADA.NME_CHAMADA               NOME_CHAMADA,\
-                               DWDIM.DI_PROCESSO.COD_PROC_MAE             PROC_MAE,\
-                               COUNT(DISTINCT DWDIM.DI_PROCESSO.COD_PROC) QTD_FILHOS,\
-                               (select DTA_INICIO from DWDIM.DI_PROCESSO           PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) INICIO,\
-                               (select DTA_TERMINO from DWDIM.DI_PROCESSO          PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) FIM,\
-                               (select DSC_SIT_PROC from DWDIM.DI_PROCESSO         PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) SIT,\
-                               (select DSC_DETALHE_SIT_PROC from DWDIM.DI_PROCESSO PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) SIT_DETALHE,\
-                               (select TXT_TITULO_PROC from DWDIM.DI_PROCESSO      PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) TITULO,\
-                               (select PE.NME_PESSOA \
-                                       FROM DWFATO.FT_PAGAMENTO FT\
-                                       JOIN DWDIM.DI_PROCESSO PR ON PR.SEQ_ID_PROCESSO = FT.SEQ_ID_PROCESSO\
-                                       JOIN DWDIM.DI_PESSOA   PE ON PE.SEQ_ID_PESSOA   = FT.SEQ_ID_PESSOA_BENEF\
-                                       where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1)        PESSOA,\
-                               (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
-                                       FROM  DWFATO.FT_PAGAMENTO FT2 \
-                                       JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
-                                       JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
-                                       where DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA = 'Capital' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE)  PAGO_CAPITAL,\
-                               (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
-                                       FROM  DWFATO.FT_PAGAMENTO FT2 \
-                                       JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
-                                       JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
-                                       where DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA = 'Custeio' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE)  PAGO_CUSTEIO,\
-                               (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
-                                       FROM  DWFATO.FT_PAGAMENTO FT2 \
-                                       JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
-                                       JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
-                                       where DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA = 'Bolsa' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE)    PAGO_BOLSA\
-                               FROM  DWFATO.FT_PAGAMENTO \
-                        JOIN DWDIM.DI_CHAMADA      ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA           = DWFATO.FT_PAGAMENTO.SEQ_ID_CHAMADA\
-                        JOIN DWDIM.di_programa     ON DWDIM.di_programa.seq_id_programa         = DWFATO.FT_PAGAMENTO.seq_id_programa\
-                        JOIN DWDIM.DI_PROCESSO     ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO         = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
-                        JOIN DWDIM.DI_ITEM_DESPESA ON DWDIM.DI_ITEM_DESPESA.SEQ_ID_ITEM_DESPESA = DWFATO.FT_PAGAMENTO.SEQ_ID_ITEM_DESPESA\
-                        WHERE DWDIM.DI_CHAMADA.seq_id_chamada = '"+ entrada['id_chamada'] +"' \
-                        GROUP BY DWDIM.DI_PROCESSO.cod_proc_mae, DWDIM.DI_PROGRAMA.COD_PROGRAMA, DWDIM.DI_CHAMADA.NME_CHAMADA,DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA\
-                        order by DWDIM.DI_PROCESSO.COD_PROC_MAE"                
+        sql = "SELECT DISTINCT \
+                DWDIM.DI_PROGRAMA.COD_PROGRAMA             COD_PROGRAMA,\
+                DWDIM.DI_CHAMADA.NME_CHAMADA               NOME_CHAMADA,\
+                DWDIM.DI_PROCESSO.COD_PROC_MAE             PROC_MAE,\
+                COUNT(DISTINCT DWDIM.DI_PROCESSO.COD_PROC) QTD_FILHOS,\
+                (select DTA_INICIO from DWDIM.DI_PROCESSO           PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) INICIO,\
+                (select DTA_TERMINO from DWDIM.DI_PROCESSO          PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) FIM,\
+                (select DSC_SIT_PROC from DWDIM.DI_PROCESSO         PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) SIT,\
+                (select DSC_DETALHE_SIT_PROC from DWDIM.DI_PROCESSO PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) SIT_DETALHE,\
+                (select TXT_TITULO_PROC from DWDIM.DI_PROCESSO      PR where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1) TITULO,\
+                (select PE.NME_PESSOA \
+                        FROM DWFATO.FT_PAGAMENTO FT\
+                        JOIN DWDIM.DI_PROCESSO PR ON PR.SEQ_ID_PROCESSO = FT.SEQ_ID_PROCESSO\
+                        JOIN DWDIM.DI_PESSOA   PE ON PE.SEQ_ID_PESSOA   = FT.SEQ_ID_PESSOA_BENEF\
+                        where PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC_MAE and ROWNUM = 1)                             PESSOA,\
+                (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
+                        FROM  DWFATO.FT_PAGAMENTO FT2 \
+                        JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
+                        JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
+                        where ID.NME_CATEG_ECONOMICA = 'Bolsa' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE)   PAGO_BOLSA,\
+                (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
+                        FROM  DWFATO.FT_PAGAMENTO FT2 \
+                        JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
+                        JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
+                        where ID.NME_CATEG_ECONOMICA = 'Capital' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE) PAGO_CAPITAL,\
+                (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
+                        FROM  DWFATO.FT_PAGAMENTO FT2 \
+                        JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
+                        JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
+                        where ID.NME_CATEG_ECONOMICA = 'Custeio' AND PR.COD_PROC_MAE = DWDIM.DI_PROCESSO.COD_PROC_MAE) PAGO_CUSTEIO\
+                FROM  DWFATO.FT_PAGAMENTO \
+           JOIN DWDIM.DI_CHAMADA  ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA   = DWFATO.FT_PAGAMENTO.SEQ_ID_CHAMADA\
+           JOIN DWDIM.di_programa ON DWDIM.di_programa.seq_id_programa = DWFATO.FT_PAGAMENTO.seq_id_programa\
+           JOIN DWDIM.DI_PROCESSO ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
+           WHERE DWDIM.DI_CHAMADA.seq_id_chamada = '"+ entrada['id_chamada'] +"' AND DWDIM.DI_PROCESSO.COD_PROC_MAE IS NOT NULL \
+           GROUP BY DWDIM.DI_PROCESSO.cod_proc_mae, \
+                    DWDIM.DI_PROGRAMA.COD_PROGRAMA, \
+                    DWDIM.DI_CHAMADA.NME_CHAMADA\
+           order by DWDIM.DI_PROCESSO.COD_PROC_MAE"          
 
     elif entrada['tipo'] == 'filhos_chamadas': # processos filho associados a uma chamada
 
-        sql = "SELECT DWDIM.DI_PROGRAMA.COD_PROGRAMA           COD_PROGRAMA,\
-                        DWDIM.DI_CHAMADA.NME_CHAMADA           NOME_CHAMADA,\
-                        DWDIM.DI_PROCESSO.COD_PROC             PROCESSO,\
-                        DWDIM.DI_PROCESSO.COD_PROC_MAE         PROCESSO_MAE,\
-                        DWDIM.DI_PROCESSO.DTA_INICIO           INICIO,\
-                        DWDIM.DI_PROCESSO.DTA_TERMINO          FIM,\
-                        DWDIM.DI_PROCESSO.DSC_SIT_PROC         SIT,\
-                        DWDIM.DI_PROCESSO.DSC_DETALHE_SIT_PROC SIT_DETALHE,\
-                        DWDIM.DI_PROCESSO.TXT_TITULO_PROC      TITULO,\
-                        DWDIM.DI_PESSOA.CPF_PESSOA             CPF,\
-                        DWDIM.DI_PESSOA.NME_PESSOA             PESSOA,\
-                        DWDIM.DI_MODALIDADE.COD_MODAL          MODAL,\
-                        DWDIM.DI_MODALIDADE.COD_CATEG_NIVEL    NIVEL,\
-                        SUM(DWFATO.FT_PAGAMENTO.QTD_BOLSAS)                   QTD_BOLSAS,\
-                        SUM(DWFATO.FT_PAGAMENTO.VLR_TOTAL_ITEM_DESPESA_FOLHA) VALOR_BOLSAS,\
-                        SUM(DWFATO.FT_PAGAMENTO.QTD_ITEM_DESPESA)             QTD_DESPESAS,\
-                        SUM(DWFATO.FT_PAGAMENTO.VLR_TOTAL_ITEM_DESPESA)       VALOR_DESPESAS,\
-                        DWDIM.DI_PROCESSO.DTA_CARGA                           DTA_CARGA\
-                        FROM  DWFATO.FT_PAGAMENTO \
-            JOIN DWDIM.DI_PESSOA     ON DWDIM.DI_PESSOA.SEQ_ID_PESSOA         = DWFATO.FT_PAGAMENTO.SEQ_ID_PESSOA_BENEF  \
-            JOIN DWDIM.DI_CHAMADA    ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA       = DWFATO.FT_PAGAMENTO.SEQ_ID_CHAMADA\
-            JOIN DWDIM.di_programa   ON DWDIM.di_programa.seq_id_programa     = DWFATO.FT_PAGAMENTO.seq_id_programa\
-            JOIN DWDIM.DI_PROCESSO   ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO     = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
-            JOIN DWDIM.DI_MODALIDADE ON DWDIM.DI_MODALIDADE.SEQ_ID_MODALIDADE = DWFATO.FT_PAGAMENTO.SEQ_ID_MODALIDADE\
-            WHERE DWDIM.DI_CHAMADA.seq_id_chamada = '"+ entrada['id_chamada'] +"' \
-            GROUP BY DWDIM.DI_PROGRAMA.COD_PROGRAMA     ,\
-                    DWDIM.DI_CHAMADA.NME_CHAMADA           ,\
-                    DWDIM.DI_PROCESSO.COD_PROC             ,\
-                    DWDIM.DI_PROCESSO.COD_PROC_MAE         ,\
-                    DWDIM.DI_PROCESSO.DTA_INICIO           ,\
-                    DWDIM.DI_PROCESSO.DTA_TERMINO          ,\
-                    DWDIM.DI_PROCESSO.DSC_SIT_PROC         ,\
-                    DWDIM.DI_PROCESSO.DSC_DETALHE_SIT_PROC ,\
-                    DWDIM.DI_PROCESSO.TXT_TITULO_PROC      ,\
-                    DWDIM.DI_PESSOA.CPF_PESSOA             ,\
-                    DWDIM.DI_PESSOA.NME_PESSOA             ,\
-                    DWDIM.DI_MODALIDADE.COD_MODAL          ,\
-                    DWDIM.DI_MODALIDADE.COD_CATEG_NIVEL    ,\
-                    DWDIM.DI_PROCESSO.DTA_CARGA\
-            order by DWDIM.DI_PROCESSO.COD_PROC"
+        sql = "SELECT\
+                DWDIM.DI_PROGRAMA.COD_PROGRAMA         COD_PROGRAMA,\
+                DWDIM.DI_CHAMADA.NME_CHAMADA           NOME_CHAMADA,\
+                DWDIM.DI_PROCESSO.COD_PROC             PROCESSO,\
+                DWDIM.DI_PROCESSO.COD_PROC_MAE         PROCESSO_MAE,\
+                DWDIM.DI_PROCESSO.DTA_INICIO           INICIO,\
+                DWDIM.DI_PROCESSO.DTA_TERMINO          FIM,\
+                DWDIM.DI_PROCESSO.DSC_SIT_PROC         SIT,\
+                DWDIM.DI_PROCESSO.DSC_DETALHE_SIT_PROC SIT_DETALHE,\
+                DWDIM.DI_PROCESSO.NME_ESTADO_FOMENTO   ESTADO_FOMENTO,\
+                DWDIM.DI_PROCESSO.TXT_TITULO_PROC      TITULO,\
+                DWDIM.DI_PESSOA.CPF_PESSOA             CPF,\
+                DWDIM.DI_PESSOA.NME_PESSOA             PESSOA,\
+                DWDIM.DI_MODALIDADE.COD_MODAL          MODAL,\
+                DWDIM.DI_MODALIDADE.COD_CATEG_NIVEL    NIVEL,\
+                SUM(DWFATO.FT_PAGAMENTO.QTD_BOLSAS)                   QTD_BOLSAS,\
+                SUM(DWFATO.FT_PAGAMENTO.VLR_TOTAL_ITEM_DESPESA_FOLHA) PAGO_BOLSAS,\
+                (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
+                        FROM  DWFATO.FT_PAGAMENTO FT2 \
+                        JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
+                        JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
+                        where ID.NME_CATEG_ECONOMICA = 'Capital' AND PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC) PAGO_CAPITAL,\
+                (select SUM(FT2.VLR_TOTAL_ITEM_DESPESA)\
+                        FROM  DWFATO.FT_PAGAMENTO FT2 \
+                        JOIN DWDIM.DI_ITEM_DESPESA ID ON ID.SEQ_ID_ITEM_DESPESA = FT2.SEQ_ID_ITEM_DESPESA\
+                        JOIN DWDIM.DI_PROCESSO     PR ON PR.SEQ_ID_PROCESSO     = FT2.SEQ_ID_PROCESSO\
+                        where ID.NME_CATEG_ECONOMICA = 'Custeio' AND PR.COD_PROC = DWDIM.DI_PROCESSO.COD_PROC) PAGO_CUSTEIO,\
+                DWDIM.DI_PROCESSO.DTA_CARGA                                                                    DTA_CARGA\
+                FROM  DWFATO.FT_PAGAMENTO \
+           JOIN DWDIM.DI_PESSOA       ON DWDIM.DI_PESSOA.SEQ_ID_PESSOA             = DWFATO.FT_PAGAMENTO.SEQ_ID_PESSOA_BENEF\
+           JOIN DWDIM.DI_CHAMADA      ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA           = DWFATO.FT_PAGAMENTO.SEQ_ID_CHAMADA\
+           JOIN DWDIM.di_programa     ON DWDIM.di_programa.seq_id_programa         = DWFATO.FT_PAGAMENTO.seq_id_programa\
+           JOIN DWDIM.DI_PROCESSO     ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO         = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
+           JOIN DWDIM.DI_MODALIDADE   ON DWDIM.DI_MODALIDADE.SEQ_ID_MODALIDADE     = DWFATO.FT_PAGAMENTO.SEQ_ID_MODALIDADE\
+           WHERE DWDIM.DI_CHAMADA.seq_id_chamada = '"+ entrada['id_chamada'] +"' \
+           GROUP BY DWDIM.DI_PROGRAMA.COD_PROGRAMA     ,\
+                DWDIM.DI_CHAMADA.NME_CHAMADA           ,\
+                DWDIM.DI_PROCESSO.COD_PROC             ,\
+                DWDIM.DI_PROCESSO.COD_PROC_MAE         ,\
+                DWDIM.DI_PROCESSO.DTA_INICIO           ,\
+                DWDIM.DI_PROCESSO.DTA_TERMINO          ,\
+                DWDIM.DI_PROCESSO.DSC_SIT_PROC         ,\
+                DWDIM.DI_PROCESSO.DSC_DETALHE_SIT_PROC ,\
+                DWDIM.DI_PROCESSO.NME_ESTADO_FOMENTO   ,\
+                DWDIM.DI_PROCESSO.TXT_TITULO_PROC      ,\
+                DWDIM.DI_PESSOA.CPF_PESSOA             ,\
+                DWDIM.DI_PESSOA.NME_PESSOA             ,\
+                DWDIM.DI_MODALIDADE.COD_MODAL          ,\
+                DWDIM.DI_MODALIDADE.COD_CATEG_NIVEL    ,\
+                DWDIM.DI_PROCESSO.DTA_CARGA \
+           order by DWDIM.DI_PESSOA.NME_PESSOA"    
 
     elif entrada['tipo'] == 'valores': # pegar valores por ND em processos-mae
 
@@ -244,27 +257,31 @@ def consultaDW(**entrada):
         flash('TIPO INVÁLIDO','erro')
         return res
 
-    dsn = """(DESCRIPTION = \
-                (ADDRESS = (PROTOCOL = TCP)\
-                    (HOST = dw1-vip.cnpq.br)\
-                    (PORT = 1521))\
-                (ADDRESS = (PROTOCOL = TCP)\
-                    (HOST = dw2-vip.cnpq.br)\
-                    (PORT = 1521))\
-                (LOAD_BALANCE = yes)\
-                (FAILOVER = ON)\
-                (CONNECT_DATA = \
-                    (SERVICE_NAME = dw.cnpq.br)\
-                    (FAILOVER_MODE = \
-                        (TYPE = SELECT)\
-                        (METHOD = BASIC)\
-                        (RETRIES = 180)(DELAY = 5))))"""
+    # dsn = """(DESCRIPTION = \
+    #             (ADDRESS = (PROTOCOL = TCP)\
+    #                 (HOST = dw1-vip.cnpq.br)\
+    #                 (PORT = 1521))\
+    #             (ADDRESS = (PROTOCOL = TCP)\
+    #                 (HOST = dw2-vip.cnpq.br)\
+    #                 (PORT = 1521))\
+    #             (LOAD_BALANCE = yes)\
+    #             (FAILOVER = ON)\
+    #             (CONNECT_DATA = \
+    #                 (SERVICE_NAME = dw.cnpq.br)\
+    #                 (FAILOVER_MODE = \
+    #                     (TYPE = SELECT)\
+    #                     (METHOD = BASIC)\
+    #                     (RETRIES = 180)(DELAY = 5))))"""
+
+    dsn = os.environ.get('DSN_ORACLE')
+    user = os.environ.get('USER_ORACLE')
+    password = os.environ.get('PASSWORD_ORACLE')
 
     oracledb.init_oracle_client()
 
     conn = oracledb.connect(
-                            user='usr_sicopes', 
-                            password='sicopes', 
+                            user=user, 
+                            password=password, 
                             dsn=dsn,
                             encoding="UTF-8"
                             )

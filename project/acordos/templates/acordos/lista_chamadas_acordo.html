@@ -23,8 +23,8 @@
           <td><p align = "left">{{chamadas.index(chamada) + 1}}</abbr></p></td>
           <td><p align = "center">{{chamada.tipo}} - {{chamada.sigla}} - {{chamada.nome}}</p></td>
           <td><p align = "center">
-            {% if chamada.qtd_processos %}
-              <a href="{{url_for('acordos.processos_chamada',chamada_id_dw=chamada.id_dw)}}"><abbr title="Clique aqui para ver lista de processos"></abbr>{{chamada.qtd_processos}}</a>
+            {% if chamada.qtd_proc %}
+              <a href="{{url_for('acordos.processos_chamada',chamada_id_dw=chamada.id_dw)}}"><abbr title="Clique aqui para ver lista de processos"></abbr>{{chamada.qtd_proc}}</a>
             {% else %}
               n.c.
             {% endif %}

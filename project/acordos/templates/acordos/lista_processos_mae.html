@@ -101,8 +101,16 @@
             <td><p align = "center">#</p></td>
           {% endif %}
           <td><p align = "center"> <a href="{{url_for('acordos.lista_processos_filho', proc_mae=proc.proc_mae.replace('/','_'))}}">
-                                   <abbr title="Clique aqui para ver a lista de filhos.">{{proc.qtd_filhos}}</abbr> </p></td>
-          <td><p align = "right"> {{proc.pago|converte_para_real}} </p></td>
+                                   <abbr title="Clique aqui para ver a lista de filhos.">{{proc.qtd_filhos}}</abbr> 
+              </p>
+          </td>
+          {% if proc.pago and proc.cap_cus %}  
+            <td><p align = "right"> {{(proc.pago+proc.pago_cap_cus)|converte_para_real}} </p></td>
+          {% elif proc.pago %}
+          <td><p align = "right"> {{(proc.pago)|converte_para_real}} </p></td>
+          {% else %}
+            <td><p align = "right"> {{(proc.pago_cap_cus)|converte_para_real}} </p></td>
+          {% endif %}
         </tr>
       {% endfor %}
     </tbody>

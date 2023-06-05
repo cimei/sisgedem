@@ -14,6 +14,29 @@
     <title>Demandas etc</title>
     <link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico">
 
+    <style>
+      .loader {
+        border: 16px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 16px solid blue;
+        border-bottom: 16px solid blue;
+        width: 120px;
+        height: 120px;
+        -webkit-animation: spin 2s linear infinite;
+        animation: spin 2s linear infinite;
+      }
+      
+      @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); }
+        100% { -webkit-transform: rotate(360deg); }
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      </style>
+
   </head>
   <body>
 
@@ -72,17 +95,6 @@
               </div>
             </li>
 
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2_1" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Dados DW
-              </a>
-              <div class="dropdown-menu" aria-labelledby="navbarDropdown2_1">
-                <a class="dropdown-item" href="{{url_for('acordos.programas_por_unidade_DW')}}">Pega Programas</a>
-                <a class="dropdown-item" href="{{url_for('acordos.chamadas_por_programa_DW')}}">Pega Chamadas</a>
-              </div>
-            </li> 
-
-
           {% endif %}
 
           {% if current_user.is_authenticated and current_user.trab_instru == 1 %}
@@ -129,15 +141,16 @@
               </div>
             </li>
 
-            {% if current_user.trab_acordo == 1 or current_user.trab_conv == 1 %}
+            {% if current_user.is_authenticated %}
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle text-warning" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                   Carga
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                   {% if current_user.trab_acordo == 1 %}
-                    <a class="dropdown-item" href="{{url_for('core.carregaPDCTR')}}">Carrega F. Pag.</a>
-                    <a class="dropdown-item" href="{{url_for('acordos.valoresDW')}}">Valores DW</a>
+                    <a class="dropdown-item" href="{{url_for('acordos.programas_por_unidade_DW')}}">Pega Programas DW</a>
+                    <a class="dropdown-item" href="{{url_for('acordos.espera_carga',carga='*')}}">Pega Chamadas DW</a>
+                    <div class="dropdown-divider"></div>
                   {% endif %}
                   {% if current_user.trab_conv == 1 %}
                     <button class="dropdown-item" data-toggle='modal' data-target='#siconv_modal'>Carrega SICONV</button>

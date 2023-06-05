@@ -26,9 +26,9 @@ from project.models import Programa_CNPq, Processo_Mae, Coords
 
 class ProgAcordoForm(FlaskForm):
 
-    programa_cnpq    = SelectMultipleField('Programa CNPq:')
+    programa_cnpq = SelectMultipleField('Programa CNPq:')
 
-    submit           = SubmitField('Registrar')
+    submit        = SubmitField('Associar')
 
 class ChamadaAcordoForm(FlaskForm):
 
@@ -42,7 +42,7 @@ class AcordoForm(FlaskForm):
     #programa_cnpq    = SelectMultipleField('Programa CNPq:')
     nome             = StringField('Edição/Sigla:',validators=[DataRequired(message="Informe um nome ou edição!")])
     desc             = StringField('Descrição:')
-    unid             = StringField('Unidade:')
+    unid             = SelectField('Unidade:', validators=[DataRequired(message="Escolha uma unidade organizacional!")])
     sei              = StringField('Número SEI:',validators=[DataRequired(message="Informe o Programa!")]) # incluir regex para sei
     epe              = StringField('Sigla da EP:',validators=[DataRequired(message="Informe a Instituição!")])
     uf               = StringField('UF (sigla):',validators=[DataRequired(message="Informe a sigla da UF!")])
@@ -53,7 +53,7 @@ class AcordoForm(FlaskForm):
     situ             = SelectField('Situação:',choices=[('',''),
                                   ('Preparação','Preparação'),
                                   ('Assinado','Assinado'),
-                                  ('Esquecido','Esquecido'),
+                                  ('Vigente-Esquecido','Vigente-Esquecido'),
                                   ('Aguarda Folha','Aguarda Folha'),
                                   ('Vigente','Vigente'),
                                   ('Expirado (sem RTF)','Expirado (sem RTF)'),

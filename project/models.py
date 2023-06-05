@@ -292,14 +292,14 @@ class grupo_programa_cnpq(db.Model):
     id_programa  = db.Column(db.Integer)
     cod_programa = db.Column(db.String)
 
-    def __init__(self, id_acordo, cod_programa):
+    def __init__(self, id_acordo, id_programa, cod_programa):
 
         self.id_acordo    = id_acordo
         self.id_programa  = id_programa
         self.cod_programa = cod_programa
 
     def __repr__ (self):
-        return f"{self.id_acordo};{self.cod_programa};{self.id_programa}"        
+        return f"{self.id_acordo};{self.id_programa};{self.cod_programa}"        
 
 # dados dos vários acordos
 class Acordo(db.Model):

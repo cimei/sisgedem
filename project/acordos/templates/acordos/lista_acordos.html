@@ -87,9 +87,10 @@
         <th scope="col" data-sortable="true"><p align = "center">Fim</p></th>
         <th scope="col"><p align = "center">Global (R$)</p></th>
         <th scope="col"><p align = "center">Cham./Enc.</p></th>
-        <th scope="col"><p align = "center">Mães</p></th>
+        <th scope="col"><p align = "center">Processos</p></th>
         <th scope="col"><p align = "center">Filhos</p></th>
-        <th scope="col"><p align = "center">Pago (B)</p></th>
+        <th scope="col"><p align = "center">Pago</p></th>
+        <th scope="col"><p align = "center">Saldo</p></th>
       </tr>
     </thead>
     <tbody>
@@ -129,8 +130,8 @@
                                           <abbr title="Vigência registrada, mas sem processo-mãe associado a mais de 90 dias!"><span class='text-danger'>Vigente</span></abbr>
                                         {% elif acordo[19] == "Preparação"%}
                                           <abbr title="Como não tem vigência registrada, deve estar em preparação ainda!"><span class='text-warning'>{{acordo[19]}}</span></abbr>
-                                        {% elif acordo[19] == "Vigente"%}
-                                          <abbr title="Opa! A vigência está registrada e tem processo-mãe associado! Isto é bom!"><span class='text-success'>{{acordo[19]}}</span></abbr>
+                                        {% elif acordo[19] == "Vigente-Z"%}
+                                          <abbr title="Opa! A vigência está registrada e tem processo-mãe associado! Isto é bom!"><span class='text-success'>Vigente</span></abbr>
                                         {% elif acordo[19] == "Assinado"%}
                                           <abbr title="Tem vigência registrada, mas sem processo-mãe associado. Se demorar mais de 90 dias, fica esquecido!"><span class='text-info'>{{acordo[19]}}</span></abbr>
                                         {% elif acordo[19] == "Aguarda Folha"%}
@@ -202,6 +203,8 @@
         {% endif %}
         <!-- pago_acordo -->      
         <td><p align = "center"><small> {{acordo[12]|converte_para_real}}</small></p></td>
+        <!-- saldo (valor_global - pago_acordo) -->      
+        <td><p align = "center"><small> {{(acordo[24]-acordo[12])|converte_para_real}}</small></p></td>
       </tr>
 
       {% endfor %}
