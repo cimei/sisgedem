@@ -234,7 +234,40 @@ class Processo_Mae (db.Model):
     def __repr__ (self):
         return f"{self.proc_mae};{self.inic_mae};{self.term_mae};{self.situ_mae};{self.id_chamada}"
 
-#
+# dados financeiros de acordos/TEDs
+
+class financeiro_acordo (db.Model):
+
+    __tablename__ = 'financeiro_acordo'
+
+    id                       = db.Column(db.Integer,primary_key = True)
+    id_acordo                = db.Column(db.Integer)
+    qtd_item_despesa         = db.Column(db.Float)
+    valor_total_item_despesa = db.Column(db.Float)
+    cod_fonte_recurso        = db.Column(db.String)
+    nme_fonte_recurso        = db.Column(db.String)
+    cod_plano_interno        = db.Column(db.String)
+    nme_plano_interno        = db.Column(db.String)
+    nme_categ_economica      = db.Column(db.String)
+    nme_natur_desp           = db.Column(db.String)
+
+    def __init__ (self,id_acordo,qtd_item_despesa,valor_total_item_despesa,cod_fonte_recurso,nme_fonte_recurso,
+                  cod_plano_interno,nme_plano_interno,nme_categ_economica,nme_natur_desp):
+        self.id_acordo                = id_acordo
+        self.qtd_item_despesa         = qtd_item_despesa
+        self.valor_total_item_despesa = valor_total_item_despesa
+        self.cod_fonte_recurso        = cod_fonte_recurso
+        self.nme_fonte_recurso        = nme_fonte_recurso
+        self.cod_plano_interno        = cod_plano_interno
+        self.nme_plano_interno        = nme_plano_interno
+        self.nme_categ_economica      = nme_categ_economica
+        self.nme_natur_desp           = nme_natur_desp
+
+    def __repr__ (self):
+        return f"{self.id_acordo};{self.qtd_item_despesa};{self.valor_total_item_despesa};{self.cod_fonte_recurso};{self.nme_fonte_recurso};\
+                 {self.cod_plano_interno};{self.nme_plano_interno};{self.nme_categ_economica};{self.nme_natur_desp}"    
+
+
 
 ## tabela com as modalidades e valores de cada bolsa
 class Bolsa (db.Model):
@@ -315,7 +348,7 @@ class Acordo(db.Model):
     data_fim      = db.Column(db.Date)
     valor_cnpq    = db.Column(db.Float)
     valor_epe     = db.Column(db.Float)
-    unidade_cnpq = db.Column(db.String) # está recebendo a sigla da unidade no CNPq
+    unidade_cnpq  = db.Column(db.String) # está recebendo a sigla da unidade no CNPq
     situ          = db.Column(db.String)
     desc          = db.Column(db.String)
     capital       = db.Column(db.Float)

@@ -53,6 +53,7 @@ from werkzeug.utils import secure_filename
 import tempfile
 import zipfile
 import oracledb
+import traceback
 
 core = Blueprint("core",__name__)
 
@@ -60,31 +61,7 @@ core = Blueprint("core",__name__)
 
 def consultaDW(**entrada):
 
-    if entrada['tipo'] == 'chamadas': # chamadas associadas as TEDs 
-
-        sql = "SELECT DISTINCT\
-                DWDIM.di_unidade_organizacional.SGL_UNID_ORG UNIDADE,\
-                DWDIM.DI_CHAMADA.sgl_chamada SIGLA_CHAMDADA,\
-                DWDIM.DI_CHAMADA.NME_CHAMADA CHAMADA,\
-                DWDIM.DI_CHAMADA.nme_tipo_chamada TIPO_CHAMADA,\
-                COUNT(DISTINCT dwdim.di_processo.cod_proc) PROCESSOS,\
-                SUM(dwfato.ft_pagamento.vlr_total_item_despesa) VALOR\
-                DWDIM.DI_CHAMADA.seq_id_chamada ID_CHAMADA\
-                FROM  DWFATO.FT_PAGAMENTO \
-                JOIN DWDIM.DI_CHAMADA ON DWDIM.DI_CHAMADA.SEQ_ID_CHAMADA = DWFATO.FT_PAGAMENTO.SEQ_ID_CHAMADA\
-                JOIN DWDIM.di_unidade_organizacional ON dwdim.di_unidade_organizacional.seq_id_unid_org = DWFATO.FT_PAGAMENTO.SEQ_ID_UNID_ORG\
-                JOIN DWDIM.DI_FONTE_RECURSO ON dwdim.di_fonte_recurso.seq_id_fonte_recurso = DWFATO.FT_PAGAMENTO.SEQ_ID_FONTE_RECURSO\
-                JOIN DWDIM.DI_PROCESSO ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
-                WHERE (dwdim.di_unidade_organizacional.sgl_unid_nivel2 = '"+ entrada['unid'] +"') \
-                    AND DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO LIKE '%TED%'\
-                    AND DWDIM.DI_PROCESSO.NME_ESTADO_FOMENTO <> 'Submetido'\
-                    AND DWDIM.DI_PROCESSO.NME_ESTADO_FOMENTO <> 'Cancelado'\
-                    AND DWDIM.DI_PROCESSO.NME_ESTADO_FOMENTO <> 'Em preparação'\
-                GROUP BY DWDIM.di_unidade_organizacional.SGL_UNID_ORG,\
-                DWDIM.DI_CHAMADA.sgl_chamada, DWDIM.DI_CHAMADA.NME_CHAMADA, DWDIM.DI_CHAMADA.nme_tipo_chamada\
-                order by DWDIM.DI_CHAMADA.sgl_chamada"
-
-    elif entrada['tipo'] == 'programas_unid': # programas associados a uma unidade, procura no FT_PAGAMENTO por seq_id_programa_PROC e seq_id_programa
+    if entrada['tipo'] == 'programas_unid': # programas associados a uma unidade, procura no FT_PAGAMENTO por seq_id_programa_PROC e seq_id_programa
 
         sql = "SELECT DISTINCT \
                     p.cod_programa COD_PROGRAMA,\
@@ -230,48 +207,37 @@ def consultaDW(**entrada):
                 DWDIM.DI_MODALIDADE.COD_MODAL          ,\
                 DWDIM.DI_MODALIDADE.COD_CATEG_NIVEL    ,\
                 DWDIM.DI_PROCESSO.DTA_CARGA \
-           order by DWDIM.DI_PESSOA.NME_PESSOA"    
+           order by DWDIM.DI_PESSOA.NME_PESSOA"
 
-    elif entrada['tipo'] == 'valores': # pegar valores por ND em processos-mae
+    elif entrada['tipo'] == 'financeiro_processos': # dados financeiros do que foi pago em processos informados
 
-        sql = "SELECT DWDIM.di_unidade_organizacional.SGL_UNID_ORG UNIDADE,\
-                      DWDIM.DI_PROCESSO.COD_PROC_MAE PROCESSO_MAE,\
-                      DWDIM.DI_PROCESSO.COD_PROC PROCESSO,\
-                      DWDIM.DI_PESSOA.NME_PESSOA BENEFICIADO,\
-                      DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO FONTE,\
-                      DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA ND,\
-                      SUM(DWFATO.FT_PAGAMENTO.VLR_TOTAL_ITEM_DESPESA) VALOR,\
-                      SUM(DWFATO.FT_PAGAMENTO.QTD_ITEM_DESPESA) QUANTIDADE\
-                FROM  DWFATO.FT_PAGAMENTO\
-                JOIN DWDIM.DI_PROCESSO ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
-                JOIN DWDIM.DI_PESSOA ON DWDIM.DI_PESSOA.SEQ_ID_PESSOA = DWFATO.FT_PAGAMENTO.SEQ_ID_PESSOA_BENEF\
-                JOIN DWDIM.DI_ITEM_DESPESA ON DWDIM.DI_ITEM_DESPESA.SEQ_ID_ITEM_DESPESA = DWFATO.FT_PAGAMENTO.SEQ_ID_ITEM_DESPESA\
-                JOIN DWDIM.DI_FONTE_RECURSO ON dwdim.di_fonte_recurso.seq_id_fonte_recurso = DWFATO.FT_PAGAMENTO.SEQ_ID_FONTE_RECURSO\
-                JOIN DWDIM.di_unidade_organizacional ON dwdim.di_unidade_organizacional.seq_id_unid_org = DWFATO.FT_PAGAMENTO.SEQ_ID_UNID_ORG\
-                WHERE dwdim.di_unidade_organizacional.sgl_unid_nivel2 = '"+ entrada['unid'] +"' AND DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO LIKE '%TED%' AND DWDIM.DI_PROCESSO.COD_PROC_MAE is null\
-                GROUP BY DWDIM.DI_PROCESSO.COD_PROC, DWDIM.DI_PESSOA.NME_PESSOA, DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA,\
-                    DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO, DWDIM.di_unidade_organizacional.SGL_UNID_ORG,DWDIM.DI_PROCESSO.COD_PROC_MAE\
-                ORDER BY DWDIM.DI_PESSOA.NME_PESSOA"
+        sql = f"SELECT \
+                        SUM(DWFATO.FT_PAGAMENTO.QTD_ITEM_DESPESA)           QTD,\
+                        SUM(DWFATO.FT_PAGAMENTO.VLR_TOTAL_ITEM_DESPESA)     PAGO,\
+                        DWDIM.DI_FONTE_RECURSO.COD_FONTE_RECURSO            COD_FONTE,\
+                        DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO            NOME_FONTE,\
+                        DWDIM.DI_PLANO_INTERNO.COD_PLANO_INTERNO            COD_PI,\
+                        DWDIM.DI_PLANO_INTERNO.NME_PLANO_INTERNO            NOME_PI,\
+                        DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA           NME_CATEG_ECONOMICA,\
+                        DWDIM.DI_NATUREZA_DESP.NME_NATUR_DESP               NAUREZA_DESPESA\
+                    FROM DWFATO.FT_PAGAMENTO \
+                    JOIN DWDIM.DI_PROCESSO      ON DWDIM.DI_PROCESSO.SEQ_ID_PROCESSO           = DWFATO.FT_PAGAMENTO.SEQ_ID_PROCESSO\
+                    JOIN DWDIM.DI_FONTE_RECURSO ON dwdim.di_fonte_recurso.seq_id_fonte_recurso = DWFATO.FT_PAGAMENTO.SEQ_ID_FONTE_RECURSO\
+                    JOIN DWDIM.DI_PLANO_INTERNO ON DWDIM.DI_PLANO_INTERNO.SEQ_ID_PLANO_INTERNO = DWFATO.FT_PAGAMENTO.SEQ_ID_PLANO_INTERNO\
+                    JOIN DWDIM.DI_ITEM_DESPESA  ON DWDIM.DI_ITEM_DESPESA.SEQ_ID_ITEM_DESPESA   = DWFATO.FT_PAGAMENTO.SEQ_ID_ITEM_DESPESA\
+                    JOIN DWDIM.DI_NATUREZA_DESP ON DWDIM.DI_NATUREZA_DESP.SEQ_ID_NATUR_DESP    = DWFATO.FT_PAGAMENTO.SEQ_ID_NATUR_DESP\
+                    WHERE DWDIM.DI_PROCESSO.COD_PROC IN {entrada['lista_processos']}\
+                    GROUP BY DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO,\
+                            DWDIM.DI_FONTE_RECURSO.COD_FONTE_RECURSO,\
+                            DWDIM.DI_PLANO_INTERNO.COD_PLANO_INTERNO,\
+                            DWDIM.DI_PLANO_INTERNO.NME_PLANO_INTERNO,\
+                            DWDIM.DI_ITEM_DESPESA.NME_CATEG_ECONOMICA,\
+                            DWDIM.DI_NATUREZA_DESP.NME_NATUR_DESP\
+                    ORDER BY DWDIM.DI_FONTE_RECURSO.NME_FONTE_RECURSO"
 
     else:
         flash('TIPO INVÁLIDO','erro')
         return res
-
-    # dsn = """(DESCRIPTION = \
-    #             (ADDRESS = (PROTOCOL = TCP)\
-    #                 (HOST = dw1-vip.cnpq.br)\
-    #                 (PORT = 1521))\
-    #             (ADDRESS = (PROTOCOL = TCP)\
-    #                 (HOST = dw2-vip.cnpq.br)\
-    #                 (PORT = 1521))\
-    #             (LOAD_BALANCE = yes)\
-    #             (FAILOVER = ON)\
-    #             (CONNECT_DATA = \
-    #                 (SERVICE_NAME = dw.cnpq.br)\
-    #                 (FAILOVER_MODE = \
-    #                     (TYPE = SELECT)\
-    #                     (METHOD = BASIC)\
-    #                     (RETRIES = 180)(DELAY = 5))))"""
 
     dsn = os.environ.get('DSN_ORACLE')
     user = os.environ.get('USER_ORACLE')
@@ -638,6 +604,8 @@ def cargaSICONV():
     carrega_crono_desemb = 'sim'
     carrega_plano_aplic  = 'não'
 
+    erros = []
+
     ## pega arquivos do portal siconv e os descompacta, gerando os respectivos .csv
     print ('*****************************************************************')
     print ('<<',dt.now().strftime("%x %X"),'>> ','Downloading and unpacking SICONV files...')
@@ -645,7 +613,12 @@ def cargaSICONV():
 
     #url_base = 'http://portal.convenios.gov.br/images/docs/CGSIS/csv/'
     #url_base = 'http://plataformamaisbrasil.gov.br/images/docs/CGSIS/csv/'
-    url_base = 'http://repositorio.dados.gov.br/seges/detru/'
+    # url_base = 'http://repositorio.dados.gov.br/seges/detru/'
+
+    url_base = os.environ.get('URL_SICONV')
+
+    print(' URL ORIGEM: ',url_base)
+
     pasta_compactados = os.path.normpath('/temp/arqs_siconv')
     #pasta_compactados = 'arqs_siconv'
     if not os.path.exists(pasta_compactados):
@@ -688,6 +661,8 @@ def cargaSICONV():
             arq = os.path.normpath(pasta_compactados+'/'+arquivo+'.zip')
 
             #shutil.unpack_archive(arq,pasta_compactados,'zip')
+
+            print ('<<',dt.now().strftime("%x %X"),'>> ','Tentará descompactar ' + arquivo)
 
             with zipfile.ZipFile(arq,"r") as zip_ref:
                 zip_ref.extractall(pasta_compactados)
@@ -1218,6 +1193,7 @@ def cargaSICONV():
     print ('<<',dt.now().strftime("%x %X"),'>> ','Carga SICONV finalizada!')
     print ('*****************************************************************')
 
+
 # função que executa thread de carga dos dados SICONV
 def thread_cargaSICONV():
     thr = Thread(target=cargaSICONV)
@@ -1306,12 +1282,12 @@ def carregaSICONV():
     +---------------------------------------------------------------------------------------+
     """
 
-   #síncrono
+    #síncrono
     thread_cargaSICONV()
 
-   #assíncrono
-   #cargaSICONV()
-
+    #assíncrono
+    # cargaSICONV()
+   
     registra_log_auto(current_user.id,None,'car')
 
     #return render_template('index.html')

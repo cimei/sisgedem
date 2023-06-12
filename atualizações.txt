@@ -1,7 +1,31 @@
 ## Atualizações ##
 
+12/06/2023
+Ajustes nas cargas do DW.
+
+v5.0.1
+
 29/05/2023
 Atualizações diversas para que o sistema possa pegar dados do DW (DM Pagamento).
+O sistema pega todos os programas CNPq da unidade do usuário logado, bem como de suas subordinadas, via "Pega Programas DW", armazenando, ou atualizando, 
+registros na tabela Programa_CNPq do Dbsicopes.
+A Carga "Pega Chamadas DW", para cada programa CNPq da unidade do usuário logado e suas subordinadas, pega as Chamadas/Encomendas encontradas no DW e grava, ou atualiza,
+na tabela chamadas_cnpq somente as chamadas cujos programas estejam previamente associados a algum acordo.
+Ainda nesta Carga, se a chamada identificada acima tiver indicador de que tem procesos-mãe(que tem subprocessos de bolsa), estes são armazenados, ou atualizados, na tabela
+Processo_Mae. Os respectivos precessos-filho existentes (bolsas) são deletados da tabela Processo_Filho e os encontrados no DW são gravados.
+Processos PICC encontrados nesta fase que não tenham processos-mãe da chamada associados são considerados de auxílio, estes também são gravados na tabela Processo_Mae.
+Caso a chamada não mostre a existência de processos-mãe, os processos PICC encontrados são gravados na tabela Processo_Mae.
+Considerando que cargas de processos PICC só acontecem para chamadas já associadas a algum Acordo, no caso da existência de somente um processo na chamada, este é automaticamente 
+associado ao respectivo Acordo.
+O procedimento a ser seguido é o seguinte:
+1. Fazer "Pega Programas DW" uma vez e repetir somente quando da necessidade de pegar novos programas associados à unidade.
+2. Associar todos os Acordos/TEDs cadastrados a um programa do CNPq.
+3. Fazer "Pega Chamadas DW" uma primeira vez.
+4. Associar os Acordos/TEDs à Chamada/Encomenda devida.
+5. Fazer "Pega Chamadas DW" uma segunda vez, para que o sistema pegue processos PICC.
+6. Associar procesos PICC (mãe) aos acordos.
+7. Fazer "Pega Chamadas DW" uma vez por mês para atualizar dados de pagamento.
+
 v5.0.0
 
 28/04/2023

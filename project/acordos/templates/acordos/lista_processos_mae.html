@@ -82,7 +82,8 @@
               <a href="{{url_for('acordos.altera_mae', acordo_id=acordo_id, proc_mae=proc.proc_mae.replace('/','_'))}}">
               <abbr title="Clique aqui para alterar dados deste processo-mãe.">{{proc.proc_mae}} </abbr></a>
             {% elif proc.proc_mae_id %} 
-                <span class="text-success"><b><abbr title="Este processo já está associadoa a um acordo/TED.">{{proc.proc_mae}}</abbr></b></span>
+              <a href="{{url_for('acordos.consulta_acordo_proc_mae', proc_mae_id=proc.proc_mae_id)}}">
+              <span class="text-success"><b><abbr title="Este processo já está associadoa a um acordo/TED.">{{proc.proc_mae}}</abbr></b></span></a>
             {% else %}
               {{proc.proc_mae}}
             {% endif %}  

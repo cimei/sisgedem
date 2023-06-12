@@ -109,27 +109,48 @@
         {{ render_field(form.valor_epe,class="form-control",placeholder="0,0",obr=True) }}
       </div>
     </div>
-    <div class="col-1">
+
+    <div class="col-1"></div>  
+
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.capital,class="form-control",placeholder="0,0",obr=True) }}
+        {% if pago_capital != 0 %} {{ pago_capital|converte_para_real }} {% endif %}
+      </div>
     </div>
-    <div class="col-7">
-      <div class="row justify-content-around">
-      <div class="form-group">  
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.custeio,class="form-control",placeholder="0,0",obr=True) }}
+        {% if pago_custeio != 0 %} {{ pago_custeio|converte_para_real }} {% endif %}
+      </div>
+    </div>
+    <div class="col-2">
+      <div class="form-group">
+        {{ render_field(form.bolsas,class="form-control",placeholder="0,0",obr=True) }}
+        {% if pago_bolsas != 0 %} {{ pago_bolsas|converte_para_real }} {% endif %}
+      </div>
+    </div>  
+
+  </div>
+
+  <div class="row justify-content-around">
+
         {% if acordo_id != 0 %}
-        <div class="form-group">
+        <div class="col-3">
           {% if cont_prog > 0 %}
            <b><a href="{{url_for('acordos.lista_programas_acordo', id_acordo=acordo_id)}}">{{cont_prog}} Programa(s)</a></b>
           {% else %}
            <b><a href="{{url_for('acordos.lista_programas_acordo', id_acordo=acordo_id)}}">Vincular a Programa CNPq?</a></b><br>
           {% endif %}
         </div>
-        <div class="form-group">
+        <div class="col-3">
           {% if cont_cham > 0 %}
            <b><a href="{{url_for('acordos.chamadas_acordo', acordo_id=acordo_id)}}">{{cont_cham}}  Cham./Encom. PICC</a></b>
           {% else %}
            <b><a href="{{url_for('acordos.chamadas_acordo', acordo_id=acordo_id)}}">Vincular Chamada PICC?</a></b><br>
           {% endif %}  
         </div>
-        <div class="form-group">  
+        <div class="col-3"> 
           {% if qtd_procs_mae > 0 %}
             <b><a href="{{url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo_id)}}">{{qtd_procs_mae}} Processo(s) PICC vinculado(s)</a></b><br>
           {% else %}
@@ -137,53 +158,27 @@
           {% endif %}
         </div>
         {% endif %}
-      </div>
-      </div>
-    </div>  
-    <!-- <div class="col-2">
-      <a href="{{url_for('acordos.inclui_proc_mae',acordo_id=acordo_id)}}" class="btn btn-secondary" role="button" aria-pressed="true">Inc. Proc_Mae</a>
-    </div> -->
-
-  </div>
-
-  <div class="form-row">
-
-    <div class="col-2">
-      <div class="form-group">
-        {{ render_field(form.capital,class="form-control",placeholder="0,0",obr=True) }}
-        {{ pago_capital|converte_para_real }}
-      </div>
-    </div>
-    <div class="col-2">
-      <div class="form-group">
-        {{ render_field(form.custeio,class="form-control",placeholder="0,0",obr=True) }}
-        {{ pago_custeio|converte_para_real }}
-      </div>
-    </div>
-    <div class="col-2">
-      <div class="form-group">
-        {{ render_field(form.bolsas,class="form-control",placeholder="0,0",obr=True) }}
-        {{ pago_bolsas|converte_para_real }}
-      </div>
-    </div>
 
   </div>  
 
-<div class="row justify-content-center">
-  <div class="col-7">
-    <div class="form-group">
-      {{ form.submit(class="btn btn-primary") }}
-      <small><span class="text-muted"> Atenção: campos marcados com * são obrigatórios.</span></small>
+  <br>
+
+<div class="row justify-content-around">  
+    <div class="col-6">
+      <div class="form-group">
+        {{ form.submit(class="btn btn-primary") }}
+        <small><span class="text-muted"> Atenção: campos marcados com * são obrigatórios.</span></small>
+      </div>
     </div>
-  </div>
-  <div class="col-2">
-    <div class="form-group">
-      {% if acordo_id != 0 %}
-        <button type="button" class="btn btn-danger" data-toggle='modal' data-target='#del_acordo_modal'>Excluir registro</button>
-      {% endif %}
+    <div class="col-2">
+      <div class="form-group">
+        {% if acordo_id != 0 %}
+          <button type="button" class="btn btn-danger" data-toggle='modal' data-target='#del_acordo_modal'>Excluir registro</button>
+        {% endif %}
+      </div>
     </div>
-  </div>
 </div>
+
   <br>
 </form>
 
@@ -191,6 +186,9 @@
   <div class="container-fluid border border-secondary">
   <p> </p>
   <div class="row justify-content-around">
+    <div class="col-2" >
+      <a href="{{url_for('acordos.lista_dados_financeiros_acordo', acordo_id=acordo_id)}}" class="btn btn-success" role="button" aria-pressed="true">Financeiro</a>
+    </div>
     <div class="col-2" >
       <button type="button" class="btn btn-warning" data-toggle='modal' data-target='#chamadas_modal'>Homologados</button>
     </div>

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+  <div class="jumbotron">
+
+        <div class="card border-primary mb-3">
+        <div class="card">
+
+          <div class="card-header">
+            <div class="container">
+              <div class="row">
+                <h3>Dados Financeiros do Acordo/TED
+                <a href="{{url_for('acordos.update', acordo_id=acordo.id, lista='em execução')}}">
+                  <abbr title="Ver detalhes do Acordo">{{acordo.nome}} - {{acordo.epe}} - {{acordo.uf}}</abbr></a></h3>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+
+            <div class="container" style="overflow-y:auto ; height:450px">
+              {% for dado in dados_financeiros %}
+
+                <div class="card">
+
+                  <div class="card-header">
+                    <h5>{{ dados_financeiros.index(dado) + 1 }}/{{ dados_financeiros|length }}</h5>
+                  </div>
+
+                  <div class="card-body">
+
+                    <div class="row">
+                      <div class="col-4">
+                        <span class="font-weight-light">Itens pagos:</span>
+                        <h5 align = "center">{{dado.qtd_item_despesa}} </h5>
+                      </div>
+                      <div class="col-8">
+                        <span class="font-weight-light">Valor pago:</span> 
+                        <h5 align = "center">{{dado.valor_total_item_despesa|converte_para_real}}</h5>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-4">
+                        <span class="font-weight-light">Código da fonte:</span>
+                        <h5 align = "center">{{dado.cod_fonte_recurso}} </h5>
+                      </div>
+                      <div class="col-8">
+                        <span class="font-weight-light">Nome da fonte:</span> 
+                        <h5 align = "center">{{dado.nme_fonte_recurso}}</h5>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-4">
+                        <span class="font-weight-light">Código do PI:</span>
+                        <h5 align = "center">{{dado.cod_plano_interno}} </h5>
+                      </div>
+                      <div class="col-8">
+                        <span class="font-weight-light">Nome do PI:</span>
+                        <h5 align = "center">{{dado.nme_plano_interno}} </h5>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-4">
+                        <span class="font-weight-light">Nome da categoria econômica:</span>
+                        <h5 align = "center">{{dado.nme_categ_economica}} </h5>
+                      </div>
+                      <div class="col-8">
+                        <span class="font-weight-light">Nome da natureza de despesa:</span>
+                        <h5 align = "center">{{dado.nme_natur_desp}} </h5>
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+
+              {% endfor %}
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+  </div>
+</div>
+
+{% endblock %}

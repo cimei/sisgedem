@@ -71,7 +71,7 @@ from sqlalchemy.sql import label
 from project import db
 from project.models import Acordo, RefCargaPDCTR, PagamentosPDCTR, Processo_Mae, Bolsa, User, Demanda,\
                            Chamadas, Programa_CNPq, Acordo_ProcMae, Processo_Filho, Coords, grupo_programa_cnpq,\
-                           capital_custeio,DadosSEI, chamadas_cnpq, chamadas_cnpq_acordos
+                           capital_custeio,DadosSEI, chamadas_cnpq, chamadas_cnpq_acordos, financeiro_acordo
 from project.acordos.forms import AcordoForm, Programa_CNPqForm, func_ProcMae_Acordo, ListaForm, ArquivoForm,\
                                   Altera_proc_mae_Form, ProgAcordoForm, Inclui_proc_mae_Form, ChamadaAcordoForm,\
                                   EscolheMaeForm
@@ -728,7 +728,7 @@ def update(acordo_id,lista):
                             .first()
         if filhos:                   
             qtd_filhos_acordo += int(filhos.qtd_filhos)
-            pago_bolsas += pago_filhos
+            pago_bolsas += filhos.pago_filhos
 
     chamadas = db.session.query(Chamadas.id,
                                 Chamadas.chamada,
@@ -849,6 +849,26 @@ def update(acordo_id,lista):
                             pago_capital=pago_capital,
                             pago_custeio=pago_custeio,
                             pago_bolsas=pago_bolsas)
+
+# lista acordo de associado a um processo-mãe
+@acordos.route("/<int:proc_mae_id>/consulta_acordo_proc_mae")
+@login_required
+def consulta_acordo_proc_mae(proc_mae_id):
+    """
+    +---------------------------------------------------------------------------------------+
+    |Mostra o acordo associado a u processo-mãe informado.                                  |
+    |                                                                                       |
+    |Recebe o id do processo mãe como parâmetro.                                            |
+    +---------------------------------------------------------------------------------------+
+    """
+
+    acordo = db.session.query(Acordo_ProcMae)\
+                       .filter(Acordo_ProcMae.proc_mae_id == proc_mae_id)\
+                       .first()
+
+
+    return redirect(url_for('acordos.update', acordo_id=acordo.acordo_id, lista='todos'))
+
 
 @acordos.route("/<int:acordo_id>/chamadas_acordo", methods=['GET', 'POST'])
 @login_required
@@ -974,7 +994,7 @@ def programa_acordo(id_acordo):
         l_unid = [unidade]
 
 
-    acordo = db.session.query(Acordo.nome).filter(Acordo.id==id_acordo).first()
+    acordo = db.session.query(Acordo).filter(Acordo.id==id_acordo).first()
 
     programas_cnpq = db.session.query(Programa_CNPq.ID_PROGRAMA,
                                       Programa_CNPq.COD_PROGRAMA,
@@ -1003,7 +1023,7 @@ def programa_acordo(id_acordo):
         return redirect(url_for('acordos.lista_acordos',lista='todos',coord='usu'))
 
     return render_template('add_programa_acordo.html',
-                            acordo=acordo.nome,
+                            acordo=acordo,
                             form=form)        
 
 
@@ -1035,7 +1055,7 @@ def associa_chamada(id_acordo):
                          .order_by(chamadas_cnpq.nome)\
                          .all()
 
-    lista_chamadas = [(str(c.id),(c.tipo +' - '+ c.sigla +' - '+ c.nome)[:110]+'...') if len((c.tipo +' - '+ c.sigla +' - '+ c.nome)) >110 else (str(c.id),(c.tipo +' - '+ c.sigla +' - '+ c.nome)) for c in chamadas]
+    lista_chamadas = [(str(c.id),(c.tipo +' - '+ c.sigla +' - '+ c.nome)[:125]+'...') if len((c.tipo +' - '+ c.sigla +' - '+ c.nome)) >125 else (str(c.id),(c.tipo +' - '+ c.sigla +' - '+ c.nome)) for c in chamadas]
     lista_chamadas.insert(0,('',''))
 
     form = ChamadaAcordoForm()
@@ -1054,7 +1074,9 @@ def associa_chamada(id_acordo):
 
         flash('Chamada(s) associada(s) ao Acordo!','sucesso')
 
-        return redirect(url_for('acordos.chamadas_acordo', acordo_id=id_acordo))
+        # return redirect(url_for('acordos.chamadas_acordo', acordo_id=id_acordo))
+        return redirect(url_for('acordos.update', acordo_id=id_acordo, lista='todos'))
+
 
     return render_template('add_chamada_acordo.html',
                             acordo=acordo,
@@ -2291,7 +2313,7 @@ def espera_carga(carga):
     +---------------------------------------------------------------------------------------+
     """
 
-    return render_template('index_waiting.html')
+    return render_template('index_waiting.html',carga='/'+carga.replace('#','/'))
 
 
 
@@ -2336,7 +2358,7 @@ def chamadas_por_programa_DW():
             nome = cha_prog[0] +' - '+ cha_prog[1] +' - '+ cha_prog[2]   # junta tipo, sigla e nome para formar novo nome
             id_chamada_DW = cha_prog[4]
             chamada = db.session.query(chamadas_cnpq).filter(chamadas_cnpq.id_dw == id_chamada_DW).first()
-            # pegar somente chamadas cujos programas tenham vinculação com algum acordo???
+            # pegar somente chamadas cujos programas tenham vinculação com algum acordo
             programas_acordos = db.session.query(Programa_CNPq)\
                                           .join(grupo_programa_cnpq, grupo_programa_cnpq.id_programa == Programa_CNPq.ID_PROGRAMA)\
                                           .filter(Programa_CNPq.COD_PROGRAMA == p.COD_PROGRAMA)\
@@ -2346,12 +2368,12 @@ def chamadas_por_programa_DW():
                 if not chamada:
                     cn += 1
                     nova_chamada = chamadas_cnpq(tipo          = cha_prog[0],
-                                                sigla         = cha_prog[1],   
-                                                nome          = cha_prog[2],
-                                                valor         = cha_prog[6],  # VALOR, para VALOR_FOLHA, usar cha_prog[5]
-                                                cod_programa  = cha_prog[7],
-                                                id_dw         = cha_prog[4],
-                                                qtd_processos = cha_prog[3]) 
+                                                 sigla         = cha_prog[1],   
+                                                 nome          = cha_prog[2],
+                                                 valor         = cha_prog[6],  # VALOR, para VALOR_FOLHA, usar cha_prog[5]
+                                                 cod_programa  = cha_prog[7],
+                                                 id_dw         = cha_prog[4],
+                                                 qtd_processos = cha_prog[3]) 
                     db.session.add(nova_chamada) 
 
                     chamada_id = nova_chamada.id
@@ -2372,7 +2394,7 @@ def chamadas_por_programa_DW():
                 
                 if chamada:
 
-                    chamada_cnpq_acordo = db.session.query(chamadas_cnpq_acordos).filter(chamadas_cnpq_acordos.chamada_cnpq_id == chamada_id).all()
+                    chamada_cnpq_acordo = db.session.query(chamadas_cnpq_acordos).filter(chamadas_cnpq_acordos.chamada_cnpq_id == chamada_id).first()
 
                     if chamada_cnpq_acordo: # pegar mães e filhos somente se a chamada já estiver relacinada a um acordo/TED
 
@@ -2382,6 +2404,7 @@ def chamadas_por_programa_DW():
                             processos_chamadas = consultaDW(tipo = 'processos_chamadas', id_chamada = str(id_chamada_DW)) 
                             # pegar processos filho de cada chamada
                             filhos_chamadas = consultaDW(tipo = 'filhos_chamadas', id_chamada = str(id_chamada_DW))  
+
                             print('** Pegando mães e fihos da chamada: ',chamada.nome)  
                             print(' ')
 
@@ -2412,6 +2435,7 @@ def chamadas_por_programa_DW():
                                                                  pago_custeio = pro_cha[12],
                                                                  pago_bolsas  = pro_cha[10])
                                     db.session.add(novo_proc_mae)
+                                    id_proc_mae = novo_proc_mae.id
                                 else:
                                     pa += 1
                                     proc_mae.inic_mae     = pro_cha[4]
@@ -2422,6 +2446,19 @@ def chamadas_por_programa_DW():
                                     proc_mae.pago_capital = pro_cha[11]
                                     proc_mae.pago_custeio = pro_cha[12]
                                     proc_mae.pago_bolsas  = pro_cha[10]
+
+                                    id_proc_mae = proc_mae.id
+
+                                # se a chamamada tiver só um mãe, já associa ele ao acordo
+                                if cha_prog[3] == 1:
+                                    acordo_procmae = db.session.query(Acordo_ProcMae)\
+                                                               .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
+                                                                       Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
+                                                               .all()
+                                    if not acordo_procmae:
+                                        associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
+                                                                                proc_mae_id = id_proc_mae)
+                                        db.session.add(associa_acordo_procmae)    
                                     
                         
                                 # deleta todos os filhos do processo mãe da vez para carga limpa
@@ -2475,7 +2512,9 @@ def chamadas_por_programa_DW():
                                                                          dt_ult_pag   = fil_cha[18])
                                         db.session.add(novo_proc_filho)
 
-                                    elif fil_cha[3] == None: # pegando somente os que não tem mãe, pois além de mães com filho, a chamada pode ter processos de auxílio somente   
+                                            
+
+                                    elif fil_cha[3] == None: # verificando se ha nesta chamada processos sem mãe, pois além de mães com filho, a chamada pode ter processos de auxílio somente   
                                         
                                         # ajusta conteúdo de situação caso seja nulo
                                         if fil_cha[6]:
@@ -2508,17 +2547,18 @@ def chamadas_por_programa_DW():
                                         proc_mae = db.session.query(Processo_Mae).filter(Processo_Mae.proc_mae == proc_filho_formatado).first()
                                         if not proc_mae:
                                             novo_proc_mae = Processo_Mae(cod_programa = str(fil_cha[0]),
-                                                                            nome_chamada = fil_cha[1],
-                                                                            proc_mae     = proc_filho_formatado,
-                                                                            inic_mae     = fil_cha[4],
-                                                                            term_mae     = fil_cha[5],
-                                                                            coordenador  = fil_cha[10],
-                                                                            situ_mae     = situ_filho,
-                                                                            id_chamada   = chamada_id,
-                                                                            pago_capital = pago_capital,
-                                                                            pago_custeio = pago_custeio,
-                                                                            pago_bolsas  = pago_bolsas)
+                                                                         nome_chamada = fil_cha[1],
+                                                                         proc_mae     = proc_filho_formatado,
+                                                                         inic_mae     = fil_cha[4],
+                                                                         term_mae     = fil_cha[5],
+                                                                         coordenador  = fil_cha[10],
+                                                                         situ_mae     = situ_filho,
+                                                                         id_chamada   = chamada_id,
+                                                                         pago_capital = pago_capital,
+                                                                         pago_custeio = pago_custeio,
+                                                                         pago_bolsas  = pago_bolsas)
                                             db.session.add(novo_proc_mae)
+                                            id_proc_mae = novo_proc_mae.id
                                         else:
                                             proc_mae.inic_mae     = fil_cha[4]
                                             proc_mae.term_mae     = fil_cha[5]
@@ -2528,14 +2568,28 @@ def chamadas_por_programa_DW():
                                             proc_mae.pago_capital = pago_capital
                                             proc_mae.pago_custeio = pago_custeio
                                             proc_mae.pago_bolsas  = pago_bolsas
+
+                                            id_proc_mae = proc_mae.id
                                         fm += 1 
+
+                                        # se houver somente um filho sem mãe, já associa ele ao acordo
+                                        if len(filhos_chamadas) == 1:
+                                            acordo_procmae = db.session.query(Acordo_ProcMae)\
+                                                               .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
+                                                                       Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
+                                                               .all()
+                                            if not acordo_procmae:
+                                                associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
+                                                                                        proc_mae_id = id_proc_mae)
+                                                db.session.add(associa_acordo_procmae)
 
 
                             print('** Mães: ',pn,' novos - ',pa,' antigos')    
                             print('** Filhos: ',fn, ' novos' ,' mãe: ',proc_mae_formatado)
-                            print('** Filhos sem Mães: ',fm)
+                            print('** Processos de auxílio: ',fm)
 
-                        else: # pega processos sem mãe e os colocam como mãe no banco do sicopes  
+
+                        else: # se a chamada tiver 0 mães, tem que pegar processos sem mãe e os colocam como mãe no banco do sicopes  
                             # pegar processos filho de cada chamada
                             filhos_chamadas = consultaDW(tipo = 'filhos_chamadas', id_chamada = str(id_chamada_DW))    
 
@@ -2586,6 +2640,7 @@ def chamadas_por_programa_DW():
                                                                         pago_custeio = pago_custeio,
                                                                         pago_bolsas  = pago_bolsas)
                                         db.session.add(novo_proc_mae)
+                                        id_proc_mae = novo_proc_mae.id
                                     else:
                                         proc_mae.inic_mae     = fil_cha[4]
                                         proc_mae.term_mae     = fil_cha[5]
@@ -2595,101 +2650,141 @@ def chamadas_por_programa_DW():
                                         proc_mae.pago_capital = pago_capital
                                         proc_mae.pago_custeio = pago_custeio
                                         proc_mae.pago_bolsas  = pago_bolsas
-                                    fm += 1    
-                            print('** Filhos sem Mães: ',fm)
+
+                                        id_proc_mae = proc_mae.id
+                                    fm += 1 
+
+                                    # se houver somente um processo, já associa ele ao acordo
+                                    if len(filhos_chamadas) == 1:
+                                        acordo_procmae = db.session.query(Acordo_ProcMae)\
+                                                               .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
+                                                                       Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
+                                                               .all()
+                                        if not acordo_procmae:
+                                            associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
+                                                                                    proc_mae_id = id_proc_mae)
+                                            db.session.add(associa_acordo_procmae)
+
+                            print('** Processos de auxílio: ',fm)
                 
 
         db.session.commit()
 
     flash('Efetuada carga de '+str(cn)+' chamadas novas, '+str(pn)+' processos novos e '+str(fn)+' filhos e '+\
-          'alteração de ' +str(ca)+' chamadas já existentes, '+str(pa)+' processos já existentes e ' + str(fn)+' filhos sem mãe'\
+          'alteração de ' +str(ca)+' chamadas já existentes, '+str(pa)+' processos já existentes e ' + str(fn)+' filhos sem mãe'+\
           ' vinculadas aos programas da unidade do usuário.','sucesso')
 
     return redirect(url_for('core.index'))  
 #
-# pega dados de chamadas no DW relacionadas a TEDs
-@acordos.route('/chamadasDW')
+# pega dados financeiros de acordos no DW
+@acordos.route('/dados_financeiros_acordos_DW')
 @login_required
-def chamadasDW():
+def dados_financeiros_acordos_DW():
     """
     +---------------------------------------------------------------------------------------+
-    | Alimenta tabela chamadas com dados do DW                                              |
-    | Chama função consultaDW, restringindo busca à registros relacionados à unidade do     |
-    | usuário no nível 2 (CG) e com a palavra TED no nome da fonte de recursos.             |
+    | Alimenta tabela de dados financeiros com dados do DW                                  |
+    | Chama função consultaDW, restringindo busca à registros relacionados à unidade        |
+    | do usuário.                                                                           |
     +---------------------------------------------------------------------------------------+
     """
 
-    unid_usu = current_user.coord
+    # pega programas da unidade do usuário
+    unidade = current_user.coord
 
-    consulta = consultaDW(tipo = 'chamadas', unid = unid_usu, chave_fr = 'TED')
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
 
-    i = 0
-    for item in consulta:
-        nome = item[3] +' - '+ item[1] +' - '+ item[2]
-        chamada = db.session.query(Chamadas).filter(Chamadas.chamada == nome).first()
-        if not chamada:
-            i += 1
-            nova_chamada = Chamadas(sei              = 'não informado',
-                                    chamada          = nome,
-                                    qtd_projetos     = item[4],
-                                    vl_total_chamada = item[5],
-                                    doc_sei          = None,
-                                    obs              = None)
-            db.session.add(nova_chamada)         
-    db.session.commit()
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
 
-    flash('Efetuada carga de '+str(i)+' registros de chamadas vinculadas a TEds e relacionadas às unidades da '+'<unidade>','sucesso')
-    return redirect(url_for('core.index'))
+    dfn = 0
 
+    acordos = db.session.query(Acordo).filter(Acordo.unidade_cnpq.in_(l_unid)).all()
 
-# resgate de dados de pagamento do DW
-@acordos.route('/valoresDW', methods=['GET', 'POST'])
-@login_required
-def valoresDW():
-    """
-    +---------------------------------------------------------------------------------------+
-
-    +---------------------------------------------------------------------------------------+
-
-    """
-
-    # acordos = db.session.query(Acordo.id,Acordo.nome).all()
-
-    unid_usu = current_user.coord
-
-    consulta = consultaDW(tipo = 'valores', unid = unid_usu, chave_fr = 'TED')
-
-    
-    i = 0
-    for row in consulta: 
-        ted = re.search(r'TED[\s|-]*[\d]+[\D]+[\d]+',row[4].upper())
-        if ted:
-            print('*** ', ted.group())
+    for acordo in acordos:
+        # pega processod de cada acordo da unidade e hierarquia do usuário logado
+        processos = db.session.query(Processo_Mae.proc_mae)\
+                              .join(Acordo_ProcMae, Acordo_ProcMae.proc_mae_id == Processo_Mae.id)\
+                              .filter(Acordo_ProcMae.acordo_id == acordo.id)\
+                              .all()
+        if processos:
+            l_processos_mae = [(p.proc_mae[7:11]+p.proc_mae[:6]+p.proc_mae[-1]) for p in processos]
         else:
-            print('@@@ ', row[4])   
-        i += 1
-    print ('**** ', i,' registros.') 
+            l_processos_mae = []                      
 
+        processos_filho = db.session.query(Processo_Filho.processo)\
+                              .join(Processo_Mae, Processo_Mae.proc_mae == Processo_Filho.proc_mae)\
+                              .join(Acordo_ProcMae, Acordo_ProcMae.proc_mae_id == Processo_Mae.id)\
+                              .filter(Acordo_ProcMae.acordo_id == acordo.id)\
+                              .all()                
+        if processos_filho:
+            l_processos_filho = [(p.processo[7:11]+p.processo[:6]+p.processo[-1]) for p in processos_filho]
+        else:
+            l_processos_filho = []    
 
-    # for acordo in acordos:
-    #     ted_acordo = re.search(r'TED[\s|-]*[\d]+[\D]+[\d]+',acordo.nome.upper())
-    #     if ted_acordo:
-    #         for c in consulta:
-    #             ted_dw = re.search(r'TED[\s|-]*[\d]+[\D]+[\d]+',c[4].upper())
-    #             if ted_dw:
-    #                 print('*** ', ted_acordo.group(),' ', ted_dw.group())
-    #                 cap_cus = capital_custeio(id_acordo = acordo.id,
-    #                                           capital_pg= 0,
-    #                                           custeio_pg= 0,
-    #                                           bolsa_pg  = 0)
+        l_processos = l_processos_mae + l_processos_filho
 
-    #             else:
-    #                 print('@@@ ', row[4])   
-    #             i += 1
+        if len(l_processos) >= 1:    
 
+            if len(l_processos) == 1:
+                l_processos = f"('{l_processos[0]}')"
+            else:
+                l_processos = tuple(l_processos)
+            
+            print('### ',l_processos)
+
+            # consulta o DW para pegar dados financeiros da lisa de processos acima
+            dados_financeiros = consultaDW(tipo = 'financeiro_processos', lista_processos = l_processos)
+
+            financeiro = db.session.query(financeiro_acordo).filter(financeiro_acordo.id_acordo == acordo.id).delete()
+            db.session.commit()
+            
+            for dados in dados_financeiros:
     
+                novo_financeiro = financeiro_acordo(id_acordo                = acordo.id,
+                                                    qtd_item_despesa         = dados[0],
+                                                    valor_total_item_despesa = dados[1],
+                                                    cod_fonte_recurso        = dados[2],
+                                                    nme_fonte_recurso        = dados[3],
+                                                    cod_plano_interno        = dados[4],
+                                                    nme_plano_interno        = dados[5],
+                                                    nme_categ_economica      = dados[6],
+                                                    nme_natur_desp           = dados[7])
+                db.session.add(novo_financeiro)
+                dfn += 1
 
-    return redirect(url_for('core.index'))
+    db.session.commit()    
+
+    flash('Realizada carga de '+str(dfn)+' registros de dados financeiros de acordos.','sucesso')
+
+    return redirect(url_for('core.index'))    
+
+# lista dados financeiros de um acordo
+@acordos.route('/<int:acordo_id>/lista_dados_financeiros_acordo')
+@login_required
+def lista_dados_financeiros_acordo(acordo_id):
+    """
+    +---------------------------------------------------------------------------------------+
+    | Lista dados financeiros de um acordo.                                                 |
+    | Chama função consultaDW, restringindo busca à registros relacionados à unidade        |
+    | do usuário.                                                                           |
+    +---------------------------------------------------------------------------------------+
+    """
+
+    acordo = db.session.query(Acordo).filter(Acordo.id == acordo_id).first()
+
+    dados_financeiros = db.session.query(financeiro_acordo).filter(financeiro_acordo.id_acordo == acordo_id).all()
+
+    return render_template('financeiro_acordo.html',acordo = acordo, dados_financeiros=dados_financeiros)
+
+
+
+
+
+
 
 ## uso eventual para carregar chave de relacionamento com acordos e convênios em chamadas
 @acordos.route('/carregaidrel')
