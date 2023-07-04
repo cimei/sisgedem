@@ -18,7 +18,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, DecimalField, SubmitField, SelectField, SelectMultipleField
-from wtforms.fields.html5 import DateField
+from wtforms.fields import DateField
 from wtforms.validators import DataRequired, Regexp, Optional
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from project import db
@@ -97,8 +97,6 @@ class Inclui_proc_mae_Form(FlaskForm):
 
     proc_mae      = StringField('Processo_Mãe:',validators=[DataRequired(message="Informe número do processo_mãe!")])
     coordenador   = StringField('Coordenador:',validators=[DataRequired(message="Informe o nome do coordenador ou que não há registro!")])
-    programa_cnpq = SelectField('Programa CNPq:')
-    # nome_chamada  = StringField('Chamada:')
     inic_mae      = DateField('Data de início:',format='%Y-%m-%d', validators=(Optional(),))
     term_mae      = DateField('Data de término:',format='%Y-%m-%d', validators=(Optional(),))
     situ_mae      = StringField('Situação:')

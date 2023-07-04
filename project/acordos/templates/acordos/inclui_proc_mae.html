@@ -3,7 +3,7 @@
 <div class="container">
 
 <div class="jumbotron">
-<h4>Incluir Dados de Processo-Mãe</h4>
+<h4>Incluir manualmente um Processo-Mãe para o Acordo/TED selecionado</h4>
 <br>
 
 {% macro render_field(field,obr) %}
@@ -43,19 +43,6 @@
   <div class = "row">
     <div class="col-3">
       <div class="form-group">
-        {{ render_field(form.programa_cnpq,class="form-control",obr=True) }}
-      </div>
-    </div>
-    <!-- <div class="col-9">
-      <div class="form-group">
-        {{ render_field(form.nome_chamada,class="form-control",obr=False) }}
-      </div>
-    </div> -->
-  </div>
-
-  <div class = "row">
-    <div class="col-3">
-      <div class="form-group">
         {{ render_field(form.inic_mae,class="form-control",obr=False) }}
       </div>
     </div>
@@ -64,7 +51,7 @@
         {{ render_field(form.term_mae,class="form-control",obr=False) }}
       </div>
     </div>
-    <div class="col-2">
+    <div class="col-6">
       <div class="form-group">
         {{ render_field(form.situ_mae,class="form-control",obr=False) }}
       </div>

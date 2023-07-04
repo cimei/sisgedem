@@ -9,6 +9,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
 
+from flask_apscheduler import APScheduler
+
 from shutil import rmtree
 import time
 import glob
@@ -26,6 +28,8 @@ db = SQLAlchemy(app)
 mail = Mail(app)
 
 locale.setlocale( locale.LC_ALL, '' )
+
+sched = APScheduler()
 
 #################################
 ## log in - cofigurações

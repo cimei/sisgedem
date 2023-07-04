@@ -29,7 +29,7 @@ from flask import render_template,url_for,flash, redirect,request,Blueprint
 from flask_login import login_required, current_user
 from sqlalchemy import func, distinct, and_
 from sqlalchemy.sql import label
-from project import db
+from project import db, sched, app
 from project.models import PagamentosPDCTR, RefCargaPDCTR, Programa, Proposta, Convenio,\
                            Programa_Interesse, Pagamento, Empenho, Desembolso, RefSICONV,\
                            DadosSEI, Chamadas, MSG_Siconv, Acordo, Bolsa, Processo_Mae,\
@@ -603,8 +603,6 @@ def cargaSICONV():
     carrega_desembolsos  = 'sim'
     carrega_crono_desemb = 'sim'
     carrega_plano_aplic  = 'não'
-
-    erros = []
 
     ## pega arquivos do portal siconv e os descompacta, gerando os respectivos .csv
     print ('*****************************************************************')
@@ -1196,8 +1194,10 @@ def cargaSICONV():
 
 # função que executa thread de carga dos dados SICONV
 def thread_cargaSICONV():
-    thr = Thread(target=cargaSICONV)
-    thr.start()
+    with app.app_context():
+        print('*** CARGA SICONV EM THREAD SEPARADA ***')
+        thr = Thread(target=cargaSICONV)
+        thr.start()
 
 
 @core.route('/')
@@ -1208,6 +1208,13 @@ def index():
     +---------------------------------------------------------------------------------------+
     """
     sistema = db.session.query(Sistema).first()
+
+    try:
+        print('#### agendando carga siconv #####')
+        sched.add_job(trigger='cron', id='carga_siconv', func=thread_cargaSICONV, day_of_week='mon-fri', hour=9, minute=0)
+        sched.start()
+    except:
+        print('*** alguma outa coisa deu errado na carga siconv, provavelmente já consta job de carga agendado ***')   
 
     return render_template ('index.html',sistema=sistema)
 

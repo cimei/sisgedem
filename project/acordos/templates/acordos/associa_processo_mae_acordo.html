@@ -1,37 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
+  <div class="jumbotron">
 
-<div class="jumbotron">
-<h4>Associar Processo Mãe a Acordo</h4>
-<form class="needs-validation form-inline" method='POST' >
-  {{ form.hidden_tag() }}
+    <h4>Associar Processo Mãe a Acordo/TED</h4>
+    <p>Os processos da lista abaixo são da chamada/encomenda à qual o Acordo/TED foi relacionado e que receberam algum tipo de pagamento 
+      até à ultima carga do DW (DM Pagamento).
+    </p>
 
-  <div class="form-group">
-     <div class="col-auto">
+    <form class="needs-validation form-inline" method='POST' >
+      {{ form.hidden_tag() }}
 
-      {{ form.mae.label }}
-          </div>
+      <div class="form-group">
+        <div class="col-auto">
+          {{ form.mae.label }}
+        </div>
+        <div class="col-auto">
+          {{ form.mae(class="custom-select", size="10") }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="col-auto">
+          {{ form.submit(class="btn btn-primary") }}
+        </div>
+      </div>
+
+    </form>
+
+    <hr/>
+
+    <div class="form-group">
       <div class="col-auto">
-
-      {{ form.mae(class="custom-select", size="10") }}
-
+        <p>Se preferir, para efeito de registro, pode incluir um processo manualmente. Caso este venha a receber pagamento, será atualizado em cargas futuras do DW.</p>
+        <p></p>
+        <a href="{{url_for('acordos.inclui_proc_mae',acordo_id=acordo_id)}}" class="btn btn-primary" role="button" aria-pressed="true">Incluir manualmente</a>
       </div>
-
+    </div>
 
   </div>
-
-  <div class="form-group">
-     <div class="col-auto">
-
-      {{ form.submit(class="btn btn-primary") }}
-
-      </div>
-
-  </div>
-
-</form>
-</div>
 </div>
 
 

@@ -35,7 +35,7 @@ import datetime
 from flask_wtf import FlaskForm
 from wtforms import IntegerField, StringField, SelectField, BooleanField, DecimalField,\
                     DateTimeField, TextAreaField, SubmitField, RadioField
-from wtforms.fields.html5 import DateField                    
+from wtforms.fields import DateField                    
 from wtforms.validators import DataRequired, Regexp, Optional
 from project import db
 from project.models import Tipos_Demanda, Coords, User, Plano_Trabalho

@@ -26,7 +26,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField, SelectField,\
                     TextAreaField, IntegerField
 from wtforms.validators import DataRequired, Email, EqualTo
-from wtforms.fields.html5 import DateField
+from wtforms.fields import DateField
 from wtforms import ValidationError
 from flask_wtf.file import FileField, FileAllowed
 from flask import flash

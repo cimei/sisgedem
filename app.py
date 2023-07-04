@@ -5,6 +5,8 @@ import locale
 import csv
 from flask import send_from_directory
 
+from project.core.views import carregaSICONV
+
 # filtro cusomizado para o jinja
 #
 @app.template_filter('converte_para_real')
@@ -16,7 +18,9 @@ def converte_para_real(valor):
 
 @app.route('/')
 def index():
-    return render_template('home.html')
+  return render_template('home.html')
+
+
 
 if __name__ == '__main__':
-    app.run(port = 5003)
+  app.run(port = 5003)

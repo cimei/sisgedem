@@ -2,11 +2,11 @@
 {% block content %}
 <div class="jumbotron">
   {% if acordo_id != None %}
-  <h5>Lista de Processos Mãe do Acordo {{acordo_tit}}</h5>
+  <h5>Lista de Processos Mãe do Acordo/TED {{acordo_tit}}</h5>
 
     {% if current_user.is_authenticated %}
       <div>
-        <a href="{{url_for('acordos.processo_mae_acordo',acordo_id=acordo_id)}}" class="btn btn-primary active" role="button" aria-pressed="true">Associar Novo</a>
+        <a href="{{url_for('acordos.processo_mae_acordo',acordo_id=acordo_id)}}" class="btn btn-primary" role="button" aria-pressed="true">Associar Novo</a>
       </div>
     {% endif %}
     <br>
@@ -80,7 +80,12 @@
           <td><p align = "center"> 
             {% if acordo_id %}
               <a href="{{url_for('acordos.altera_mae', acordo_id=acordo_id, proc_mae=proc.proc_mae.replace('/','_'))}}">
-              <abbr title="Clique aqui para alterar dados deste processo-mãe.">{{proc.proc_mae}} </abbr></a>
+                {% if not proc.id_chamada %}  
+                  <span class="text-warning"><b><abbr title="Este processo foi inserido manualmente. Clique aqui para alterar.">{{proc.proc_mae}}</abbr></b></span>
+                {% else%}  
+                  <abbr title="Clique aqui para alterar.">{{proc.proc_mae}} </abbr>
+                {% endif %}
+              </a>  
             {% elif proc.proc_mae_id %} 
               <a href="{{url_for('acordos.consulta_acordo_proc_mae', proc_mae_id=proc.proc_mae_id)}}">
               <span class="text-success"><b><abbr title="Este processo já está associadoa a um acordo/TED.">{{proc.proc_mae}}</abbr></b></span></a>

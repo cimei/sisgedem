@@ -1455,7 +1455,8 @@ def lista_processos_mae_por_acordo(acordo_id):
                                  label('max_ult_pag',func.max(Processo_Filho.dt_ult_pag)),
                                  Processo_Mae.pago_custeio,
                                  Processo_Mae.pago_capital,
-                                 label('pago_cap_cus',Processo_Mae.pago_custeio + Processo_Mae.pago_capital))\
+                                 label('pago_cap_cus',Processo_Mae.pago_custeio + Processo_Mae.pago_capital),
+                                 Processo_Mae.id_chamada)\
                           .join(Processo_Mae, Processo_Mae.id == Acordo_ProcMae.proc_mae_id)\
                           .outerjoin(Processo_Filho, Processo_Filho.proc_mae == Processo_Mae.proc_mae)\
                           .filter(Acordo_ProcMae.acordo_id == acordo_id)\
@@ -1466,7 +1467,8 @@ def lista_processos_mae_por_acordo(acordo_id):
                                     Processo_Mae.term_mae,
                                     Processo_Mae.situ_mae,
                                     Processo_Mae.pago_custeio,
-                                    Processo_Mae.pago_capital)\
+                                    Processo_Mae.pago_capital,
+                                    Processo_Mae.id_chamada)\
                           .all()                      
 
     qtd_processos = len(processos)
@@ -1568,39 +1570,36 @@ def inclui_proc_mae(acordo_id):
     +---------------------------------------------------------------------------------------+
     """
 
-    programas_cnpq = db.session.query(Programa_CNPq.COD_PROGRAMA,Programa_CNPq.SIGLA_PROGRAMA)\
-                               .order_by(Programa_CNPq.NOME_PROGRAMA).all()
-    lista_progs = [(prog[0],prog[1]) for prog in programas_cnpq]
-    lista_progs.insert(0,('',''))
-
     form = Inclui_proc_mae_Form()
-
-    form.programa_cnpq.choices = lista_progs
 
     if form.validate_on_submit():
 
-        proc = Processo_Mae(proc_mae     = form.proc_mae.data,
-                            coordenador  = form.coordenador.data,
-                            cod_programa = form.programa_cnpq.data.replace('/','_'),
-                            # nome_chamada = form.nome_chamada.data,
-                            inic_mae     = form.inic_mae.data,
-                            term_mae     = form.term_mae.data,
-                            situ_mae     = form.situ_mae.data)
+        proc_mae_manual = Processo_Mae(cod_programa = None,
+                                       nome_chamada = None,
+                                       proc_mae     = form.proc_mae.data,
+                                       inic_mae     = form.inic_mae.data,
+                                       term_mae     = form.term_mae.data,
+                                       coordenador  = form.coordenador.data,
+                                       situ_mae     = form.situ_mae.data,
+                                       id_chamada   = None,
+                                       pago_capital = 0,
+                                       pago_custeio = 0,
+                                       pago_bolsas  = 0)                    
 
-        db.session.add(proc)              
+        db.session.add(proc_mae_manual)              
         db.session.commit()
 
         registra_log_auto(current_user.id,None,'mae')
 
         acordo_procmae = Acordo_ProcMae(acordo_id   = acordo_id,
-                                        proc_mae_id = proc.id)
+                                        proc_mae_id = proc_mae_manual.id)
 
         db.session.add(acordo_procmae)
         db.session.commit()
 
         registra_log_auto(current_user.id,None,'ass')
 
-        flash('Processo-mãe inseridos manualmente e relacionado ao Acordo!','sucesso')
+        flash('Processo-mãe inseridos manualmente e relacionado ao Acordo/TED!','sucesso')
 
 
         return redirect(url_for('acordos.lista_processos_mae_por_acordo',acordo_id=acordo_id))
@@ -2438,6 +2437,8 @@ def chamadas_por_programa_DW():
                                     id_proc_mae = novo_proc_mae.id
                                 else:
                                     pa += 1
+                                    proc_mae.cod_programa = str(pro_cha[0])
+                                    proc_mae.nome_chamada = pro_cha[1]
                                     proc_mae.inic_mae     = pro_cha[4]
                                     proc_mae.term_mae     = pro_cha[5]
                                     #proc_mae.coordenador  = pro_cha[9]  # ver se é possível pegar coordenador via DW
@@ -2560,6 +2561,8 @@ def chamadas_por_programa_DW():
                                             db.session.add(novo_proc_mae)
                                             id_proc_mae = novo_proc_mae.id
                                         else:
+                                            proc_mae.cod_programa = str(fil_cha[0])
+                                            proc_mae.nome_chamada = fil_cha[1]
                                             proc_mae.inic_mae     = fil_cha[4]
                                             proc_mae.term_mae     = fil_cha[5]
                                             proc_mae.coordenador  = fil_cha[11]  
@@ -2642,6 +2645,8 @@ def chamadas_por_programa_DW():
                                         db.session.add(novo_proc_mae)
                                         id_proc_mae = novo_proc_mae.id
                                     else:
+                                        proc_mae.cod_programa = str(fil_cha[0])
+                                        proc_mae.nome_chamada = fil_cha[1]
                                         proc_mae.inic_mae     = fil_cha[4]
                                         proc_mae.term_mae     = fil_cha[5]
                                         proc_mae.coordenador  = fil_cha[11]  
