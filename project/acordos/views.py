@@ -76,7 +76,7 @@ from project.acordos.forms import AcordoForm, Programa_CNPqForm, func_ProcMae_Ac
                                   Altera_proc_mae_Form, ProgAcordoForm, Inclui_proc_mae_Form, ChamadaAcordoForm,\
                                   EscolheMaeForm
 from project.demandas.views import registra_log_auto
-from project.core.views import consultaDW
+from project.core.views import consultaDW, chamadas_DW
 
 import locale
 import datetime
@@ -2316,6 +2316,357 @@ def espera_carga(carga):
 
 
 
+# def chamadas_DW():
+
+#     # pega programas da unidade do usuário
+#     unidade = current_user.coord
+
+#     # se unidade for pai, junta ela com seus filhos
+#     hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+#     if hierarquia:
+#         l_unid = [f.sigla for f in hierarquia]
+#         l_unid.append(unidade)
+#     else:
+#         l_unid = [unidade]
+
+#     programas = db.session.query(Programa_CNPq.COD_PROGRAMA).filter(Programa_CNPq.COORD.in_(l_unid)).all()
+
+#     cn = ca = pn = pa = fn = fm = 0 # contadores de chamadas e processos 
+
+#     print ('*** Consulta ao DW e carga no banco do SICOPES: Chamadas, mães e filhos')
+
+#     for p in programas:
+#         # pega no DW dados de todas as chamadas de cada um dos programas identificados
+#         chamadas_programas = consultaDW(tipo = 'chamadas_programas', cod_programa = p.COD_PROGRAMA)
+#         print('** Programa: ',p.COD_PROGRAMA)
+#         print(' ')
+        
+#         for cha_prog in chamadas_programas:
+
+#             nome = cha_prog[0] +' - '+ cha_prog[1] +' - '+ cha_prog[2]   # junta tipo, sigla e nome para formar novo nome
+#             id_chamada_DW = cha_prog[4]
+#             chamada = db.session.query(chamadas_cnpq).filter(chamadas_cnpq.id_dw == id_chamada_DW).first()
+#             # pegar somente chamadas cujos programas tenham vinculação com algum acordo
+#             programas_acordos = db.session.query(Programa_CNPq)\
+#                                           .join(grupo_programa_cnpq, grupo_programa_cnpq.id_programa == Programa_CNPq.ID_PROGRAMA)\
+#                                           .filter(Programa_CNPq.COD_PROGRAMA == p.COD_PROGRAMA)\
+#                                           .all()  
+#             if programas_acordos:
+
+#                 if not chamada:
+#                     cn += 1
+#                     nova_chamada = chamadas_cnpq(tipo          = cha_prog[0],
+#                                                  sigla         = cha_prog[1],   
+#                                                  nome          = cha_prog[2],
+#                                                  valor         = cha_prog[6],  # VALOR, para VALOR_FOLHA, usar cha_prog[5]
+#                                                  cod_programa  = cha_prog[7],
+#                                                  id_dw         = cha_prog[4],
+#                                                  qtd_processos = cha_prog[3]) 
+#                     db.session.add(nova_chamada) 
+
+#                     chamada_id = nova_chamada.id
+
+#                 else:
+#                     ca += 1
+#                     chamada.tipo          = cha_prog[0]
+#                     chamada.sigla         = cha_prog[1]
+#                     chamada.nome          = cha_prog[2]
+#                     chamada.cod_programa  = cha_prog[7]
+#                     chamada.valor         = cha_prog[6] # VALOR, para VALOR_FOLHA, usar cha_prog[5]
+#                     chamada.qtd_processos = cha_prog[3]
+
+#                     chamada_id = chamada.id
+
+#                 print('** Chamadas: ',cn,' novas ',ca,' atualizadas',' id: ',id_chamada_DW)  
+#                 print(' ')  
+                
+#                 if chamada:
+
+#                     chamada_cnpq_acordo = db.session.query(chamadas_cnpq_acordos).filter(chamadas_cnpq_acordos.chamada_cnpq_id == chamada_id).first()
+
+#                     if chamada_cnpq_acordo: # pegar mães e filhos somente se a chamada já estiver relacinada a um acordo/TED
+
+#                         if cha_prog[3] > 0:  # pega mães e filhos se ouver pelo menos um processo mãe na chamada
+
+#                             # pega projetos vinculados à chamada e carrega em processos_mae (id_chamada recebe o seq_id_chamada)
+#                             processos_chamadas = consultaDW(tipo = 'processos_chamadas', id_chamada = str(id_chamada_DW)) 
+#                             # pegar processos filho de cada chamada
+#                             filhos_chamadas = consultaDW(tipo = 'filhos_chamadas', id_chamada = str(id_chamada_DW))  
+
+#                             print('** Pegando mães e fihos da chamada: ',chamada.nome)  
+#                             print(' ')
+
+#                             # varre todos os processos mãe de cada chamada oriunddos do DW para carga no banco do sicopes
+#                             for pro_cha in processos_chamadas:
+#                                 # ajusta conteúdo de situação caso seja nulo
+#                                 if pro_cha[6]:
+#                                     situ = pro_cha[6]
+#                                 else: 
+#                                     situ = ''  
+#                                 if pro_cha[7]:
+#                                     situ = situ + ' ' + pro_cha[7]
+#                                 # formata número do processo mãe
+#                                 proc_mae_formatado = str(pro_cha[2])[4:10]+'/'+str(pro_cha[2])[:4]+'-'+str(pro_cha[2])[10:]
+#                                 # pega processos mãe conforme encontrado no DW, não existinto cria, caso contrário atualiza        
+#                                 proc_mae = db.session.query(Processo_Mae).filter(Processo_Mae.proc_mae == proc_mae_formatado).first()
+#                                 if not proc_mae:
+#                                     pn += 1      
+#                                     novo_proc_mae = Processo_Mae(cod_programa = str(pro_cha[0]),
+#                                                                  nome_chamada = pro_cha[1],
+#                                                                  proc_mae     = proc_mae_formatado,
+#                                                                  inic_mae     = pro_cha[4],
+#                                                                  term_mae     = pro_cha[5],
+#                                                                  coordenador  = pro_cha[9],
+#                                                                  situ_mae     = situ,
+#                                                                  id_chamada   = chamada_id,
+#                                                                  pago_capital = pro_cha[11],
+#                                                                  pago_custeio = pro_cha[12],
+#                                                                  pago_bolsas  = pro_cha[10])
+#                                     db.session.add(novo_proc_mae)
+#                                     id_proc_mae = novo_proc_mae.id
+#                                 else:
+#                                     pa += 1
+#                                     proc_mae.cod_programa = str(pro_cha[0])
+#                                     proc_mae.nome_chamada = pro_cha[1]
+#                                     proc_mae.inic_mae     = pro_cha[4]
+#                                     proc_mae.term_mae     = pro_cha[5]
+#                                     #proc_mae.coordenador  = pro_cha[9]  # ver se é possível pegar coordenador via DW
+#                                     proc_mae.situ_mae     = situ
+#                                     proc_mae.id_chamada   = chamada_id
+#                                     proc_mae.pago_capital = pro_cha[11]
+#                                     proc_mae.pago_custeio = pro_cha[12]
+#                                     proc_mae.pago_bolsas  = pro_cha[10]
+
+#                                     id_proc_mae = proc_mae.id
+
+#                                 # se a chamamada tiver só um mãe, já associa ele ao acordo
+#                                 if cha_prog[3] == 1:
+#                                     acordo_procmae = db.session.query(Acordo_ProcMae)\
+#                                                                .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
+#                                                                        Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
+#                                                                .all()
+#                                     if not acordo_procmae:
+#                                         associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
+#                                                                                 proc_mae_id = id_proc_mae)
+#                                         db.session.add(associa_acordo_procmae)    
+                                    
+                        
+#                                 # deleta todos os filhos do processo mãe da vez para carga limpa
+#                                 procs_filho = db.session.query(Processo_Filho).filter(Processo_Filho.proc_mae == proc_mae_formatado).delete()
+#                                 db.session.commit()
+
+#                                 # para cada processo mãe, varre processos filho encontrados no DW
+#                                 for fil_cha in filhos_chamadas:
+
+#                                     if fil_cha[3] == pro_cha[2]:  # grava filho se ele for do processo mãe da vez
+
+#                                         # ajusta conteúdo de situação caso seja nulo
+#                                         if fil_cha[6]:
+#                                             situ_filho = fil_cha[6]
+#                                             if fil_cha[7]:
+#                                                 situ_filho = situ_filho + ' ' + fil_cha[7]
+#                                         elif fil_cha[8]:
+#                                             situ_filho = fil_cha[8]
+#                                         else: 
+#                                             situ_filho = ''
+
+#                                         # zerando valores nulos
+#                                         if fil_cha[14]:
+#                                             mens_pagas = fil_cha[14]
+#                                         else:
+#                                             mens_pagas = 0
+#                                         if fil_cha[15]:
+#                                             pago_total = fil_cha[15]
+#                                         else:
+#                                             pago_total = 0    
+
+#                                         # formata número do processo filho
+#                                         proc_filho_formatado = str(fil_cha[2])[4:10]+'/'+str(fil_cha[2])[:4]+'-'+str(fil_cha[2])[10:]
+
+#                                         fn += 1
+#                                         novo_proc_filho = Processo_Filho(cod_programa = fil_cha[0],
+#                                                                          nome_chamada = None,
+#                                                                          proc_mae     = str(fil_cha[3])[4:10]+'/'+str(fil_cha[3])[:4]+'-'+str(fil_cha[3])[10:],
+#                                                                          processo     = proc_filho_formatado,
+#                                                                          nome         = fil_cha[11],
+#                                                                          cpf          = fil_cha[10],
+#                                                                          modalidade   = fil_cha[12],
+#                                                                          nivel        = fil_cha[13],
+#                                                                          situ_filho   = situ_filho,
+#                                                                          inic_filho   = fil_cha[4],
+#                                                                          term_filho   = fil_cha[5],
+#                                                                          mens_pagas   = mens_pagas,
+#                                                                          pago_total   = pago_total,
+#                                                                          valor_apagar = None,
+#                                                                          mens_apagar  = None,
+#                                                                          dt_ult_pag   = fil_cha[18])
+#                                         db.session.add(novo_proc_filho)
+
+                                            
+
+#                                     elif fil_cha[3] == None: # verificando se ha nesta chamada processos sem mãe, pois além de mães com filho, a chamada pode ter processos de auxílio somente   
+                                        
+#                                         # ajusta conteúdo de situação caso seja nulo
+#                                         if fil_cha[6]:
+#                                             situ_filho = fil_cha[6]
+#                                             if fil_cha[7]:
+#                                                 situ_filho = situ_filho + ' ' + fil_cha[7]
+#                                         elif fil_cha[8]:
+#                                             situ_filho = fil_cha[8]
+#                                         else: 
+#                                             situ_filho = ''  
+
+#                                         # zerando valores nulos
+#                                         if fil_cha[15]:
+#                                             pago_bolsas = fil_cha[15]
+#                                         else:
+#                                             pago_bolsas = 0 
+#                                         if fil_cha[16]:
+#                                             pago_capital = fil_cha[16]
+#                                         else:
+#                                             pago_capital = 0
+#                                         if fil_cha[17]:
+#                                             pago_custeio = fil_cha[17]
+#                                         else:
+#                                             pago_custeio = 0    
+                                        
+#                                         # formata número do processo filho
+#                                         proc_filho_formatado = str(fil_cha[2])[4:10]+'/'+str(fil_cha[2])[:4]+'-'+str(fil_cha[2])[10:]
+
+#                                         # verifia se o processo já existe na tabela de processos mãe, não existinto cria, caso contrário atualiza        
+#                                         proc_mae = db.session.query(Processo_Mae).filter(Processo_Mae.proc_mae == proc_filho_formatado).first()
+#                                         if not proc_mae:
+#                                             novo_proc_mae = Processo_Mae(cod_programa = str(fil_cha[0]),
+#                                                                          nome_chamada = fil_cha[1],
+#                                                                          proc_mae     = proc_filho_formatado,
+#                                                                          inic_mae     = fil_cha[4],
+#                                                                          term_mae     = fil_cha[5],
+#                                                                          coordenador  = fil_cha[10],
+#                                                                          situ_mae     = situ_filho,
+#                                                                          id_chamada   = chamada_id,
+#                                                                          pago_capital = pago_capital,
+#                                                                          pago_custeio = pago_custeio,
+#                                                                          pago_bolsas  = pago_bolsas)
+#                                             db.session.add(novo_proc_mae)
+#                                             id_proc_mae = novo_proc_mae.id
+#                                         else:
+#                                             proc_mae.cod_programa = str(fil_cha[0])
+#                                             proc_mae.nome_chamada = fil_cha[1]
+#                                             proc_mae.inic_mae     = fil_cha[4]
+#                                             proc_mae.term_mae     = fil_cha[5]
+#                                             proc_mae.coordenador  = fil_cha[11]  
+#                                             proc_mae.situ_mae     = situ_filho
+#                                             proc_mae.id_chamada   = chamada_id
+#                                             proc_mae.pago_capital = pago_capital
+#                                             proc_mae.pago_custeio = pago_custeio
+#                                             proc_mae.pago_bolsas  = pago_bolsas
+
+#                                             id_proc_mae = proc_mae.id
+#                                         fm += 1 
+
+#                                         # se houver somente um filho sem mãe, já associa ele ao acordo
+#                                         if len(filhos_chamadas) == 1:
+#                                             acordo_procmae = db.session.query(Acordo_ProcMae)\
+#                                                                .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
+#                                                                        Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
+#                                                                .all()
+#                                             if not acordo_procmae:
+#                                                 associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
+#                                                                                         proc_mae_id = id_proc_mae)
+#                                                 db.session.add(associa_acordo_procmae)
+
+
+#                             print('** Mães: ',pn,' novos - ',pa,' antigos')    
+#                             print('** Filhos: ',fn, ' novos' ,' mãe: ',proc_mae_formatado)
+#                             print('** Processos de auxílio: ',fm)
+
+
+#                         else: # se a chamada tiver 0 mães, tem que pegar processos sem mãe e os colocam como mãe no banco do sicopes  
+#                             # pegar processos filho de cada chamada
+#                             filhos_chamadas = consultaDW(tipo = 'filhos_chamadas', id_chamada = str(id_chamada_DW))    
+
+#                             for fil_cha in filhos_chamadas:
+
+#                                 if fil_cha[3] == None: # pegando somente os que não tem mãe
+
+#                                     # ajusta conteúdo de situação caso seja nulo
+#                                     if fil_cha[6]:
+#                                         situ_filho = fil_cha[6]
+#                                         if fil_cha[7]:
+#                                             situ_filho = situ_filho + ' ' + fil_cha[7]
+#                                     elif fil_cha[8]:
+#                                         situ_filho = fil_cha[8]
+#                                     else: 
+#                                         situ_filho = ''
+
+#                                     # zerando valores nulos
+#                                     if fil_cha[15]:
+#                                         pago_bolsas = fil_cha[15]
+#                                     else:
+#                                         pago_bolsas = 0 
+#                                     if fil_cha[16]:
+#                                         pago_capital = fil_cha[16]
+#                                     else:
+#                                         pago_capital = 0
+#                                     if fil_cha[17]:
+#                                         pago_custeio = fil_cha[17]
+#                                     else:
+#                                         pago_custeio = 0
+
+                                    
+#                                     # formata número do processo filho
+#                                     proc_filho_formatado = str(fil_cha[2])[4:10]+'/'+str(fil_cha[2])[:4]+'-'+str(fil_cha[2])[10:]
+
+#                                     # verifia se o processo já existe na tabela de processos mãe, não existinto cria, caso contrário atualiza        
+#                                     proc_mae = db.session.query(Processo_Mae).filter(Processo_Mae.proc_mae == proc_filho_formatado).first()
+#                                     if not proc_mae:
+#                                         novo_proc_mae = Processo_Mae(cod_programa = str(fil_cha[0]),
+#                                                                         nome_chamada = fil_cha[1],
+#                                                                         proc_mae     = proc_filho_formatado,
+#                                                                         inic_mae     = fil_cha[4],
+#                                                                         term_mae     = fil_cha[5],
+#                                                                         coordenador  = fil_cha[10],
+#                                                                         situ_mae     = situ_filho,
+#                                                                         id_chamada   = chamada_id,
+#                                                                         pago_capital = pago_capital,
+#                                                                         pago_custeio = pago_custeio,
+#                                                                         pago_bolsas  = pago_bolsas)
+#                                         db.session.add(novo_proc_mae)
+#                                         id_proc_mae = novo_proc_mae.id
+#                                     else:
+#                                         proc_mae.cod_programa = str(fil_cha[0])
+#                                         proc_mae.nome_chamada = fil_cha[1]
+#                                         proc_mae.inic_mae     = fil_cha[4]
+#                                         proc_mae.term_mae     = fil_cha[5]
+#                                         proc_mae.coordenador  = fil_cha[11]  
+#                                         proc_mae.situ_mae     = situ_filho
+#                                         proc_mae.id_chamada   = chamada_id
+#                                         proc_mae.pago_capital = pago_capital
+#                                         proc_mae.pago_custeio = pago_custeio
+#                                         proc_mae.pago_bolsas  = pago_bolsas
+
+#                                         id_proc_mae = proc_mae.id
+#                                     fm += 1 
+
+#                                     # se houver somente um processo, já associa ele ao acordo
+#                                     if len(filhos_chamadas) == 1:
+#                                         acordo_procmae = db.session.query(Acordo_ProcMae)\
+#                                                                .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
+#                                                                        Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
+#                                                                .all()
+#                                         if not acordo_procmae:
+#                                             associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
+#                                                                                     proc_mae_id = id_proc_mae)
+#                                             db.session.add(associa_acordo_procmae)
+
+#                             print('** Processos de auxílio: ',fm)
+                
+
+#         db.session.commit()
+
+#     return [cn,ca,pn,pa,fn,fm]
+
 # pega dados de chamadas no DW
 @acordos.route('/chamadas_por_programa_DW')
 @login_required
@@ -2328,355 +2679,17 @@ def chamadas_por_programa_DW():
     +---------------------------------------------------------------------------------------+
     """
 
-    # pega programas da unidade do usuário
-    unidade = current_user.coord
+    carga_chamadas = chamadas_DW()
 
-    # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
-
-    if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
-        l_unid.append(unidade)
-    else:
-        l_unid = [unidade]
-
-    programas = db.session.query(Programa_CNPq.COD_PROGRAMA).filter(Programa_CNPq.COORD.in_(l_unid)).all()
-
-    cn = ca = pn = pa = fn = fm = 0 # contadores de chamadas e processos 
-
-    print ('*** Consulta ao DW e carga no banco do SICOPES: Chamadas, mães e filhos')
-
-    for p in programas:
-        # pega no DW dados de todas as chamadas de cada um dos programas identificados
-        chamadas_programas = consultaDW(tipo = 'chamadas_programas', cod_programa = p.COD_PROGRAMA)
-        print('** Programa: ',p.COD_PROGRAMA)
-        print(' ')
-        
-        for cha_prog in chamadas_programas:
-
-            nome = cha_prog[0] +' - '+ cha_prog[1] +' - '+ cha_prog[2]   # junta tipo, sigla e nome para formar novo nome
-            id_chamada_DW = cha_prog[4]
-            chamada = db.session.query(chamadas_cnpq).filter(chamadas_cnpq.id_dw == id_chamada_DW).first()
-            # pegar somente chamadas cujos programas tenham vinculação com algum acordo
-            programas_acordos = db.session.query(Programa_CNPq)\
-                                          .join(grupo_programa_cnpq, grupo_programa_cnpq.id_programa == Programa_CNPq.ID_PROGRAMA)\
-                                          .filter(Programa_CNPq.COD_PROGRAMA == p.COD_PROGRAMA)\
-                                          .all()  
-            if programas_acordos:
-
-                if not chamada:
-                    cn += 1
-                    nova_chamada = chamadas_cnpq(tipo          = cha_prog[0],
-                                                 sigla         = cha_prog[1],   
-                                                 nome          = cha_prog[2],
-                                                 valor         = cha_prog[6],  # VALOR, para VALOR_FOLHA, usar cha_prog[5]
-                                                 cod_programa  = cha_prog[7],
-                                                 id_dw         = cha_prog[4],
-                                                 qtd_processos = cha_prog[3]) 
-                    db.session.add(nova_chamada) 
-
-                    chamada_id = nova_chamada.id
-
-                else:
-                    ca += 1
-                    chamada.tipo          = cha_prog[0]
-                    chamada.sigla         = cha_prog[1]
-                    chamada.nome          = cha_prog[2]
-                    chamada.cod_programa  = cha_prog[7]
-                    chamada.valor         = cha_prog[6] # VALOR, para VALOR_FOLHA, usar cha_prog[5]
-                    chamada.qtd_processos = cha_prog[3]
-
-                    chamada_id = chamada.id
-
-                print('** Chamadas: ',cn,' novas ',ca,' atualizadas',' id: ',id_chamada_DW)  
-                print(' ')  
-                
-                if chamada:
-
-                    chamada_cnpq_acordo = db.session.query(chamadas_cnpq_acordos).filter(chamadas_cnpq_acordos.chamada_cnpq_id == chamada_id).first()
-
-                    if chamada_cnpq_acordo: # pegar mães e filhos somente se a chamada já estiver relacinada a um acordo/TED
-
-                        if cha_prog[3] > 0:  # pega mães e filhos se ouver pelo menos um processo mãe na chamada
-
-                            # pega projetos vinculados à chamada e carrega em processos_mae (id_chamada recebe o seq_id_chamada)
-                            processos_chamadas = consultaDW(tipo = 'processos_chamadas', id_chamada = str(id_chamada_DW)) 
-                            # pegar processos filho de cada chamada
-                            filhos_chamadas = consultaDW(tipo = 'filhos_chamadas', id_chamada = str(id_chamada_DW))  
-
-                            print('** Pegando mães e fihos da chamada: ',chamada.nome)  
-                            print(' ')
-
-                            # varre todos os processos mãe de cada chamada oriunddos do DW para carga no banco do sicopes
-                            for pro_cha in processos_chamadas:
-                                # ajusta conteúdo de situação caso seja nulo
-                                if pro_cha[6]:
-                                    situ = pro_cha[6]
-                                else: 
-                                    situ = ''  
-                                if pro_cha[7]:
-                                    situ = situ + ' ' + pro_cha[7]
-                                # formata número do processo mãe
-                                proc_mae_formatado = str(pro_cha[2])[4:10]+'/'+str(pro_cha[2])[:4]+'-'+str(pro_cha[2])[10:]
-                                # pega processos mãe conforme encontrado no DW, não existinto cria, caso contrário atualiza        
-                                proc_mae = db.session.query(Processo_Mae).filter(Processo_Mae.proc_mae == proc_mae_formatado).first()
-                                if not proc_mae:
-                                    pn += 1      
-                                    novo_proc_mae = Processo_Mae(cod_programa = str(pro_cha[0]),
-                                                                 nome_chamada = pro_cha[1],
-                                                                 proc_mae     = proc_mae_formatado,
-                                                                 inic_mae     = pro_cha[4],
-                                                                 term_mae     = pro_cha[5],
-                                                                 coordenador  = pro_cha[9],
-                                                                 situ_mae     = situ,
-                                                                 id_chamada   = chamada_id,
-                                                                 pago_capital = pro_cha[11],
-                                                                 pago_custeio = pro_cha[12],
-                                                                 pago_bolsas  = pro_cha[10])
-                                    db.session.add(novo_proc_mae)
-                                    id_proc_mae = novo_proc_mae.id
-                                else:
-                                    pa += 1
-                                    proc_mae.cod_programa = str(pro_cha[0])
-                                    proc_mae.nome_chamada = pro_cha[1]
-                                    proc_mae.inic_mae     = pro_cha[4]
-                                    proc_mae.term_mae     = pro_cha[5]
-                                    #proc_mae.coordenador  = pro_cha[9]  # ver se é possível pegar coordenador via DW
-                                    proc_mae.situ_mae     = situ
-                                    proc_mae.id_chamada   = chamada_id
-                                    proc_mae.pago_capital = pro_cha[11]
-                                    proc_mae.pago_custeio = pro_cha[12]
-                                    proc_mae.pago_bolsas  = pro_cha[10]
-
-                                    id_proc_mae = proc_mae.id
-
-                                # se a chamamada tiver só um mãe, já associa ele ao acordo
-                                if cha_prog[3] == 1:
-                                    acordo_procmae = db.session.query(Acordo_ProcMae)\
-                                                               .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
-                                                                       Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
-                                                               .all()
-                                    if not acordo_procmae:
-                                        associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
-                                                                                proc_mae_id = id_proc_mae)
-                                        db.session.add(associa_acordo_procmae)    
-                                    
-                        
-                                # deleta todos os filhos do processo mãe da vez para carga limpa
-                                procs_filho = db.session.query(Processo_Filho).filter(Processo_Filho.proc_mae == proc_mae_formatado).delete()
-                                db.session.commit()
-
-                                # para cada processo mãe, varre processos filho encontrados no DW
-                                for fil_cha in filhos_chamadas:
-
-                                    if fil_cha[3] == pro_cha[2]:  # grava filho se ele for do processo mãe da vez
-
-                                        # ajusta conteúdo de situação caso seja nulo
-                                        if fil_cha[6]:
-                                            situ_filho = fil_cha[6]
-                                            if fil_cha[7]:
-                                                situ_filho = situ_filho + ' ' + fil_cha[7]
-                                        elif fil_cha[8]:
-                                            situ_filho = fil_cha[8]
-                                        else: 
-                                            situ_filho = ''
-
-                                        # zerando valores nulos
-                                        if fil_cha[14]:
-                                            mens_pagas = fil_cha[14]
-                                        else:
-                                            mens_pagas = 0
-                                        if fil_cha[15]:
-                                            pago_total = fil_cha[15]
-                                        else:
-                                            pago_total = 0    
-
-                                        # formata número do processo filho
-                                        proc_filho_formatado = str(fil_cha[2])[4:10]+'/'+str(fil_cha[2])[:4]+'-'+str(fil_cha[2])[10:]
-
-                                        fn += 1
-                                        novo_proc_filho = Processo_Filho(cod_programa = fil_cha[0],
-                                                                         nome_chamada = None,
-                                                                         proc_mae     = str(fil_cha[3])[4:10]+'/'+str(fil_cha[3])[:4]+'-'+str(fil_cha[3])[10:],
-                                                                         processo     = proc_filho_formatado,
-                                                                         nome         = fil_cha[11],
-                                                                         cpf          = fil_cha[10],
-                                                                         modalidade   = fil_cha[12],
-                                                                         nivel        = fil_cha[13],
-                                                                         situ_filho   = situ_filho,
-                                                                         inic_filho   = fil_cha[4],
-                                                                         term_filho   = fil_cha[5],
-                                                                         mens_pagas   = mens_pagas,
-                                                                         pago_total   = pago_total,
-                                                                         valor_apagar = None,
-                                                                         mens_apagar  = None,
-                                                                         dt_ult_pag   = fil_cha[18])
-                                        db.session.add(novo_proc_filho)
-
-                                            
-
-                                    elif fil_cha[3] == None: # verificando se ha nesta chamada processos sem mãe, pois além de mães com filho, a chamada pode ter processos de auxílio somente   
-                                        
-                                        # ajusta conteúdo de situação caso seja nulo
-                                        if fil_cha[6]:
-                                            situ_filho = fil_cha[6]
-                                            if fil_cha[7]:
-                                                situ_filho = situ_filho + ' ' + fil_cha[7]
-                                        elif fil_cha[8]:
-                                            situ_filho = fil_cha[8]
-                                        else: 
-                                            situ_filho = ''  
-
-                                        # zerando valores nulos
-                                        if fil_cha[15]:
-                                            pago_bolsas = fil_cha[15]
-                                        else:
-                                            pago_bolsas = 0 
-                                        if fil_cha[16]:
-                                            pago_capital = fil_cha[16]
-                                        else:
-                                            pago_capital = 0
-                                        if fil_cha[17]:
-                                            pago_custeio = fil_cha[17]
-                                        else:
-                                            pago_custeio = 0    
-                                        
-                                        # formata número do processo filho
-                                        proc_filho_formatado = str(fil_cha[2])[4:10]+'/'+str(fil_cha[2])[:4]+'-'+str(fil_cha[2])[10:]
-
-                                        # verifia se o processo já existe na tabela de processos mãe, não existinto cria, caso contrário atualiza        
-                                        proc_mae = db.session.query(Processo_Mae).filter(Processo_Mae.proc_mae == proc_filho_formatado).first()
-                                        if not proc_mae:
-                                            novo_proc_mae = Processo_Mae(cod_programa = str(fil_cha[0]),
-                                                                         nome_chamada = fil_cha[1],
-                                                                         proc_mae     = proc_filho_formatado,
-                                                                         inic_mae     = fil_cha[4],
-                                                                         term_mae     = fil_cha[5],
-                                                                         coordenador  = fil_cha[10],
-                                                                         situ_mae     = situ_filho,
-                                                                         id_chamada   = chamada_id,
-                                                                         pago_capital = pago_capital,
-                                                                         pago_custeio = pago_custeio,
-                                                                         pago_bolsas  = pago_bolsas)
-                                            db.session.add(novo_proc_mae)
-                                            id_proc_mae = novo_proc_mae.id
-                                        else:
-                                            proc_mae.cod_programa = str(fil_cha[0])
-                                            proc_mae.nome_chamada = fil_cha[1]
-                                            proc_mae.inic_mae     = fil_cha[4]
-                                            proc_mae.term_mae     = fil_cha[5]
-                                            proc_mae.coordenador  = fil_cha[11]  
-                                            proc_mae.situ_mae     = situ_filho
-                                            proc_mae.id_chamada   = chamada_id
-                                            proc_mae.pago_capital = pago_capital
-                                            proc_mae.pago_custeio = pago_custeio
-                                            proc_mae.pago_bolsas  = pago_bolsas
-
-                                            id_proc_mae = proc_mae.id
-                                        fm += 1 
-
-                                        # se houver somente um filho sem mãe, já associa ele ao acordo
-                                        if len(filhos_chamadas) == 1:
-                                            acordo_procmae = db.session.query(Acordo_ProcMae)\
-                                                               .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
-                                                                       Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
-                                                               .all()
-                                            if not acordo_procmae:
-                                                associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
-                                                                                        proc_mae_id = id_proc_mae)
-                                                db.session.add(associa_acordo_procmae)
-
-
-                            print('** Mães: ',pn,' novos - ',pa,' antigos')    
-                            print('** Filhos: ',fn, ' novos' ,' mãe: ',proc_mae_formatado)
-                            print('** Processos de auxílio: ',fm)
-
-
-                        else: # se a chamada tiver 0 mães, tem que pegar processos sem mãe e os colocam como mãe no banco do sicopes  
-                            # pegar processos filho de cada chamada
-                            filhos_chamadas = consultaDW(tipo = 'filhos_chamadas', id_chamada = str(id_chamada_DW))    
-
-                            for fil_cha in filhos_chamadas:
-
-                                if fil_cha[3] == None: # pegando somente os que não tem mãe
-
-                                    # ajusta conteúdo de situação caso seja nulo
-                                    if fil_cha[6]:
-                                        situ_filho = fil_cha[6]
-                                        if fil_cha[7]:
-                                            situ_filho = situ_filho + ' ' + fil_cha[7]
-                                    elif fil_cha[8]:
-                                        situ_filho = fil_cha[8]
-                                    else: 
-                                        situ_filho = ''
-
-                                    # zerando valores nulos
-                                    if fil_cha[15]:
-                                        pago_bolsas = fil_cha[15]
-                                    else:
-                                        pago_bolsas = 0 
-                                    if fil_cha[16]:
-                                        pago_capital = fil_cha[16]
-                                    else:
-                                        pago_capital = 0
-                                    if fil_cha[17]:
-                                        pago_custeio = fil_cha[17]
-                                    else:
-                                        pago_custeio = 0
-
-                                    
-                                    # formata número do processo filho
-                                    proc_filho_formatado = str(fil_cha[2])[4:10]+'/'+str(fil_cha[2])[:4]+'-'+str(fil_cha[2])[10:]
-
-                                    # verifia se o processo já existe na tabela de processos mãe, não existinto cria, caso contrário atualiza        
-                                    proc_mae = db.session.query(Processo_Mae).filter(Processo_Mae.proc_mae == proc_filho_formatado).first()
-                                    if not proc_mae:
-                                        novo_proc_mae = Processo_Mae(cod_programa = str(fil_cha[0]),
-                                                                        nome_chamada = fil_cha[1],
-                                                                        proc_mae     = proc_filho_formatado,
-                                                                        inic_mae     = fil_cha[4],
-                                                                        term_mae     = fil_cha[5],
-                                                                        coordenador  = fil_cha[10],
-                                                                        situ_mae     = situ_filho,
-                                                                        id_chamada   = chamada_id,
-                                                                        pago_capital = pago_capital,
-                                                                        pago_custeio = pago_custeio,
-                                                                        pago_bolsas  = pago_bolsas)
-                                        db.session.add(novo_proc_mae)
-                                        id_proc_mae = novo_proc_mae.id
-                                    else:
-                                        proc_mae.cod_programa = str(fil_cha[0])
-                                        proc_mae.nome_chamada = fil_cha[1]
-                                        proc_mae.inic_mae     = fil_cha[4]
-                                        proc_mae.term_mae     = fil_cha[5]
-                                        proc_mae.coordenador  = fil_cha[11]  
-                                        proc_mae.situ_mae     = situ_filho
-                                        proc_mae.id_chamada   = chamada_id
-                                        proc_mae.pago_capital = pago_capital
-                                        proc_mae.pago_custeio = pago_custeio
-                                        proc_mae.pago_bolsas  = pago_bolsas
-
-                                        id_proc_mae = proc_mae.id
-                                    fm += 1 
-
-                                    # se houver somente um processo, já associa ele ao acordo
-                                    if len(filhos_chamadas) == 1:
-                                        acordo_procmae = db.session.query(Acordo_ProcMae)\
-                                                               .filter(Acordo_ProcMae.acordo_id == chamada_cnpq_acordo.acordo_id,
-                                                                       Acordo_ProcMae.proc_mae_id ==  id_proc_mae)\
-                                                               .all()
-                                        if not acordo_procmae:
-                                            associa_acordo_procmae = Acordo_ProcMae(acordo_id   = chamada_cnpq_acordo.acordo_id,
-                                                                                    proc_mae_id = id_proc_mae)
-                                            db.session.add(associa_acordo_procmae)
-
-                            print('** Processos de auxílio: ',fm)
-                
-
-        db.session.commit()
+    cn = carga_chamadas[0]
+    ca = carga_chamadas[1]
+    pn = carga_chamadas[2]
+    pa = carga_chamadas[3]
+    fn = carga_chamadas[4]
+    fm = carga_chamadas[5]
 
     flash('Efetuada carga de '+str(cn)+' chamadas novas, '+str(pn)+' processos novos e '+str(fn)+' filhos e '+\
-          'alteração de ' +str(ca)+' chamadas já existentes, '+str(pa)+' processos já existentes e ' + str(fn)+' filhos sem mãe'+\
+          'alteração de ' +str(ca)+' chamadas já existentes, '+str(pa)+' processos já existentes e ' + str(fm)+' filhos sem mãe'+\
           ' vinculadas aos programas da unidade do usuário.','sucesso')
 
     return redirect(url_for('core.index'))  

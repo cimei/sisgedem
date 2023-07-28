@@ -1,11 +1,6 @@
 from project import app
 from flask import render_template
-from threading import Timer
 import locale
-import csv
-from flask import send_from_directory
-
-from project.core.views import carregaSICONV
 
 # filtro cusomizado para o jinja
 #
