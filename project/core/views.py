@@ -1570,19 +1570,28 @@ def index():
     """
     sistema = db.session.query(Sistema).first()
 
-    try:
-        print('#### agendando carga siconv #####')
-        sched.add_job(trigger='cron', id='carga_siconv', func=cargaSICONV, day_of_week='mon-fri', hour=8, minute=15, misfire_grace_time=3600, coalesce=True)
-        sched.start()
-    except:
-        print('*** alguma outa coisa deu errado na carga siconv, provavelmente já consta job de carga agendado ***')   
+    # try:
+    #     print('#### agendando carga siconv #####')
+    #     sched.add_job(trigger='cron', id='carga_siconv', func=cargaSICONV, day_of_week='mon-fri', hour=8, minute=15, misfire_grace_time=3600, coalesce=True)
+    #     sched.start()
+    # except:
+    #     print('*** alguma outa coisa deu errado na carga siconv, provavelmente já consta job de carga agendado ***')   
 
-    try:
-        print('#### agendando carga chamadas DW #####')
-        sched.add_job(trigger='cron', id='carga_chamadas_DW', func=chamadas_DW, day='1st tue', hour=17, minute=43, misfire_grace_time=3600, coalesce=True)
-        sched.start()
-    except:
-        print('*** alguma outa coisa deu errado na carga chamadas_DW, provavelmente já consta job de carga agendado ***')    
+    # try:
+    #     print('#### agendando carga chamadas DW #####')
+    #     sched.add_job(trigger='cron', id='carga_chamadas_DW', func=chamadas_DW, day='1st tue', hour=17, minute=43, misfire_grace_time=3600, coalesce=True)
+    #     sched.start()
+    # except:
+    #     print('*** alguma outa coisa deu errado na carga chamadas_DW, provavelmente já consta job de carga agendado ***')    
+
+
+    print('#### agendando carga siconv #####')
+    sched.add_job(trigger='cron', id='carga_siconv', func=cargaSICONV, day_of_week='mon-fri', hour=8, minute=15, misfire_grace_time=3600, coalesce=True)
+
+    print('#### agendando carga chamadas DW #####')
+    sched.add_job(trigger='cron', id='carga_chamadas_DW', func=chamadas_DW, day='2nd mon', hour=17, minute=43, misfire_grace_time=3600, coalesce=True)
+
+    sched.start()
 
     return render_template ('index.html',sistema=sistema)
 
