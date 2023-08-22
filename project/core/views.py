@@ -267,7 +267,7 @@ def consultaDW(**entrada):
 def chamadas_DW():
 
     # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
-    if current_user == None:
+    if current_user.get_id() == None:
         user_agenda = db.session.query(Log_Auto.user_id)\
                                 .filter(Log_Auto.tipo_registro == 'agc')\
                                 .order_by(Log_Auto.id.desc())\
@@ -971,7 +971,7 @@ def cargaPDCTR(entrada):
 def cargaSICONV():
 
     # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
-    if current_user == None:
+    if current_user.get_id() == None:
         user_agenda = db.session.query(Log_Auto.user_id)\
                                 .filter(Log_Auto.tipo_registro == 'agc')\
                                 .order_by(Log_Auto.id.desc())\
@@ -1600,10 +1600,12 @@ def index():
     """
     sistema = db.session.query(Sistema).first()
 
+    print ('*** ', current_user)
+
     if sistema.carga_auto == 1:   
 
         # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
-        if current_user == None:
+        if current_user.get_id() == None:
             user_agenda = db.session.query(Log_Auto.user_id)\
                                     .filter(Log_Auto.tipo_registro == 'agc')\
                                     .order_by(Log_Auto.id.desc())\
