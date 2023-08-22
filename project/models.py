@@ -1279,14 +1279,16 @@ class Sistema(db.Model):
     funcionalidade_conv   = db.Column(db.Integer,default=1)
     funcionalidade_acordo = db.Column(db.Integer,default=1)
     funcionalidade_instru = db.Column(db.Integer,default=1)
+    carga_auto            = db.Column(db.Integer,default=0)
 
-    def __init__(self, nome_sistema, descritivo,funcionalidade_conv,funcionalidade_acordo,funcionalidade_instru):
+    def __init__(self, nome_sistema, descritivo,funcionalidade_conv,funcionalidade_acordo,funcionalidade_instru,carga_auto):
 
         self.nome_sistema          = nome_sistema
         self.descritivo            = descritivo
         self.funcionalidade_conv   = funcionalidade_conv
         self.funcionalidade_acordo = funcionalidade_acordo
         self.funcionalidade_instru = funcionalidade_instru
+        self.carga_auto            = carga_auto
 
     def __repr__(self):
 
@@ -1300,14 +1302,16 @@ class RefSICONV (db.Model):
     id       = db.Column(db.Integer,primary_key=True)
     data_ref = db.Column(db.Date)
     cod_inst = db.Column(db.String)
+    data_cha_dw = db.Column(db.Date)
 
-    def __init__ (self,data_ref,cod_inst):
+    def __init__ (self,data_ref,cod_inst,data_cha_dw):
 
         self.data_ref = data_ref
         self.cod_inst = cod_inst
+        self.data_cha_dw = data_cha_dw
 
     def __repr__ (self):
-        return f"{self.data_ref};{self.cod_inst}"
+        return f"{self.data_ref};{self.cod_inst};{self.data_cha_dw}"
 
 #
 ## tabela com as mensagens siconv carregadas em procedimento específico

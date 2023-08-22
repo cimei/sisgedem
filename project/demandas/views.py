@@ -366,16 +366,27 @@ def lista_tipos():
 
         for tipo in tipos_s:
 
-            if tipo[4] > 0:
+            print('*** tipo: ',tipo)
 
-                passos = db.session.query(Passos_Tipos.ordem, Passos_Tipos.passo, Passos_Tipos.desc).filter(Passos_Tipos.tipo_id == tipo[0]).all()
-                qtd = len(passos)
+            passos = db.session.query(Passos_Tipos.ordem, Passos_Tipos.passo, Passos_Tipos.desc)\
+                                .filter(Passos_Tipos.tipo_id == tipo[0])\
+                                .order_by(Passos_Tipos.ordem)\
+                                .all()
+            qtd = len(passos)
+
+            pdf.set_text_color(0,0,0)
+            pdf.set_font('Arial', 'B', 10)
+            pdf.cell(0, 10, tipo[1] +' ('+str(qtd)+' passos)'+'    Relevância: '+ tipo[4], 0, 0)
+            pdf.ln(10)
+
+            if qtd == 0:
+                pdf.set_font('Times', '', 10)
 
                 pdf.set_text_color(0,0,0)
-                pdf.set_font('Arial', 'B', 10)
-                pdf.cell(0, 10, tipo[1] +' ('+str(qtd)+' passos)'+'    Relevância: '+ tipo[3], 0, 0)
-                pdf.ln(10)
-
+                pdf.cell(20, 10, 'Não há passos definidos.', 0, 0)
+                pdf.ln(15)
+                
+            else:
                 for passo in passos:
 
                     pdf.set_font('Times', '', 10)
@@ -394,8 +405,8 @@ def lista_tipos():
                     else:
                         pdf.ln(tamanho_texto/20)
 
-                pdf.ln(5)
-                pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
+            pdf.ln(5)
+            pdf.dashed_line(pdf.get_x(), pdf.get_y(), pdf.get_x()+190, pdf.get_y(), 2, 3)
 
 
         pasta_pdf = os.path.normpath('/app/project/static/procedimentos.pdf')
@@ -404,6 +415,8 @@ def lista_tipos():
 
         # o comandinho mágico que permite fazer o download de um arquivo
         send_from_directory('/app/project/static', 'procedimentos.pdf') 
+
+        return redirect(url_for('static', filename='procedimentos.pdf'))
 
     return render_template('lista_tipos.html', tipos = tipos_s, quantidade=quantidade, form = form2)
 
@@ -711,7 +724,12 @@ def cria_demanda():
         else:
             mensagem = 'KO'+str(verif_demanda.id)
 
-        return redirect(url_for('demandas.confirma_cria_demanda',sei=str(form.sei.data).split('/')[0]+'_'+str(form.sei.data).split('/')[1],
+        if '/' in str(form.sei.data):
+            sei=str(form.sei.data).split('/')[0]+'_'+str(form.sei.data).split('/')[1]
+        else:
+            sei = str(form.sei.data)
+
+        return redirect(url_for('demandas.confirma_cria_demanda',sei=sei,
                                                                  tipo=form.tipo.data,
                                                                  mensagem=mensagem))
 
@@ -1631,9 +1649,14 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
             # identifica urgência
             # --> constante no campo demanda.urgencia
 
+            if relev:
+                r_relevancia = relev.relevancia
+            else:
+                r_relevancia = 0
+
             demanda_s = list(demanda)
-            demanda_s.append(float(peso_R)*relev.relevancia + float(peso_D)*distancia + float(peso_U)*demanda.urgencia)
-            demanda_s.append(str(relev.relevancia)+','+str(distancia)+','+str(demanda.urgencia))
+            demanda_s.append(float(peso_R)*r_relevancia + float(peso_D)*distancia + float(peso_U)*demanda.urgencia)
+            demanda_s.append(str(r_relevancia)+','+str(distancia)+','+str(demanda.urgencia))
             demanda_s.append(uf)
 
             demandas_s.append(demanda_s)
@@ -2125,7 +2148,34 @@ def pesquisa_demanda():
 
     pesquisa = True
 
+    # os choices dos campos de escolha são definidos aqui e não no form
+
+    coords = db.session.query(Coords.sigla)\
+                      .order_by(Coords.sigla).all()
+    lista_coords = [(c[0],c[0]) for c in coords]
+    lista_coords.insert(0,('',''))
+
+    tipos = db.session.query(Tipos_Demanda.tipo)\
+                      .order_by(Tipos_Demanda.tipo).all()
+    lista_tipos = [(t[0],t[0]) for t in tipos]
+    lista_tipos.insert(0,('',''))
+
+    pessoas = db.session.query(User.username, User.id)\
+                      .order_by(User.username).all()
+    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
+    lista_pessoas.insert(0,('',''))
+
+    atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
+                      .order_by(Plano_Trabalho.atividade_sigla).all()
+    lista_atividades = [(str(a[1]),a[0]) for a in atividades]
+    lista_atividades.insert(0,('',''))
+
     form = PesquisaForm()
+
+    form.coord.choices = lista_coords
+    form.tipo.choices = lista_tipos
+    form.autor.choices = lista_pessoas
+    form.atividade.choices = lista_atividades
 
     if form.validate_on_submit():
         # a / do campo sei precisou ser trocada por _ para poder ser passado no URL da pesquisa
@@ -2839,16 +2889,35 @@ def demandas_resumo(coord):
 
         demandas_por_tipo_ano_anterior = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
                                                    .join(User, Demanda.user_id == User.id)\
-                                                   .filter(Demanda.data >= str(hoje.year - 1) + '-01-01',
+                                                   .filter(Demanda.data >= str(hoje.year - 1) + '-1-1',
                                                            Demanda.data <= str(hoje.year - 1) + '-12-31',
                                                            User.coord.like(coord))\
                                                    .group_by(Demanda.tipo)
 
         demandas_por_tipo_ano_corrente = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
                                                    .join(User, Demanda.user_id == User.id)\
-                                                   .filter(Demanda.data >= str(hoje.year) + '-01-01',
+                                                   .filter(Demanda.data >= str(hoje.year) + '-1-1',
                                                            User.coord.like(coord))\
                                                    .group_by(Demanda.tipo)
+
+        m_top = hoje.month
+        y_top = hoje.year
+        m_ini = m_top - 11
+        y_ini = y_top
+        if m_ini < 1:
+            m_ini += 12
+            y_ini -= 1
+        s_m_ini = str(m_ini)
+        s_y_ini = str(y_ini)
+        s_m_top = str(m_top)
+        s_y_top = str(y_top)
+
+        demandas_por_tipo_12meses = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
+                                              .join(User, Demanda.user_id == User.id)\
+                                              .filter(Demanda.data >= s_y_ini+'-'+s_m_ini+'-1',
+                                                      Demanda.data <= s_y_top+'-'+s_m_top+'-'+str(monthrange(y_top,m_top)[1]),
+                                                      User.coord.like(coord))\
+                                              .group_by(Demanda.tipo)
 
         demandas_tipos = db.session.query(Tipos_Demanda.tipo).filter(Tipos_Demanda.unidade.like(coord)).order_by(Tipos_Demanda.tipo).all()
 
@@ -3063,6 +3132,7 @@ def demandas_resumo(coord):
                                                         demandas_por_tipo = demandas_por_tipo,
                                                         demandas_por_tipo_ano_anterior=demandas_por_tipo_ano_anterior,
                                                         demandas_por_tipo_ano_corrente=demandas_por_tipo_ano_corrente,
+                                                        demandas_por_tipo_12meses=demandas_por_tipo_12meses,
                                                         demandas_tipos=demandas_tipos,
                                                         vida_m_por_tipo = vida_m_por_tipo,
                                                         vida_m = vida_m,
@@ -3088,3 +3158,171 @@ def demandas_resumo(coord):
                                                         min_dp=min_dp,
                                                         mes_min_dp=mes_min_dp,
                                                         form=form)
+
+
+# números por usuário
+
+@demandas.route('<int:usu>/numeros_usu', methods=['GET','POST'])
+@login_required
+def numeros_usu(usu):
+    """+--------------------------------------------------------------------------------------+                                                                          |
+       |Mostra estatísticas do usuário.                                                       |
+       +--------------------------------------------------------------------------------------+
+    """
+    hoje = date.today()
+
+    #dados usuário
+    usuario = db.session.query(User).filter(User.id == usu).first()
+
+    # calcula quantidade de demandas do usuário
+    user_demandas = db.session.query(Demanda.user_id,func.count(Demanda.user_id))\
+                                .filter(Demanda.user_id == usu)\
+                                .group_by(Demanda.user_id)
+
+    qtd_demandas = user_demandas[0][1]
+
+    # calcula quantidade de demandas concluídas do usuário
+    user_demandas_conclu = db.session.query(Demanda.user_id,func.count(Demanda.user_id))\
+                                        .filter(Demanda.user_id == usu, Demanda.conclu == '1')\
+                                        .group_by(Demanda.user_id)
+
+    qtd_demandas_conclu = user_demandas_conclu[0][1]
+
+    if qtd_demandas != 0:
+        percent_conclu = round((qtd_demandas_conclu / qtd_demandas) * 100)
+    else:
+        percent_conclu = 0
+
+    ## calcula a vida média das demandas do usuário
+    demandas_datas = db.session.query(Demanda.data,Demanda.data_conclu)\
+                                .filter(Demanda.conclu == '1', Demanda.data_conclu != None, Demanda.user_id == usu)
+
+    vida = 0
+    vida_m = 0
+
+    for dia in demandas_datas:
+        vida += (dia.data_conclu - dia.data).days
+
+    if len(list(demandas_datas)) > 0:
+        vida_m = round(vida/len(list(demandas_datas)))
+    else:
+        vida_m = 0
+
+    ## calcula o prazo médio dos despachos
+    despachos = db.session.query(label('c_data',Despacho.data), Despacho.demanda_id, Demanda.id, label('i_data',Demanda.data))\
+                            .outerjoin(Demanda, Despacho.demanda_id == Demanda.id)\
+                            .filter(Demanda.user_id == usu)\
+                            .all()
+
+    desp = 0
+    desp_m = 0
+
+    for despacho in despachos:
+        desp += (despacho.c_data - despacho.i_data).days
+
+    if len(list(despachos)) > 0:
+        desp_m = round(desp/len(list(despachos)))
+    else:
+        desp_m = 0
+
+    ## média de demandas, providêndcias e despachos por mês nos últimos 12 meses
+
+    meses = []
+    for i in range(12):
+        m = hoje.month-i-1
+        y = hoje.year
+        if m < 1:
+            m += 12
+            y -= 1
+        if m >= 0 and m < 10:
+            m = '0' + str(m)
+        meses.append((str(m),str(y)))
+
+    demandas_12meses = [Demanda.query.filter(Demanda.data >= mes[1]+'-'+mes[0]+'-01',
+                                                Demanda.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
+                                                Demanda.user_id == usu).count()
+                                                for mes in meses]
+
+    med_dm = round(sum(demandas_12meses)/len(demandas_12meses))
+    max_dm = max(demandas_12meses)
+    mes_max_dm = meses[demandas_12meses.index(max_dm)]
+    min_dm = min(demandas_12meses)
+    mes_min_dm = meses[demandas_12meses.index(min_dm)]
+
+    providencias_12meses = [Providencia.query.filter(Providencia.data >= mes[1]+'-'+mes[0]+'-01',
+                                                Providencia.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
+                                                Providencia.user_id == usu).count()
+                                                for mes in meses]
+
+    med_pr = round(sum(providencias_12meses)/len(providencias_12meses))
+    max_pr = max(providencias_12meses)
+    mes_max_pr = meses[providencias_12meses.index(max_pr)]
+    min_pr = min(providencias_12meses)
+    mes_min_pr = meses[providencias_12meses.index(min_pr)]
+
+    minutos_dedicados_12meses = [db.session.query(func.sum(Providencia.duracao)).filter(Providencia.data >= mes[1]+'-'+mes[0]+'-01',
+                                                Providencia.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
+                                                Providencia.user_id == usu).all()
+                                                for mes in meses]
+
+    minutos_log_man_12meses = [db.session.query(func.sum(Log_Auto.duracao)).filter(Log_Auto.data_hora >= mes[1]+'-'+mes[0]+'-01',
+                                                Log_Auto.data_hora <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
+                                                Log_Auto.user_id == usu).all()
+                                                for mes in meses]
+
+    hd_p = [min[0][0] if min[0][0] is not None else 0 for min in minutos_dedicados_12meses]
+    hd_l = [min[0][0] if min[0][0] is not None else 0 for min in minutos_log_man_12meses]
+    hd_z = zip(hd_p,hd_l)
+    hd = [x+y for (x,y) in hd_z]
+
+    med_hd = round((sum(hd)/len(hd))/60)
+    max_hd = round(max(hd)/60)
+    mes_max_hd = meses[hd.index(max(hd))]
+    min_hd = round(min(hd)/60)
+    mes_min_hd = meses[hd.index(min(hd))]
+
+    start = hoje - timedelta(days=hoje.weekday())
+    end = start + timedelta(days=6)
+
+    minutos_dedicados_semana_p = db.session.query(func.sum(Providencia.duracao)).filter(Providencia.data >= start,
+                                                Providencia.data <= end,
+                                                Providencia.user_id == usu).all()
+
+    minutos_dedicados_semana_l = db.session.query(func.sum(Log_Auto.duracao)).filter(Log_Auto.data_hora >= start,
+                                            Log_Auto.data_hora <= end,
+                                            Log_Auto.user_id == usu).all()
+
+    md_p = minutos_dedicados_semana_p[0][0]
+    md_l = minutos_dedicados_semana_l[0][0]
+
+    if md_p is None:
+        md_p = 0
+
+    if md_l is None:
+        md_l = 0
+
+    horas_dedicadas_semana = round((md_p + md_l) / 60)
+
+    return render_template('numeros_usu.html',qtd_demandas=qtd_demandas,
+                                          qtd_demandas_conclu=qtd_demandas_conclu,
+                                          percent_conclu=percent_conclu,
+                                          vida_m=vida_m,
+                                          desp_m=desp_m,
+                                          med_dm=med_dm,
+                                          max_dm=max_dm,
+                                          mes_max_dm=mes_max_dm,
+                                          min_dm=min_dm,
+                                          mes_min_dm=mes_min_dm,
+                                          med_pr=med_pr,
+                                          max_pr=max_pr,
+                                          mes_max_pr=mes_max_pr,
+                                          min_pr=min_pr,
+                                          mes_min_pr=mes_min_pr,
+                                          med_hd=med_hd,
+                                          max_hd=max_hd,
+                                          mes_max_hd=mes_max_hd,
+                                          min_hd=min_hd,
+                                          mes_min_hd=mes_min_hd,
+                                          horas=horas_dedicadas_semana,
+                                          usuario=usuario)
+

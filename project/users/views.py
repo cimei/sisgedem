@@ -60,12 +60,12 @@ from sqlalchemy.sql import label
 from sqlalchemy.orm import aliased
 from collections import Counter
 
-from project import db, mail, app
+from project import db, mail, app, sched
 from project.models import User, Demanda, Despacho, Providencia, Coords, Log_Auto,\
                            Log_Desc, Plano_Trabalho, Sistema, RefSICONV, Ativ_Usu, Msgs_Recebidas
 from project.users.forms import RegistrationForm, LoginForm, UpdateUserForm, EmailForm, PasswordForm, AdminForm,\
                                 LogForm, LogFormMan, VerForm, RelForm, AtivUsu, TrocaPasswordForm, CoordForm
-# from project.users.picture_handler import add_profile_pic
+from project.core.views import cargaSICONV, chamadas_DW
 from project.demandas.views import registra_log_auto
 
 users = Blueprint('users',__name__)
@@ -207,7 +207,7 @@ def register():
 
         send_confirmation_email(user.email)
         flash('Usuário registrado! Verifique sua caixa de e-mail para confirmar o endereço.','sucesso')
-        return redirect(url_for('core.index'))
+        return redirect(url_for('core.inicio'))
 
     return render_template('register.html',form=form)
 
@@ -868,7 +868,7 @@ def user_pt (user_id):
     return render_template('user_pt.html',user=user, atividades_1=atividades_1, atividades_2=atividades_2,\
                             quantidade_1=quantidade_1, quantidade_2=quantidade_2, carga_1=carga_1_total, carga_2=carga_2_total)
 
-# admim registra nova versão do sistema no banco de dadosSEI
+# admim registra nova versão do sistema no banco de dadosSEI e outras condições
 
 @users.route('/admin_reg_ver', methods=['GET', 'POST'])
 @login_required
@@ -918,11 +918,80 @@ def admin_reg_ver():
                 sistema.funcionalidade_instru = '0'
             inst.cod_inst                 = form.cod_inst.data
 
+            
+            if form.carga_auto.data: 
+
+                sistema.carga_auto   = '1'   
+
+                # VERIFICA E, SER FOR O CASO, AGENDA CARGA SICONV
+
+                id_1 = 'carga_siconv'                                                              
+
+                try:
+                    job_existente = sched.get_job(id)
+                    if job_existente:
+                        executa = False
+                    else:
+                        executa = True      
+                except:
+                    executa = True
+
+                if executa:
+
+                    dia_semana = 'mon-fri'
+                    hora       = 8
+                    minuto     = 13
+
+                    msg = ('*** Agendamento acionado '+id_1+', rodando '+dia_semana+', às '+str(hora)+':'+str(minuto)+' ***')
+                    print(msg)
+                    try:
+                        sched.add_job(trigger='cron', id=id_1, func=cargaSICONV, day_of_week=dia_semana, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
+                        sched.start()
+                    except:
+                        sched.reschedule_job(id_1, trigger='cron', day_of_week=dia_semana, hour=hora, minute=minuto)
+
+                # VERIFICA E, SER FOR O CASO, AGENDA CARGA DW
+                
+                id_2 = 'carga_chamadas_DW'                                                              
+
+                try:
+                    job_existente = sched.get_job(id)
+                    if job_existente:
+                        executa = False
+                    else:
+                        executa = True      
+                except:
+                    executa = True
+
+                if executa:
+
+                    dia    ='2nd tue'
+                    hora   = 18
+                    minuto = 18
+
+                    msg = ('*** Agendamento inicial '+id_2+', rodando '+dia+', às '+str(hora)+':'+str(minuto)+' ***')
+                    print(msg)
+                    try:
+                        sched.add_job(trigger='cron', id=id_2, func=chamadas_DW, day=dia, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
+                        sched.start()
+                    except:
+                        sched.reschedule_job(id_2, trigger='cron', day=dia, hour=hora, minute=minuto)
+
+                registra_log_auto(current_user.id,None,'agc')         
+
+            else:
+                sistema.carga_auto = '0' 
+                msg =  ('*** '+id_1+' e '+id_2+' serão CANCELADOS. Não haverá cargas automáticas. ***')
+                print(msg)
+                sched.remove_job(id_1) 
+                sched.remove_job(id_2)             
+
+
             registra_log_auto(current_user.id,None,'ver')
 
             flash('Dados gerais do sistema atualizados!','sucesso')
 
-            return redirect(url_for('core.index'))
+            return redirect(url_for('core.inicio'))
 
         # traz a versão atual
         elif request.method == 'GET':
@@ -934,6 +1003,7 @@ def admin_reg_ver():
             form.funcionalidade_acordo.data = sistema.funcionalidade_acordo
             form.funcionalidade_instru.data = sistema.funcionalidade_instru
             form.cod_inst.data              = inst.cod_inst
+            form.carga_auto.data            = sistema.carga_auto
 
         return render_template('admin_reg_ver.html', title='Update', form=form)
 
@@ -1221,6 +1291,7 @@ def user_log (usu):
         atividades = db.session.query(log,
                                       Plano_Trabalho.atividade_sigla)\
                                .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.programa)\
+                               .order_by(log.c.id.desc())\
                                .all()
 
         # cria lista com ocorrências de tipo de registro
@@ -1472,7 +1543,7 @@ def coord_view_users():
     else:
         abort(403)
 
-    return redirect(url_for('core.index'))
+    return redirect(url_for('core.inicio'))
 
 #
 

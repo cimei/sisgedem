@@ -150,30 +150,10 @@ class ProvidenciaForm(FlaskForm):
 
 class PesquisaForm(FlaskForm):
 
-    coords = db.session.query(Coords.sigla)\
-                      .order_by(Coords.sigla).all()
-    lista_coords = [(c[0],c[0]) for c in coords]
-    lista_coords.insert(0,('',''))
-
-    tipos = db.session.query(Tipos_Demanda.tipo)\
-                      .order_by(Tipos_Demanda.tipo).all()
-    lista_tipos = [(t[0],t[0]) for t in tipos]
-    lista_tipos.insert(0,('',''))
-
-    pessoas = db.session.query(User.username, User.id)\
-                      .order_by(User.username).all()
-    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
-    lista_pessoas.insert(0,('',''))
-
-    atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
-                      .order_by(Plano_Trabalho.atividade_sigla).all()
-    lista_atividades = [(str(a[1]),a[0]) for a in atividades]
-    lista_atividades.insert(0,('',''))
-
-    coord               = SelectField('Coordenação:',choices= lista_coords)
+    coord               = SelectField('Coordenação:')
     sei                 = StringField('SEI:')
     convênio            = StringField('Convênio:')
-    tipo                = SelectField(choices= lista_tipos)
+    tipo                = SelectField()
     titulo              = StringField('Título:')
     ## os valore nos dois campos a seguir vão ao contrário, pois na view a condição de pesquisa usa o !=
     necessita_despacho  = SelectField('Aguarda Despacho',choices=[('Todos','Todos'),
@@ -187,11 +167,11 @@ class PesquisaForm(FlaskForm):
     #                                             ('Não','Sim')])
     conclu              = SelectField('Concluída?',choices=[('Todos','Todos'),('0','Não'),('1','Sim, com sucesso'),('2','Sim, com insucesso')])
 
-    autor               = SelectField('Responsável:',choices= lista_pessoas)
+    autor               = SelectField('Responsável:')
 
     demanda_id          = StringField('Número da demanda:')
 
-    atividade           = SelectField('Atividade:',choices= lista_atividades)
+    atividade           = SelectField('Atividade:')
 
     submit              = SubmitField('Pesquisar')
 

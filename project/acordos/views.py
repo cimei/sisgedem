@@ -71,7 +71,7 @@ from sqlalchemy.sql import label
 from project import db
 from project.models import Acordo, RefCargaPDCTR, PagamentosPDCTR, Processo_Mae, Bolsa, User, Demanda,\
                            Chamadas, Programa_CNPq, Acordo_ProcMae, Processo_Filho, Coords, grupo_programa_cnpq,\
-                           capital_custeio,DadosSEI, chamadas_cnpq, chamadas_cnpq_acordos, financeiro_acordo
+                           capital_custeio,DadosSEI, chamadas_cnpq, chamadas_cnpq_acordos, financeiro_acordo, RefSICONV
 from project.acordos.forms import AcordoForm, Programa_CNPqForm, func_ProcMae_Acordo, ListaForm, ArquivoForm,\
                                   Altera_proc_mae_Form, ProgAcordoForm, Inclui_proc_mae_Form, ChamadaAcordoForm,\
                                   EscolheMaeForm
@@ -194,6 +194,10 @@ def lista_acordos(lista,coord):
         return redirect(url_for('acordos.lista_acordos',lista=lista,coord=coord))
 
     else:
+
+        ## lê data de carga de chamadas do DW
+        data_carga = db.session.query(RefSICONV.data_cha_dw).first()
+        data_cha = data_carga.data_cha_dw
 
         if coord == '*':
 
@@ -642,7 +646,12 @@ def lista_acordos(lista,coord):
         # o comandinho mágico que permite fazer o download de um arquivo
         send_from_directory('/app/project/static', 'acordos.csv')                     
 
-        return render_template('lista_acordos.html', acordos=acordos,quantidade=quantidade,lista=lista,form=form)
+        return render_template('lista_acordos.html', 
+                               acordos=acordos,
+                               quantidade=quantidade,
+                               lista=lista,
+                               form=form,
+                               data_cha = data_cha)
 
 
 ### VISUALIZAR E ATUALIZAR detalhes de Acordo
@@ -2299,7 +2308,7 @@ def programas_por_unidade_DW():
     flash('Efetuada carga de '+str(pn)+' programas novos e '+str(pa)+' programas já existentes'+\
           ' vinculadas à(s) '+str(u)+' unidade(s) identificadas','sucesso')
 
-    return redirect(url_for('core.index'))
+    return redirect(url_for('core.inicio'))
 
 
 # lança tela de espera finalização de carga
@@ -2692,7 +2701,7 @@ def chamadas_por_programa_DW():
           'alteração de ' +str(ca)+' chamadas já existentes, '+str(pa)+' processos já existentes e ' + str(fm)+' filhos sem mãe'+\
           ' vinculadas aos programas da unidade do usuário.','sucesso')
 
-    return redirect(url_for('core.index'))  
+    return redirect(url_for('core.inicio'))  
 #
 # pega dados financeiros de acordos no DW
 @acordos.route('/dados_financeiros_acordos_DW')
@@ -2752,8 +2761,6 @@ def dados_financeiros_acordos_DW():
             else:
                 l_processos = tuple(l_processos)
             
-            print('### ',l_processos)
-
             # consulta o DW para pegar dados financeiros da lisa de processos acima
             dados_financeiros = consultaDW(tipo = 'financeiro_processos', lista_processos = l_processos)
 
@@ -2778,7 +2785,7 @@ def dados_financeiros_acordos_DW():
 
     flash('Realizada carga de '+str(dfn)+' registros de dados financeiros de acordos.','sucesso')
 
-    return redirect(url_for('core.index'))    
+    return redirect(url_for('core.inicio'))    
 
 # lista dados financeiros de um acordo
 @acordos.route('/<int:acordo_id>/lista_dados_financeiros_acordo')
@@ -2825,5 +2832,5 @@ def carregaidrel():
     db.session.commit()
     print ('*** ',i,' alterações em chamadas')
 
-    return redirect(url_for('core.index'))
+    return redirect(url_for('core.inicio'))
 

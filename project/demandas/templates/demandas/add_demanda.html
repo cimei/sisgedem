@@ -30,7 +30,13 @@
     <div class="form-row">
       <div class="form-group col-3">
         <p></p>
-        <p class="font-weight-bold">SEI: {{ sei.split('_')[0]+'/'+sei.split('_')[1] }}</p>
+        <p class="font-weight-bold">
+          {% if '_' in sei %}
+            SEI: {{ sei.split('_')[0]+'/'+sei.split('_')[1] }}
+          {% else %}
+            SEI: {{ sei }}
+          {% endif %}
+        </p>
         <p class="font-weight-bold">Tipo: {{ tipo }}</p>
       </div>
 

@@ -153,6 +153,7 @@ class VerForm(FlaskForm):
     funcionalidade_conv   = BooleanField('Habilitar funcionalidade convênios?')
     funcionalidade_acordo = BooleanField('Habilitar funcionalidade acordos?')
     funcionalidade_instru = BooleanField('Habilitar funcionalidade instrumentos?')
+    carga_auto            = BooleanField('Habilitar carga automática?')
     submit                = SubmitField('Registrar')
 
 class RelForm(FlaskForm):

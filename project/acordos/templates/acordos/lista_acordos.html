@@ -57,6 +57,14 @@
           {% endif %}
         </p>
       </div>
+
+      {% if data_cha %}
+      <div class="col">
+        <p align="right"><span class="text-secondary">Carga chamadas DW em: </span>
+          <span class="badge badge-pill badge-info">{{ data_cha.strftime('%d/%m/%Y') }}</span></p>
+      </div>
+      {% endif %}    
+      
       <div class = "col">
         <p align="right"><a href=/static/acordos.csv class="btn btn-outline-primary" role="button" aria-pressed="true">Download do csv</a></p>
       </div>

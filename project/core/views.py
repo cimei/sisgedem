@@ -35,7 +35,7 @@ from project.models import PagamentosPDCTR, RefCargaPDCTR, Programa, Proposta, C
                            Chamadas, MSG_Siconv, Bolsa, Processo_Mae,\
                            Processo_Filho, Sistema, Crono_Desemb, Homologados, Plano_Aplic,\
                            Programa_CNPq, Acordo_ProcMae, Coords, grupo_programa_cnpq,\
-                           chamadas_cnpq, chamadas_cnpq_acordos
+                           chamadas_cnpq, chamadas_cnpq_acordos, Log_Auto
 
 from project.demandas.views import registra_log_auto
 from project.convenios.forms import ChamadaForm, SEIForm
@@ -266,12 +266,19 @@ def consultaDW(**entrada):
 
 def chamadas_DW():
 
-    if current_user:
-        # pega programas da unidade do usuário
-        unidade = current_user.coord
-    else:    
+    # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
+    if current_user == None:
+        user_agenda = db.session.query(Log_Auto.user_id)\
+                                .filter(Log_Auto.tipo_registro == 'agc')\
+                                .order_by(Log_Auto.id.desc())\
+                                .first()
+        id_user = user_agenda.user_id
         # por enquanto, a carga automática será só da COPES
         unidade = 'COPES'
+    else:
+        id_user = current_user.id
+        # pega programas da unidade do usuário
+        unidade = current_user.coord
 
     # se unidade for pai, junta ela com seus filhos
     hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
@@ -619,6 +626,15 @@ def chamadas_DW():
 
     print ('*** FIM DA ROTINA DE CARGA DE CHAMADAS DW ***')
 
+    ref_siconv = db.session.query(RefSICONV).first()
+
+    ref_siconv.data_cha_dw = datetime.date.today()
+
+    db.session.commit()
+
+    registra_log_auto(id_user,None,'car')
+
+
     return [cn,ca,pn,pa,fn,fm]
 
 
@@ -655,7 +671,7 @@ def cargaPDCTR(entrada):
         if campo.lower() not in linha_cabeçalho_lower:
             print ('** ATENÇÃO: o campo ',campo,' não existe na planinha original, verifique o parâmetro inserido. **')
             flash('ERRO! O campo '+str(campo)+' não existe na planinha original, verifique o parâmetro inserido.','erro')
-            return redirect(url_for('core.index'))
+            return redirect(url_for('core.inicio'))
 
     try:
         data_referência = planilha.cell_value(3,1)[-10:]
@@ -953,6 +969,18 @@ def cargaPDCTR(entrada):
 ###########################################################################################################
 
 def cargaSICONV():
+
+    # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
+    if current_user == None:
+        user_agenda = db.session.query(Log_Auto.user_id)\
+                                .filter(Log_Auto.tipo_registro == 'agc')\
+                                .order_by(Log_Auto.id.desc())\
+                                .first()
+        id = user_agenda.user_id
+    else:
+        id = current_user.id 
+
+
     ## parâmetros internos de download e carga: default 'sim' (colocar 'não' quando quiser pular fase)
     pega                 = 'sim'
     descompacta          = 'sim'
@@ -1552,6 +1580,8 @@ def cargaSICONV():
     print ('<<',dt.now().strftime("%x %X"),'>> ','Carga SICONV finalizada!')
     print ('*****************************************************************')
 
+    registra_log_auto(id,None,'car')
+
 
 # função que executa thread de carga dos dados SICONV
 def thread_cargaSICONV():
@@ -1570,30 +1600,76 @@ def index():
     """
     sistema = db.session.query(Sistema).first()
 
-    # try:
-    #     print('#### agendando carga siconv #####')
-    #     sched.add_job(trigger='cron', id='carga_siconv', func=cargaSICONV, day_of_week='mon-fri', hour=8, minute=15, misfire_grace_time=3600, coalesce=True)
-    #     sched.start()
-    # except:
-    #     print('*** alguma outa coisa deu errado na carga siconv, provavelmente já consta job de carga agendado ***')   
+    if sistema.carga_auto == 1:   
 
-    # try:
-    #     print('#### agendando carga chamadas DW #####')
-    #     sched.add_job(trigger='cron', id='carga_chamadas_DW', func=chamadas_DW, day='1st tue', hour=17, minute=43, misfire_grace_time=3600, coalesce=True)
-    #     sched.start()
-    # except:
-    #     print('*** alguma outa coisa deu errado na carga chamadas_DW, provavelmente já consta job de carga agendado ***')    
+        # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
+        if current_user == None:
+            user_agenda = db.session.query(Log_Auto.user_id)\
+                                    .filter(Log_Auto.tipo_registro == 'agc')\
+                                    .order_by(Log_Auto.id.desc())\
+                                    .first()
+            id_user = user_agenda.user_id
+        else:
+            id_user = current_user.id 
 
+        # AGENDA CARGA SICONV NA INICIALIZAÇÃO DO SITEMA
 
-    print('#### agendando carga siconv #####')
-    sched.add_job(trigger='cron', id='carga_siconv', func=cargaSICONV, day_of_week='mon-fri', hour=8, minute=15, misfire_grace_time=3600, coalesce=True)
+        id = 'carga_siconv'                                                              
 
-    print('#### agendando carga chamadas DW #####')
-    sched.add_job(trigger='cron', id='carga_chamadas_DW', func=chamadas_DW, day='2nd mon', hour=17, minute=43, misfire_grace_time=3600, coalesce=True)
+        try:
+            job_existente = sched.get_job(id)
+            if job_existente:
+                executa = False
+            else:
+                executa = True      
+        except:
+            executa = True
 
-    sched.start()
+        if executa:
 
-    return render_template ('index.html',sistema=sistema)
+            dia_semana = 'mon-fri'
+            hora       = 8
+            minuto     = 13
+
+            msg = ('*** Agendamento inicial '+id+', rodando '+dia_semana+', às '+str(hora)+':'+str(minuto)+' ***')
+            print(msg)
+            try:
+                sched.add_job(trigger='cron', id=id, func=cargaSICONV, day_of_week=dia_semana, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
+                sched.start()
+            except:
+                sched.reschedule_job(id, trigger='cron', day_of_week=dia_semana, hour=hora, minute=minuto)
+
+        # AGENDA CARGA DW NA INICIALIZAÇÃO DO SISTEMA
+        
+        id = 'carga_chamadas_DW'                                                              
+
+        try:
+            job_existente = sched.get_job(id)
+            if job_existente:
+                executa = False
+            else:
+                executa = True      
+        except:
+            executa = True
+
+        if executa:
+
+            dia    ='2nd tue'
+            hora   = 18
+            minuto = 18
+
+            msg = ('*** Agendamento inicial '+id+', rodando '+dia+', às '+str(hora)+':'+str(minuto)+' ***')
+            print(msg)
+            try:
+                sched.add_job(trigger='cron', id=id, func=chamadas_DW, day=dia, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
+                sched.start()
+            except:
+                sched.reschedule_job(id, trigger='cron', day=dia, hour=hora, minute=minuto)
+
+        registra_log_auto(id_user,None,'agc')        
+
+    
+    return redirect(url_for('core.inicio'))
 
 @core.route('/inicio')
 def inicio():
@@ -1654,7 +1730,7 @@ def carregaPDCTR():
 
         registra_log_auto(current_user.id,None,'car')
 
-        return redirect(url_for('core.index'))
+        return redirect(url_for('core.inicio'))
 
     data_ref = db.session.query(label('dr',func.MAX(RefCargaPDCTR.data_ref))).first()
 
@@ -1686,7 +1762,7 @@ def carregaSICONV():
     registra_log_auto(current_user.id,None,'car')
 
     #return render_template('index.html')
-    return redirect(url_for('core.index'))
+    return redirect(url_for('core.inicio'))
 
 
 #
@@ -1760,7 +1836,7 @@ def update_chamada(id):
         registra_log_auto(current_user.id,None,'hom')
 
         flash('Chamada homologada atualizada!','sucesso')
-        return redirect(url_for('core.index'))
+        return redirect(url_for('core.inicio'))
     #
     # traz a informação atual do registro SEI
     elif request.method == 'GET':
@@ -1821,7 +1897,7 @@ def carrega_homologados(chamada_id):
             if campo not in linha_cabeçalho:
                 print ('** ATENÇÃO: o campo ',campo,' não existe na planinha original, verifique o parâmetro inserido. **')
                 flash('ERRO! O campo '+str(campo)+' não existe na planinha original, verifique o parâmetro inserido.','erro')
-                return redirect(url_for('core.index'))
+                return redirect(url_for('core.inicio'))
 
         qtd_linhas = planilha.nrows - 1
 
@@ -2143,7 +2219,7 @@ def carregaMSG():
 
         print ('<<',dt.now().strftime("%x %X"),'>> ',' Carga de mensagens finalizada!')
 
-        return redirect(url_for('core.index'))
+        return redirect(url_for('core.inicio'))
 
     data_ref = ''
 

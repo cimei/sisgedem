@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
-  <div class="jumbotron">
+  <!-- <div class="jumbotron"> -->
 
 
     <form class="form-group" method='POST'>
@@ -23,7 +23,7 @@
 
     <div class="row">
 
-      <div class="col-sm">
+      <div class="col-8">
         <div class="card border-info mb-4">
         <div class="card bg-light mb-3">
           <div class="card-header"><div class="text-info">Por tipo (quantidades)</div></div>
@@ -35,6 +35,7 @@
                   <th scope="col">Tipo</th>
                   <th scope="col"><center>Ano ant.</center></th>
                   <th scope="col"><center>Este ano</center></th>
+                  <th scope="col"><center>Ult. 12 meses</center></th>
                   <th scope="col"><center>Geral</center></th>
                   <th scope="col"><center>Conclu.</center></th>
                   <th scope="col"><center>Vida média</center></th>
@@ -71,6 +72,18 @@
                       <td><center>0</center></td>
                     {% endif %}
 
+                    {% set ns.x = false %}
+
+                    {% for dem in demandas_por_tipo_12meses %}
+                      {% if dem.tipo == deman.tipo %}
+                        <td><center>{{dem.qtd_por_tipo}}</center></td>
+                        {% set ns.x = true %}
+                      {% endif %}
+                    {% endfor %}
+                    {% if ns.x == false %}
+                      <td><center>0</center></td>
+                    {% endif %}
+
                     <td><center>{{deman.qtd_por_tipo}}</center></td>
 
                       {% for v_m in vida_m_por_tipo %}
@@ -94,7 +107,7 @@
         </div>
       </div>
 
-      <div class="col-sm">
+      <div class="col-4">
         <div class="card border-success mb-4">
         <div class="card bg-light mb-3">
         <div class="card-header"><div class="text-success">Estatísticas</div></div>
@@ -186,7 +199,7 @@
 
     </div>
 
-  </div>
+  <!-- </div> -->
 </div>
 
 

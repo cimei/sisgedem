@@ -1,5 +1,9 @@
 ## Atualizações ##
 
+21/08/2023
+Ajustes e correções.
+v5.0.3
+
 28/07/2023
 Ajustes nas cargas do DW. Automação da carga siconv e de dados de chamadas do DW (só COPES, por enquanto). 
 v5.0.2
