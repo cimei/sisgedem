@@ -403,7 +403,7 @@ def logout():
        +--------------------------------------------------------------------------------------+
     """
     logout_user()
-    return redirect(url_for("core.index"))
+    return redirect(url_for("core.inicio"))
 
 # conta (update UserForm)
 
@@ -919,13 +919,14 @@ def admin_reg_ver():
             inst.cod_inst                 = form.cod_inst.data
 
             
+            id_1 = 'carga_siconv'
+            id_2 = 'carga_chamadas_DW'      
+            
             if form.carga_auto.data: 
 
                 sistema.carga_auto   = '1'   
 
                 # VERIFICA E, SER FOR O CASO, AGENDA CARGA SICONV
-
-                id_1 = 'carga_siconv'                                                              
 
                 try:
                     job_existente = sched.get_job(id)
@@ -950,9 +951,7 @@ def admin_reg_ver():
                     except:
                         sched.reschedule_job(id_1, trigger='cron', day_of_week=dia_semana, hour=hora, minute=minuto)
 
-                # VERIFICA E, SER FOR O CASO, AGENDA CARGA DW
-                
-                id_2 = 'carga_chamadas_DW'                                                              
+                # VERIFICA E, SER FOR O CASO, AGENDA CARGA DW                                                        
 
                 try:
                     job_existente = sched.get_job(id)
@@ -981,10 +980,16 @@ def admin_reg_ver():
 
             else:
                 sistema.carga_auto = '0' 
-                msg =  ('*** '+id_1+' e '+id_2+' serão CANCELADOS. Não haverá cargas automáticas. ***')
+                msg =  ('*** Jobs de carga serão CANCELADOS. Não haverá cargas automáticas. ***')
                 print(msg)
-                sched.remove_job(id_1) 
-                sched.remove_job(id_2)             
+                try:
+                    sched.remove_job(id_1) 
+                except:
+                    print('*** Não há job '+id_1+' para cancelar. ***')  
+                try:      
+                    sched.remove_job(id_2)
+                except:
+                    print('*** Não há job '+id_2+' para cancelar. ***')
 
 
             registra_log_auto(current_user.id,None,'ver')

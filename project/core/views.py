@@ -1671,7 +1671,7 @@ def index():
         registra_log_auto(id_user,None,'agc')        
 
     
-    return redirect(url_for('core.inicio'))
+    return render_template ('index.html',sistema=sistema) 
 
 @core.route('/inicio')
 def inicio():

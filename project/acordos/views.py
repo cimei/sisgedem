@@ -785,8 +785,10 @@ def update(acordo_id,lista):
         nds = capital + custeio + bolsas
 
         if round(nds,2) != round(valor,2) and (capital > 0 or custeio > 0 or bolsas > 0):
-            flash('Soma dos valores das NDs não corresponde à soma dos valores do acordo/TED (Aporte: '+str(round(valor,2))+', Soma NDs: '+str(round(nds,2))+')!','erro')
-            return redirect(url_for('acordos.update', acordo_id=acordo_id, lista=lista))
+            flash('Atenção: Soma Capital, Custeio e Bolsas não corresponde à soma dos valores do acordo/TED \
+                  (Aporte: '+str(locale.currency(round(valor,2), symbol=False, grouping = True ))+', \
+                   Soma NDs: '+str(locale.currency(round(nds,2), symbol=False, grouping = True ))+')!','perigo')
+            # return redirect(url_for('acordos.update', acordo_id=acordo_id, lista=lista))
 
         acordo.nome          = form.nome.data
         acordo.sei           = form.sei.data
@@ -1171,8 +1173,10 @@ def cria_acordo():
 
 
         if round(nds,2) != round(valor,2) and (capital != 0 or custeio != 0 or bolsas != 0):
-            flash('Soma dos valores das NDs não corresponde à soma dos valores do acordo/TED (Aporte: '+str(round(valor,2))+', Soma NDs: '+str(round(nds,2))+')!','erro')
-            return redirect(url_for('acordos.cria_acordo'))
+            flash('Atenção: Soma Capital, Custeio e Bolsas não corresponde à soma dos valores do acordo/TED \
+                  (Aporte: '+str(locale.currency(round(valor,2), symbol=False, grouping = True ))+', \
+                   Soma NDs: '+str(locale.currency(round(nds,2), symbol=False, grouping = True ))+')!','perigo')
+            # return redirect(url_for('acordos.cria_acordo'))
 
         acordo = Acordo(nome          = form.nome.data,
                         desc          = form.desc.data,
