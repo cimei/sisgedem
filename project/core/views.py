@@ -267,7 +267,7 @@ def consultaDW(**entrada):
 def chamadas_DW():
 
     # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
-    if current_user.get_id() == None:
+    if current_user == None or current_user.get_id() == None:
         user_agenda = db.session.query(Log_Auto.user_id)\
                                 .filter(Log_Auto.tipo_registro == 'agc')\
                                 .order_by(Log_Auto.id.desc())\
@@ -971,7 +971,7 @@ def cargaPDCTR(entrada):
 def cargaSICONV():
 
     # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
-    if current_user.get_id() == None:
+    if current_user == None or current_user.get_id() == None:
         user_agenda = db.session.query(Log_Auto.user_id)\
                                 .filter(Log_Auto.tipo_registro == 'agc')\
                                 .order_by(Log_Auto.id.desc())\
@@ -1600,12 +1600,12 @@ def index():
     """
     sistema = db.session.query(Sistema).first()
 
-    print ('*** ', current_user)
+    print ('***** Início do sistema *****')
 
     if sistema.carga_auto == 1:   
 
         # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
-        if current_user.get_id() == None:
+        if current_user == None or current_user.get_id() == None:
             user_agenda = db.session.query(Log_Auto.user_id)\
                                     .filter(Log_Auto.tipo_registro == 'agc')\
                                     .order_by(Log_Auto.id.desc())\
@@ -1641,6 +1641,8 @@ def index():
             except:
                 sched.reschedule_job(id, trigger='cron', day_of_week=dia_semana, hour=hora, minute=minuto)
 
+            registra_log_auto(id_user,None,'agc')    
+
         # AGENDA CARGA DW NA INICIALIZAÇÃO DO SISTEMA
         
         id = 'carga_chamadas_DW'                                                              
@@ -1667,10 +1669,7 @@ def index():
                 sched.start()
             except:
                 sched.reschedule_job(id, trigger='cron', day=dia, hour=hora, minute=minuto)
-
-        registra_log_auto(id_user,None,'agc')        
-
-    
+            
     return render_template ('index.html',sistema=sistema) 
 
 @core.route('/inicio')
