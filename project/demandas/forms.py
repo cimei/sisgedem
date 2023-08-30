@@ -43,18 +43,18 @@ from project.models import Tipos_Demanda, Coords, User, Plano_Trabalho
 
 class Plano_TrabalhoForm(FlaskForm):
 
-    pessoas = db.session.query(User.username, User.id)\
-                      .order_by(User.username).all()
-    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
-    lista_pessoas.insert(0,('',''))
-    lista_pessoas.insert(1,('*','DESATIVADO'))
+    # pessoas = db.session.query(User.username, User.id)\
+    #                   .order_by(User.username).all()
+    # lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
+    # lista_pessoas.insert(0,('',''))
+    # lista_pessoas.insert(1,('*','DESATIVADO'))
 
     atividade_sigla = StringField('Sigla:',validators=[DataRequired(message="Informe a sigla!")])
     atividade_desc  = TextAreaField('Descrição:',validators=[DataRequired(message="Informe a descrição!")])
     natureza        = StringField('Natureza:',validators=[DataRequired(message="Informe a natureza!")])
     horas_semana    = DecimalField('Meta (h/sem):',validators=[DataRequired(message="Informe a meta!")], places=1)
     situa           = SelectField('Status:',choices= [('Ativa','Ativa'),('Desativada','Desativada')])
-    unidade         = StringField('Unidade:',validators=[DataRequired(message="Informe a unidade organizacional!")])
+    unidade         = SelectField('Unidade:',validators=[DataRequired(message="Informe a unidade organizacional!")])
 
     submit     = SubmitField('Registrar')
 
@@ -121,12 +121,7 @@ class Demanda_ATU_Form(FlaskForm):
 
 class TransferDemandaForm(FlaskForm):
 
-    pessoas = db.session.query(User.username, User.id)\
-                      .order_by(User.username).all()
-    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
-    lista_pessoas.insert(0,('',''))
-
-    pessoa = SelectField('Novo responsável:',choices= lista_pessoas, validators=[DataRequired(message="Escolha alguém!")])
+    pessoa = SelectField('Novo responsável:', validators=[DataRequired(message="Escolha alguém!")])
     submit = SubmitField('Transferir')
 
 class DespachoForm(FlaskForm):

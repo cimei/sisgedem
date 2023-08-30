@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+  <div class = 'jumbotron'>
+
+  <div class="admin-view-users">
+    <div class="page-header">
+      <h3>Tipos de registro no log</h3>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <div class="row">
+      <div class="col">
+        <a href="{{url_for('users.admin_insere_tipo_log')}}" class="btn btn-primary" role="button" aria-pressed="false">
+          <abbr title="Inserir um novo registro.">Inserir novo</a>
+      </div>
+    </div>
+    {% endif %}
+    <br>
+
+    <div style="overflow-y: auto; height:600px">
+      <table class="table table-striped" id="admin_list_of_coords">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tipo</th>
+            <th>Descrição</th>
+            </tr>
+        </thead>
+        <tbody>
+          {% for t in tipos_log %}
+            <tr>
+              <td> {{tipos_log.index(t) + 1}} </td>
+              <td> {{ t.tipo_registro }} </td>
+              <td> {{ t.desc_registro }} </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -27,7 +27,7 @@
 
 from flask import render_template,url_for,flash, redirect,request,Blueprint
 from flask_login import login_required, current_user
-from sqlalchemy import func, distinct, and_
+from sqlalchemy import func, distinct, and_, or_
 from sqlalchemy.sql import label
 from project import db, sched, app
 from project.models import PagamentosPDCTR, RefCargaPDCTR, Programa, Proposta, Convenio,\
@@ -1604,22 +1604,20 @@ def index():
 
     if sistema.carga_auto == 1:   
 
-        # quando o envio for feito pelo agendamento, current_user está vazio, pega então o usuário que fez o últinmo agendamento 
-        if current_user == None or current_user.get_id() == None:
-            user_agenda = db.session.query(Log_Auto.user_id)\
-                                    .filter(Log_Auto.tipo_registro == 'agc')\
-                                    .order_by(Log_Auto.id.desc())\
-                                    .first()
-            id_user = user_agenda.user_id
-        else:
-            id_user = current_user.id 
+        # pega último agendamento
+        log_agenda_ant_envio = db.session.query(Log_Auto.user_id, Log_Auto.id, Log_Auto.tipo_registro)\
+                                         .filter(Log_Auto.tipo_registro == 'agc')\
+                                         .order_by(Log_Auto.id.desc())\
+                                         .first()
+        
+        id_user = log_agenda_ant_envio.user_id
 
         # AGENDA CARGA SICONV NA INICIALIZAÇÃO DO SITEMA
 
-        id = 'carga_siconv'                                                              
+        id_1 = 'carga_siconv'                                                              
 
         try:
-            job_existente = sched.get_job(id)
+            job_existente = sched.get_job(id_1)
             if job_existente:
                 executa = False
             else:
@@ -1630,25 +1628,25 @@ def index():
         if executa:
 
             dia_semana = 'mon-fri'
-            hora       = 8
-            minuto     = 13
+            hora       = 11
+            minuto     = 41
 
-            msg = ('*** Agendamento inicial '+id+', rodando '+dia_semana+', às '+str(hora)+':'+str(minuto)+' ***')
+            msg = ('*** Agendamento inicial '+id_1+', rodando '+dia_semana+', às '+str(hora)+':'+str(minuto)+' ***')
             print(msg)
             try:
-                sched.add_job(trigger='cron', id=id, func=cargaSICONV, day_of_week=dia_semana, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
+                sched.add_job(trigger='cron', id=id_1, func=cargaSICONV, day_of_week=dia_semana, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
                 sched.start()
             except:
-                sched.reschedule_job(id, trigger='cron', day_of_week=dia_semana, hour=hora, minute=minuto)
+                sched.reschedule_job(id_1, trigger='cron', day_of_week=dia_semana, hour=hora, minute=minuto)
 
-            registra_log_auto(id_user,None,'agc')    
+            registra_log_auto(id_user,None,'agi')    
 
         # AGENDA CARGA DW NA INICIALIZAÇÃO DO SISTEMA
         
-        id = 'carga_chamadas_DW'                                                              
+        id_2 = 'carga_chamadas_DW'                                                              
 
         try:
-            job_existente = sched.get_job(id)
+            job_existente = sched.get_job(id_2)
             if job_existente:
                 executa = False
             else:
@@ -1662,14 +1660,16 @@ def index():
             hora   = 18
             minuto = 18
 
-            msg = ('*** Agendamento inicial '+id+', rodando '+dia+', às '+str(hora)+':'+str(minuto)+' ***')
+            msg = ('*** Agendamento inicial '+id_2+', rodando '+dia+', às '+str(hora)+':'+str(minuto)+' ***')
             print(msg)
             try:
-                sched.add_job(trigger='cron', id=id, func=chamadas_DW, day=dia, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
+                sched.add_job(trigger='cron', id=id_2, func=chamadas_DW, day=dia, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
                 sched.start()
             except:
-                sched.reschedule_job(id, trigger='cron', day=dia, hour=hora, minute=minuto)
-            
+                sched.reschedule_job(id_2, trigger='cron', day=dia, hour=hora, minute=minuto)
+
+            registra_log_auto(id_user,None,'agi')    
+        
     return render_template ('index.html',sistema=sistema) 
 
 @core.route('/inicio')

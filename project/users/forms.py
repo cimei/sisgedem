@@ -174,3 +174,9 @@ class AtivUsu  (FlaskForm):
     nivel_resp = SelectField('Nível de responsabilidade: ',choices=[('',''),('Titular','Titular'),('Suplente','Suplente')],
                             validators=[DataRequired(message="Informe o nível de responsabilidade do usuário!")])
     submit    = SubmitField('Atribuir')
+
+class TipoLogForm(FlaskForm):
+
+    tipo = StringField('Tipo')
+    desc = StringField('Descrição')
+    submit   = SubmitField('Inserir')

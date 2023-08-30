@@ -1,7 +1,10 @@
 ## Atualizações ##
 
-29/08/2023
+30/08/2023
+Ainda correção de erro no agendamento de cargas.
+v5.0.5
 
+29/08/2023
 Correção de erro no agendamento de cargas.
 v5.0.4
 

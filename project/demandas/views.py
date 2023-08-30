@@ -194,7 +194,23 @@ def update_plano_trabalho(id):
 
     atividade = Plano_Trabalho.query.get_or_404(id)
 
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
+    lista_unids = [(u,u) for u in l_unid]
+    lista_unids.insert(0,('',''))
+
     form = Plano_TrabalhoForm()
+
+    form.unidade.choices = lista_unids
 
     if form.validate_on_submit():
 
@@ -234,7 +250,23 @@ def cria_atividade():
     +---------------------------------------------------------------------------------------+
     """
 
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+
+    if hierarquia:
+        l_unid = [f.sigla for f in hierarquia]
+        l_unid.append(unidade)
+    else:
+        l_unid = [unidade]
+
+    lista_unids = [(u,u) for u in l_unid]
+    lista_unids.insert(0,('',''))
+
     form = Plano_TrabalhoForm()
+
+    form.unidade.choices = lista_unids
 
     if form.validate_on_submit():
         atividade = Plano_Trabalho(atividade_sigla = form.atividade_sigla.data,
@@ -1975,7 +2007,15 @@ def transfer_demanda(demanda_id):
     if demanda.author != current_user:
         abort(403)
 
+    pessoas = db.session.query(User.username, User.id)\
+                        .filter(User.coord == current_user.coord)\
+                        .order_by(User.username).all()
+    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
+    lista_pessoas.insert(0,('',''))    
+
     form = TransferDemandaForm()
+
+    form.pessoa.choices = lista_pessoas
 
     if form.validate_on_submit():
 

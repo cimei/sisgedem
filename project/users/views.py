@@ -64,7 +64,7 @@ from project import db, mail, app, sched
 from project.models import User, Demanda, Despacho, Providencia, Coords, Log_Auto,\
                            Log_Desc, Plano_Trabalho, Sistema, RefSICONV, Ativ_Usu, Msgs_Recebidas
 from project.users.forms import RegistrationForm, LoginForm, UpdateUserForm, EmailForm, PasswordForm, AdminForm,\
-                                LogForm, LogFormMan, VerForm, RelForm, AtivUsu, TrocaPasswordForm, CoordForm
+                                LogForm, LogFormMan, VerForm, RelForm, AtivUsu, TrocaPasswordForm, CoordForm, TipoLogForm
 from project.core.views import cargaSICONV, chamadas_DW
 from project.demandas.views import registra_log_auto
 
@@ -929,7 +929,7 @@ def admin_reg_ver():
                 # VERIFICA E, SER FOR O CASO, AGENDA CARGA SICONV
 
                 try:
-                    job_existente = sched.get_job(id)
+                    job_existente = sched.get_job(id_1)
                     if job_existente:
                         executa = False
                     else:
@@ -940,8 +940,8 @@ def admin_reg_ver():
                 if executa:
 
                     dia_semana = 'mon-fri'
-                    hora       = 8
-                    minuto     = 13
+                    hora       = 11
+                    minuto     = 41
 
                     msg = ('*** Agendamento acionado '+id_1+', rodando '+dia_semana+', às '+str(hora)+':'+str(minuto)+' ***')
                     print(msg)
@@ -951,10 +951,12 @@ def admin_reg_ver():
                     except:
                         sched.reschedule_job(id_1, trigger='cron', day_of_week=dia_semana, hour=hora, minute=minuto)
 
+                    registra_log_auto(current_user.id,None,'agc')    
+
                 # VERIFICA E, SER FOR O CASO, AGENDA CARGA DW                                                        
 
                 try:
-                    job_existente = sched.get_job(id)
+                    job_existente = sched.get_job(id_2)
                     if job_existente:
                         executa = False
                     else:
@@ -976,7 +978,7 @@ def admin_reg_ver():
                     except:
                         sched.reschedule_job(id_2, trigger='cron', day=dia, hour=hora, minute=minuto)
 
-                registra_log_auto(current_user.id,None,'agc')         
+                    registra_log_auto(current_user.id,None,'agc')         
 
             else:
                 sistema.carga_auto = '0' 
@@ -990,6 +992,7 @@ def admin_reg_ver():
                     sched.remove_job(id_2)
                 except:
                     print('*** Não há job '+id_2+' para cancelar. ***')
+                registra_log_auto(current_user.id,None,'agx')    
 
 
             registra_log_auto(current_user.id,None,'ver')
@@ -1356,6 +1359,7 @@ def user_log (usu):
         atividades = db.session.query(log,
                                       Plano_Trabalho.atividade_sigla)\
                                .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.programa)\
+                               .order_by(log.c.id.desc())\
                                .all()
 
         # cria lista com ocorrências de tipo de registro
@@ -1642,3 +1646,57 @@ def delete_atividade_usu(id,user_id):
     flash ('Atividade excluída da lista do usuário!','sucesso')
 
     return redirect(url_for('users.ativ_usu', user_id=user_id))
+
+
+
+
+# Lista tipos de log (sem menu)
+
+@users.route('/admin_tipos_log')
+@login_required
+
+def admin_tipos_log():
+    """+--------------------------------------------------------------------------------------+
+       |Mostra lista dos tipos de de log.                                                     |
+       |Visto somente por admin.                                                              |
+       +--------------------------------------------------------------------------------------+
+    """
+    if current_user.role[0:5] != 'admin':
+        abort(403)
+
+    tipos_log = db.session.query(Log_Desc).order_by(Log_Desc.tipo_registro).all()
+
+    return render_template('admin_tipos_log.html', tipos_log=tipos_log)
+
+## inserção de novo tipo de log pelo admin
+
+@users.route("/admin_insere_tipo_log", methods=['GET', 'POST'])
+@login_required
+def admin_insere_tipo_log():
+    """
+    +----------------------------------------------------------------------------------------------+
+    |Permite ao admin inserir novo tipo de log no sitema.                                          |
+    |                                                                                              |
+    +----------------------------------------------------------------------------------------------+
+    """
+
+    if current_user.role[0:5] != 'admin':
+
+        abort(403)
+
+    form = TipoLogForm()
+
+    if form.validate_on_submit():
+
+        novo_tipo = Log_Desc(tipo_registro = form.tipo.data,
+                             desc_registro = form.desc.data)
+        db.session.add(novo_tipo)
+        db.session.commit()
+
+        flash('Tipo '+form.tipo.data+' inserido no sistema!','sucesso')
+
+        return redirect(url_for('users.admin_tipos_log'))
+
+    return render_template('admin_insere_tipo_log.html', form=form)
+
+
