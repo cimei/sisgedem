@@ -940,8 +940,8 @@ def admin_reg_ver():
                 if executa:
 
                     dia_semana = 'mon-fri'
-                    hora       = 11
-                    minuto     = 41
+                    hora       = 8
+                    minuto     = 13
 
                     msg = ('*** Agendamento acionado '+id_1+', rodando '+dia_semana+', às '+str(hora)+':'+str(minuto)+' ***')
                     print(msg)

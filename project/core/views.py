@@ -1600,7 +1600,7 @@ def index():
     """
     sistema = db.session.query(Sistema).first()
 
-    print ('***** Início do sistema *****')
+    # print ('***** Início do sistema *****')
 
     if sistema.carga_auto == 1:   
 
@@ -1628,8 +1628,8 @@ def index():
         if executa:
 
             dia_semana = 'mon-fri'
-            hora       = 11
-            minuto     = 41
+            hora       = 8
+            minuto     = 13
 
             msg = ('*** Agendamento inicial '+id_1+', rodando '+dia_semana+', às '+str(hora)+':'+str(minuto)+' ***')
             print(msg)
