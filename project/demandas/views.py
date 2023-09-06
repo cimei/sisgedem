@@ -501,6 +501,8 @@ def tipos_update(id):
     +----------------------------------------------------------------------------------------------+
     """
 
+    unidade = current_user.coord
+
     tipo = Tipos_Demanda.query.get_or_404(id)
 
     tipo_ant = tipo.tipo
@@ -511,7 +513,7 @@ def tipos_update(id):
 
         tipo.tipo       = form.tipo.data
         tipo.relevancia = form.relevancia.data
-        tipo.unidade    = form.unidade.data
+        tipo.unidade    = unidade
 
         db.session.commit()
 
@@ -530,7 +532,6 @@ def tipos_update(id):
 
         form.tipo.data       = tipo.tipo
         form.relevancia.data = str(tipo.relevancia)
-        form.unidade.data    = tipo.unidade
 
     return render_template('add_tipo.html',
                            form=form, id=id)
@@ -546,12 +547,14 @@ def cria_tipo_demanda():
     +---------------------------------------------------------------------------------------+
     """
 
+    unidade = current_user.coord
+
     form = Tipos_DemandaForm()
 
     if form.validate_on_submit():
         tipo = Tipos_Demanda(tipo       = form.tipo.data,
                              relevancia = form.relevancia.data,
-                             unidade    = form.unidade.data)
+                             unidade    = unidade)
         db.session.add(tipo)
         db.session.commit()
 

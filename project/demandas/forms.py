@@ -63,7 +63,7 @@ class Tipos_DemandaForm(FlaskForm):
     tipo       = StringField('Tipo de Demanda')
     relevancia = SelectField('Relevância:',choices=[('3','Baixa'),('2','Média'),('1','Alta')],
                               validators=[DataRequired(message="Defina a Relevância!")])
-    unidade    = StringField('Unidade:',validators=[DataRequired(message="Informe a unidade organizacional!")])                          
+    # unidade    = StringField('Unidade:',validators=[DataRequired(message="Informe a unidade organizacional!")])                          
 
     submit     = SubmitField('Registrar')
 
