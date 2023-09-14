@@ -1,5 +1,9 @@
 ## Atualizações ##
 
+14/09/2023
+Correção na inclusão de chamada em convênio
+v5.0.5
+
 30/08/2023
 Ainda correção de erro no agendamento de cargas.
 v5.0.5

@@ -1609,10 +1609,12 @@ def index():
                                          .filter(Log_Auto.tipo_registro == 'agc')\
                                          .order_by(Log_Auto.id.desc())\
                                          .first()
-        
-        id_user = log_agenda_ant_envio.user_id
 
-        # AGENDA CARGA SICONV NA INICIALIZAÇÃO DO SITEMA
+
+        id_user = log_agenda_ant_envio.user_id
+   
+
+        # AGENDA CARGA SICONV NA INICIALIZAÇÃO DO SISTEMA
 
         id_1 = 'carga_siconv'                                                              
 
@@ -1789,7 +1791,8 @@ def cria_chamada(id_acordo_convenio):
                            vl_total_chamada = float(form.vl_total_chamada.data.replace('.','').replace(',','.')),
                            doc_sei          = form.doc_sei.data,
                            obs              = form.obs.data,
-                           id_relaciona     = str(id_acordo_convenio))
+                           id_relaciona     = str(id_acordo_convenio),
+                           qtd_processos    = 0)
 
         db.session.add(chamada)
         db.session.commit()
