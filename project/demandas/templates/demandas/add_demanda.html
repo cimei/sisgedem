@@ -32,9 +32,9 @@
         <p></p>
         <p class="font-weight-bold">
           {% if '_' in sei %}
-            SEI: {{ sei.split('_')[0]+'/'+sei.split('_')[1] }}
+            Processo: {{ sei.split('_')[0]+'/'+sei.split('_')[1] }}
           {% else %}
-            SEI: {{ sei }}
+            Processo: {{ sei }}
           {% endif %}
         </p>
         <p class="font-weight-bold">Tipo: {{ tipo }}</p>
@@ -49,17 +49,6 @@
       <div class="form-group col-4">
         {{ render_field(form.atividade,class="form-control",obr=True,placeholder="Informe NA quando não houver.") }}
       </div>
-      {% if sistema.funcionalidade_conv == 1 %}
-        <div class="form-group col-1">
-        </div>
-        <div class="form-group col-1">
-          Dados da +Brasil:
-        </div>
-        <div class="form-group">
-          {{ render_field(form.convênio,class="form-control",obr=False,placeholder="Núm., quando houver.") }}
-        </div>
-
-      {% endif %}
     </div>
 
     <div class="form-group">
@@ -82,8 +71,6 @@
     <div class="form-group">
       <div class="form-group col-3">
         {{ render_field(form.conclu,class="form-control",obr=False) }}
-      <!-- {{ form.conclu(class="form-check-input") }}
-      <b>{{ form.conclu.label(class="form-check-label") }}</b> -->
       </div>
     </div>
 

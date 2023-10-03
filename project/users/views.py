@@ -60,12 +60,11 @@ from sqlalchemy.sql import label
 from sqlalchemy.orm import aliased
 from collections import Counter
 
-from project import db, mail, app, sched
+from project import db, mail, app
 from project.models import User, Demanda, Despacho, Providencia, Coords, Log_Auto,\
-                           Log_Desc, Plano_Trabalho, Sistema, RefSICONV, Ativ_Usu, Msgs_Recebidas
+                           Plano_Trabalho, Sistema, Ativ_Usu, Msgs_Recebidas
 from project.users.forms import RegistrationForm, LoginForm, UpdateUserForm, EmailForm, PasswordForm, AdminForm,\
-                                LogForm, LogFormMan, VerForm, RelForm, AtivUsu, TrocaPasswordForm, CoordForm, TipoLogForm
-from project.core.views import cargaSICONV, chamadas_DW
+                                LogForm, LogFormMan, VerForm, RelForm, AtivUsu, TrocaPasswordForm, CoordForm
 from project.demandas.views import registra_log_auto
 
 users = Blueprint('users',__name__)
@@ -129,6 +128,59 @@ def send_password_reset_email(user_email):
 
     send_email('Atualização de senha solicitada', [user_email],'', html)
 
+
+## procedimentos para o primeiro usuário
+
+@users.route('/primeiro_user', methods=['GET','POST'])
+def primeiro_user():
+    """+--------------------------------------------------------------------------------------+
+       |Opção de cadastro do primeiro usuário no caso em que a mensageria não esteja          |
+       |Funcionando. Verifica-se se a tabela users está vazia e permite o cadastro do         |
+       |usuáro a acessar o sistema após sua instalação.                                       |
+       +--------------------------------------------------------------------------------------+
+    """
+
+    usuarios_qtd = User.query.count()
+
+    form = RegistrationForm()
+
+    if form.validate_on_submit():
+
+        if usuarios_qtd == 0:
+
+            user = User(email                      = form.email.data,
+                        username                   = form.username.data,
+                        plaintext_password         = form.password.data,
+                        despacha0                  = 0,
+                        despacha                   = 0,
+                        despacha2                  = 0,
+                        coord                      = form.coord.data,
+                        role                       = 'admin',
+                        email_confirmation_sent_on = datetime.now(),
+                        ativo                      = 1,
+                        cargo_func                 = 'a definir')
+
+            db.session.add(user)
+            db.session.commit()
+            
+            user.email_confirmed = 1
+            user.email_confirmed_on = datetime.now()
+
+            db.session.commit()
+
+            registra_log_auto(user.id,None,'Primeiro usuário '+ user.username +' registrado e confirmado de forma direta.')
+        
+            flash('Primeiro usuário '+ user.username +' registrado e confirmado de forma direta!','sucesso')
+            
+            return redirect(url_for('usuarios.login'))
+
+        else:
+            flash('Já existem usuários registrados!','erro')
+            return redirect(url_for('core.index'))
+
+    return render_template('register.html',form=form)
+
+
 # registrar
 
 @users.route('/register', methods=['GET','POST'])
@@ -138,77 +190,64 @@ def register():
        |e-mails, pois o aplicativo envia uma mensagem sobre a confirmação do registro.        |
        +--------------------------------------------------------------------------------------+
     """
+    
+    usuarios_qtd = User.query.count()
 
     form = RegistrationForm()
 
     if form.validate_on_submit():
 
-        form.check_username(form.username)
+        if form.check_username(form.username) and form.check_email(form.email):
+          
+            if form.despacha0:
+                despacha0 = 1
+            else:
+                despacha0 = 0
 
-        form.check_email(form.email)
+            if form.despacha:
+                despacha = 1
+            else:
+                despacha = 0
 
-        qtd_users = db.session.query(func.count(User.id)).first()
+            if form.despacha2:
+                despacha2 = 1
+            else:
+                despacha2 = 0    
 
-        if qtd_users[0] != 0:
-            version   = db.session.query(User.sversion).first()
-            role_user = 'user'
-        else:
-            version   = [1]
-            role_user = 'admin'
+            user = User(email                      = form.email.data,
+                        username                   = form.username.data,
+                        plaintext_password         = form.password.data,
+                        despacha0                  = despacha0,
+                        despacha                   = despacha,
+                        despacha2                  = despacha2,
+                        coord                      = form.coord.data,
+                        role                       = 'user',
+                        email_confirmation_sent_on = datetime.now(),
+                        ativo                      = 0,
+                        cargo_func                 = 'a definir')
 
-        trab_conv   = db.session.query(Sistema.funcionalidade_conv).first()
-        trab_acordo = db.session.query(Sistema.funcionalidade_acordo).first()
-        trab_instru = db.session.query(Sistema.funcionalidade_instru).first()
-
-        if form.despacha0:
-            despacha0 = 1
-        else:
-            despacha0 = 0
-
-        if form.despacha:
-            despacha = 1
-        else:
-            despacha = 0
-
-        if form.despacha2:
-            despacha2 = 1
-        else:
-            despacha2 = 0    
-
-        user = User(email                      = form.email.data,
-                    username                   = form.username.data,
-                    plaintext_password         = form.password.data,
-                    despacha0                  = despacha0,
-                    despacha                   = despacha,
-                    despacha2                  = despacha2,
-                    coord                      = form.coord.data,
-                    role                       = role_user,
-                    email_confirmation_sent_on = datetime.now(),
-                    ativo                      = 0,
-                    sversion                   = version[0],
-                    cargo_func                 = 'a definir',
-                    trab_conv                  = trab_conv[0],
-                    trab_acordo                = trab_acordo[0],
-                    trab_instru                = trab_instru[0])
-
-        db.session.add(user)
-        db.session.commit()
-
-        last_id = db.session.query(User.id).order_by(User.id.desc()).first()
-
-        registra_log_auto(last_id[0],None,'usu')
-
-        coords = db.session.query(Coords.sigla).all()
-
-        if (form.coord.data,) not in coords:
-            coord = Coords(sigla = form.coord.data)
-            db.session.add(coord)
+            db.session.add(user)
             db.session.commit()
 
-        send_confirmation_email(user.email)
-        flash('Usuário registrado! Verifique sua caixa de e-mail para confirmar o endereço.','sucesso')
-        return redirect(url_for('core.inicio'))
+            last_id = db.session.query(User.id).order_by(User.id.desc()).first()
 
+            registra_log_auto(last_id[0],None,'Usuário registrado.')
+
+            coords = db.session.query(Coords.sigla).all()
+
+            if form.coord.data not in coords:
+                coord = Coords(sigla = form.coord.data)
+                db.session.add(coord)
+                db.session.commit()
+
+            send_confirmation_email(user.email)
+            flash('Usuário registrado! Verifique sua caixa de e-mail para confirmar o endereço.','sucesso')
+            return redirect(url_for('core.inicio'))
+
+    if usuarios_qtd == 0:
+        flash('Não foram encontrados usuários no sistema. O primeiro será registrado de forma direta.','perigo')
+        return redirect(url_for('users.primeiro_user')) 
+    
     return render_template('register.html',form=form)
 
 # confirmar registro
@@ -434,7 +473,7 @@ def account():
 
         db.session.commit()
 
-        registra_log_auto(current_user.id,None,'usu')
+        registra_log_auto(current_user.id,None,'Usuário atualizado.')
 
         flash('Usuário atualizado!','sucesso')
         return redirect (url_for('users.account'))
@@ -445,18 +484,28 @@ def account():
         form.email.data = current_user.email
 
         # calcula quantidade de demandas do usuário
-        user_demandas = db.session.query(Demanda.user_id,func.count(Demanda.user_id))\
+        user_demandas = db.session.query(Demanda.user_id,
+                                         label('qtd',func.count(Demanda.user_id)))\
                                   .filter(Demanda.user_id == current_user.id)\
-                                  .group_by(Demanda.user_id)
+                                  .group_by(Demanda.user_id)\
+                                  .all()
 
-        qtd_demandas = user_demandas[0][1]
+        if user_demandas:
+            qtd_demandas = user_demandas.qtd
+        else:
+            qtd_demandas = 0
 
         # calcula quantidade de demandas concluídas do usuário
-        user_demandas_conclu = db.session.query(Demanda.user_id,func.count(Demanda.user_id))\
+        user_demandas_conclu = db.session.query(Demanda.user_id,
+                                                label('qtd',func.count(Demanda.user_id)))\
                                          .filter(Demanda.user_id == current_user.id, Demanda.conclu == '1')\
-                                         .group_by(Demanda.user_id)
+                                         .group_by(Demanda.user_id)\
+                                         .first()
 
-        qtd_demandas_conclu = user_demandas_conclu[0][1]
+        if user_demandas_conclu:
+            qtd_demandas_conclu = user_demandas_conclu.qtd
+        else:
+            qtd_demandas_conclu = 0
 
         if qtd_demandas != 0:
             percent_conclu = round((qtd_demandas_conclu / qtd_demandas) * 100)
@@ -882,120 +931,28 @@ def admin_reg_ver():
     if current_user.role[0:5] != 'admin':
         abort(403)
     else:
-        users   = User.query.order_by(User.id).all()
         sistema = Sistema.query.first()
-        inst    = RefSICONV.query.first()
 
         form = VerForm()
 
         if form.validate_on_submit():
-
-            for user in users:
-
-                user.sversion = form.ver.data
-                if not form.funcionalidade_conv.data:
-                    user.trab_conv = 0
-                if not form.funcionalidade_acordo.data:
-                    user.trab_acordo = 0
-                if not form.funcionalidade_instru.data:
-                    user.trab_instru = 0
-
-            db.session.commit()
-
-            sistema.nome_sistema          = form.nome_sistema.data
-            sistema.descritivo            = form.descritivo.data
-            if form.funcionalidade_conv.data:
-                sistema.funcionalidade_conv   = '1'
-            else:
-                sistema.funcionalidade_conv   = '0'
-            if form.funcionalidade_acordo.data:
-                sistema.funcionalidade_acordo = '1'
-            else:
-                 sistema.funcionalidade_acordo = '1'
-            if form.funcionalidade_instru.data:
-                sistema.funcionalidade_instru = '1'
-            else:
-                sistema.funcionalidade_instru = '0'
-            inst.cod_inst                 = form.cod_inst.data
-
             
-            id_1 = 'carga_siconv'
-            id_2 = 'carga_chamadas_DW'      
-            
-            if form.carga_auto.data: 
+            if sistema:
 
-                sistema.carga_auto   = '1'   
-
-                # VERIFICA E, SER FOR O CASO, AGENDA CARGA SICONV
-
-                try:
-                    job_existente = sched.get_job(id_1)
-                    if job_existente:
-                        executa = False
-                    else:
-                        executa = True      
-                except:
-                    executa = True
-
-                if executa:
-
-                    dia_semana = 'mon-fri'
-                    hora       = 8
-                    minuto     = 13
-
-                    msg = ('*** Agendamento acionado '+id_1+', rodando '+dia_semana+', às '+str(hora)+':'+str(minuto)+' ***')
-                    print(msg)
-                    try:
-                        sched.add_job(trigger='cron', id=id_1, func=cargaSICONV, day_of_week=dia_semana, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
-                        sched.start()
-                    except:
-                        sched.reschedule_job(id_1, trigger='cron', day_of_week=dia_semana, hour=hora, minute=minuto)
-
-                    registra_log_auto(current_user.id,None,'agc')    
-
-                # VERIFICA E, SER FOR O CASO, AGENDA CARGA DW                                                        
-
-                try:
-                    job_existente = sched.get_job(id_2)
-                    if job_existente:
-                        executa = False
-                    else:
-                        executa = True      
-                except:
-                    executa = True
-
-                if executa:
-
-                    dia    ='2nd tue'
-                    hora   = 18
-                    minuto = 18
-
-                    msg = ('*** Agendamento inicial '+id_2+', rodando '+dia+', às '+str(hora)+':'+str(minuto)+' ***')
-                    print(msg)
-                    try:
-                        sched.add_job(trigger='cron', id=id_2, func=chamadas_DW, day=dia, hour=hora, minute=minuto, misfire_grace_time=3600, coalesce=True)
-                        sched.start()
-                    except:
-                        sched.reschedule_job(id_2, trigger='cron', day=dia, hour=hora, minute=minuto)
-
-                    registra_log_auto(current_user.id,None,'agc')         
-
+                sistema.nome_sistema  = form.nome_sistema.data
+                sistema.descritivo    = form.descritivo.data
+                sistema.versao        = form.ver.data
+                
             else:
-                sistema.carga_auto = '0' 
-                msg =  ('*** Jobs de carga serão CANCELADOS. Não haverá cargas automáticas. ***')
-                print(msg)
-                try:
-                    sched.remove_job(id_1) 
-                except:
-                    print('*** Não há job '+id_1+' para cancelar. ***')  
-                try:      
-                    sched.remove_job(id_2)
-                except:
-                    print('*** Não há job '+id_2+' para cancelar. ***')
-                registra_log_auto(current_user.id,None,'agx')    
+                
+                dados_sistema = Sistema(nome_sistema = form.nome_sistema.data,
+                                        descritivo   = form.descritivo.data,
+                                        versao       = form.ver.data)
+                db.session.add(dados_sistema) 
+                
+            db.session.commit()    
 
-
-            registra_log_auto(current_user.id,None,'ver')
+            registra_log_auto(current_user.id,None,'Dados gerais do sistema atualizados.')
 
             flash('Dados gerais do sistema atualizados!','sucesso')
 
@@ -1004,14 +961,10 @@ def admin_reg_ver():
         # traz a versão atual
         elif request.method == 'GET':
 
-            form.ver.data                   = users[0].sversion
-            form.nome_sistema.data          = sistema.nome_sistema
-            form.descritivo.data            = sistema.descritivo
-            form.funcionalidade_conv.data   = sistema.funcionalidade_conv
-            form.funcionalidade_acordo.data = sistema.funcionalidade_acordo
-            form.funcionalidade_instru.data = sistema.funcionalidade_instru
-            form.cod_inst.data              = inst.cod_inst
-            form.carga_auto.data            = sistema.carga_auto
+            if sistema:
+                form.ver.data                   = sistema.versao
+                form.nome_sistema.data          = sistema.nome_sistema
+                form.descritivo.data            = sistema.descritivo
 
         return render_template('admin_reg_ver.html', title='Update', form=form)
 
@@ -1088,17 +1041,14 @@ def admin_update_user(user_id):
 
             user.role        = form.role.data
             user.cargo_func  = form.cargo_func.data
-
-            if sistema.funcionalidade_conv == 1:
-                user.trab_conv   = int(form.trab_conv.data)
-            if sistema.funcionalidade_acordo == 1:
-                user.trab_acordo = int(form.trab_acordo.data)
-            if sistema.funcionalidade_instru == 1:
-                user.trab_instru = int(form.trab_instru.data)
+            
+            if user.email_confirmed == 0 and form.ativo.data:
+                user.email_confirmed = 1
+                user.email_confirmed_on = datetime.now()    
 
             db.session.commit()
 
-            registra_log_auto(current_user.id,None,'adm')
+            registra_log_auto(current_user.id,None,'Usuário atualizado.')
 
             flash('Usuário atualizado!','sucesso')
 
@@ -1114,9 +1064,6 @@ def admin_update_user(user_id):
             form.role.data        = user.role
             form.cargo_func.data  = user.cargo_func
             form.ativo.data       = user.ativo
-            form.trab_conv.data   = user.trab_conv
-            form.trab_acordo.data = user.trab_acordo
-            form.trab_instru.data = user.trab_instru
 
         return render_template('admin_update_user.html', title='Update', name=user.username,
                                form=form)
@@ -1169,6 +1116,8 @@ def admin_insere_coord():
             db.session.add(nova_coord)
             db.session.commit()
 
+            registra_log_auto(current_user.id,None,'Unidade '+form.coord.data+' inserida no sistema.')
+            
             flash('Unidade '+form.coord.data+' inserida no sistema!','sucesso')
 
             return redirect(url_for('users.admin_view_coords'))
@@ -1204,6 +1153,7 @@ def admin_update_coord(id):
             coord.pai   = form.pai.data
             db.session.commit()
 
+            registra_log_auto(current_user.id,None,'Unidade '+form.coord.data+' alterada.')
             flash('Unidade '+form.coord.data+' alterada!','sucesso')
 
             return redirect(url_for('users.admin_view_coords'))
@@ -1250,26 +1200,22 @@ def user_log (usu):
 
         data_ini = form.data_ini.data
         data_fim = form.data_fim.data
-        log_part = form.log_part.data
 
         if user_id == '%':
             log = db.session.query(Log_Auto.id,
                                 Log_Auto.data_hora,
                                 Log_Auto.demanda_id,
-                                Log_Auto.tipo_registro,
+                                Log_Auto.registro,
                                 Log_Auto.atividade,
-                                Log_Desc.desc_registro,
                                 User.username,
                                 Demanda.programa,
                                 label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                 Log_Auto.duracao)\
-                            .outerjoin(Log_Desc, Log_Auto.tipo_registro == Log_Desc.tipo_registro)\
                             .join(User, Log_Auto.user_id == User.id)\
                             .outerjoin(Demanda, Demanda.id == Log_Auto.demanda_id)\
                             .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Log_Auto.atividade)\
                             .filter(Log_Auto.data_hora >= datetime.combine(data_ini,time.min),
-                                    Log_Auto.data_hora <= datetime.combine(data_fim,time.max),
-                                    Log_Auto.tipo_registro.like('%'+log_part+'%'))\
+                                    Log_Auto.data_hora <= datetime.combine(data_fim,time.max))\
                             .order_by(Log_Auto.id.desc())\
                             .subquery()
 
@@ -1277,21 +1223,18 @@ def user_log (usu):
             log = db.session.query(Log_Auto.id,
                                 Log_Auto.data_hora,
                                 Log_Auto.demanda_id,
-                                Log_Auto.tipo_registro,
+                                Log_Auto.registro,
                                 Log_Auto.atividade,
-                                Log_Desc.desc_registro,
                                 User.username,
                                 Demanda.programa,
                                 label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                 Log_Auto.duracao)\
-                            .outerjoin(Log_Desc, Log_Auto.tipo_registro == Log_Desc.tipo_registro)\
                             .join(User, Log_Auto.user_id == User.id)\
                             .outerjoin(Demanda, Demanda.id == Log_Auto.demanda_id)\
                             .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Log_Auto.atividade)\
                             .filter(Log_Auto.user_id == user_id,
                                     Log_Auto.data_hora >= datetime.combine(data_ini,time.min),
-                                    Log_Auto.data_hora <= datetime.combine(data_fim,time.max),
-                                    Log_Auto.tipo_registro.like('%'+log_part+'%'))\
+                                    Log_Auto.data_hora <= datetime.combine(data_fim,time.max))\
                             .order_by(Log_Auto.id.desc())\
                             .subquery()
 
@@ -1302,16 +1245,9 @@ def user_log (usu):
                                .order_by(log.c.id.desc())\
                                .all()
 
-        # cria lista com ocorrências de tipo de registro
-
-        l_log = [entrada.desc_registro for entrada in atividades]
-
-        # conta entradas no log por tipo de registro, gerando um dicionário classificado
-
-        agregado = {k: v for k, v in sorted(Counter(l_log).items(), key=lambda item: item[1])}
 
         return render_template('user_log.html', log=log, atividades = atividades, name=current_user.username,
-                               form=form, usu=usu, agregado=agregado)
+                               form=form, usu=usu)
 
 
     # traz a log das últimas 24 horas e registra entrada manual de log, se for o caso.
@@ -1321,14 +1257,12 @@ def user_log (usu):
             log = db.session.query(Log_Auto.id,
                                 Log_Auto.data_hora,
                                 Log_Auto.demanda_id,
-                                Log_Auto.tipo_registro,
+                                Log_Auto.registro,
                                 Log_Auto.atividade,
-                                Log_Desc.desc_registro,
                                 User.username,
                                 Demanda.programa,
                                 label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                 Log_Auto.duracao)\
-                            .outerjoin(Log_Desc, Log_Auto.tipo_registro == Log_Desc.tipo_registro)\
                             .join(User, Log_Auto.user_id == User.id)\
                             .outerjoin(Demanda, Demanda.id == Log_Auto.demanda_id)\
                             .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Log_Auto.atividade)\
@@ -1339,14 +1273,12 @@ def user_log (usu):
             log = db.session.query(Log_Auto.id,
                                 Log_Auto.data_hora,
                                 Log_Auto.demanda_id,
-                                Log_Auto.tipo_registro,
+                                Log_Auto.registro,
                                 Log_Auto.atividade,
-                                Log_Desc.desc_registro,
                                 User.username,
                                 Demanda.programa,
                                 label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                 Log_Auto.duracao)\
-                            .outerjoin(Log_Desc, Log_Auto.tipo_registro == Log_Desc.tipo_registro)\
                             .join(User, Log_Auto.user_id == User.id)\
                             .outerjoin(Demanda, Demanda.id == Log_Auto.demanda_id)\
                             .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Log_Auto.atividade)\
@@ -1362,17 +1294,9 @@ def user_log (usu):
                                .order_by(log.c.id.desc())\
                                .all()
 
-        # cria lista com ocorrências de tipo de registro
-
-        l_log = [entrada.desc_registro for entrada in atividades]
-
-        # conta entradas no log por tipo de registro, gerando um dicionário classificado
-
-        agregado = {k: v for k, v in sorted(Counter(l_log).items(), key=lambda item: item[1])}
-
 
         return render_template('user_log.html', log=log, atividades=atividades, name=current_user.username,
-                           form=form, form2=form2, usu=usu, agregado=agregado)
+                           form=form, form2=form2, usu=usu)
 
 #
 # registro de observações do usuário no log
@@ -1396,7 +1320,7 @@ def user_obs():
             reg_log = Log_Auto(data_hora     = datetime.now(),
                                user_id       = current_user.id,
                                demanda_id    = None,
-                               tipo_registro = 'man: '+form.entrada_log.data,
+                               registro = 'man: '+form.entrada_log.data,
                                atividade     = form.atividade.data,
                                duracao       = form.duracao.data)
             db.session.add(reg_log)
@@ -1498,16 +1422,14 @@ def user_rel():
         log = db.session.query(Log_Auto.id,
                                Log_Auto.data_hora,
                                Log_Auto.demanda_id,
-                               Log_Auto.tipo_registro,
+                               Log_Auto.registro,
                                Log_Auto.atividade,
-                               Log_Desc.desc_registro,
                                User.username,
                                Demanda.programa,
                                Demanda.sei,
                                Demanda.conclu,
                                label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                Log_Auto.duracao)\
-                        .outerjoin(Log_Desc, Log_Desc.tipo_registro == Log_Auto.tipo_registro)\
                         .join(User, User.id == Log_Auto.user_id)\
                         .outerjoin(Demanda, Demanda.id == Log_Auto.demanda_id)\
                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Log_Auto.atividade)\
@@ -1648,55 +1570,5 @@ def delete_atividade_usu(id,user_id):
     return redirect(url_for('users.ativ_usu', user_id=user_id))
 
 
-
-
-# Lista tipos de log (sem menu)
-
-@users.route('/admin_tipos_log')
-@login_required
-
-def admin_tipos_log():
-    """+--------------------------------------------------------------------------------------+
-       |Mostra lista dos tipos de de log.                                                     |
-       |Visto somente por admin.                                                              |
-       +--------------------------------------------------------------------------------------+
-    """
-    if current_user.role[0:5] != 'admin':
-        abort(403)
-
-    tipos_log = db.session.query(Log_Desc).order_by(Log_Desc.tipo_registro).all()
-
-    return render_template('admin_tipos_log.html', tipos_log=tipos_log)
-
-## inserção de novo tipo de log pelo admin
-
-@users.route("/admin_insere_tipo_log", methods=['GET', 'POST'])
-@login_required
-def admin_insere_tipo_log():
-    """
-    +----------------------------------------------------------------------------------------------+
-    |Permite ao admin inserir novo tipo de log no sitema.                                          |
-    |                                                                                              |
-    +----------------------------------------------------------------------------------------------+
-    """
-
-    if current_user.role[0:5] != 'admin':
-
-        abort(403)
-
-    form = TipoLogForm()
-
-    if form.validate_on_submit():
-
-        novo_tipo = Log_Desc(tipo_registro = form.tipo.data,
-                             desc_registro = form.desc.data)
-        db.session.add(novo_tipo)
-        db.session.commit()
-
-        flash('Tipo '+form.tipo.data+' inserido no sistema!','sucesso')
-
-        return redirect(url_for('users.admin_tipos_log'))
-
-    return render_template('admin_insere_tipo_log.html', form=form)
 
 

@@ -23,12 +23,7 @@
             <h4><a class="card-title" href="{{url_for('demandas.demanda',demanda_id=demanda.id)}}"><abbr title="Clique aqui para ver detalhes da demanda">{{demanda.titulo}}</abbr></a></h4>
           {% endif %}
           <p>Tipo: {{demanda.tipo}}</p>
-          SEI: {{demanda.sei}}
-            {% if demanda.convênio != None and demanda.convênio != '' and demanda.convênio != 0 %}
-              <p>Convênio: {{demanda.convênio}}/{{demanda.ano_convênio}}</p>
-            {% else %}
-              <p></p>
-            {% endif %}
+          Processo: {{demanda.sei}}
 
           <p>Responsável: <a href="{{url_for('users.user_posts',username=demanda.username,filtro='*')}}"><abbr title="Clique aqui para ver demandas desta pessoa">{{demanda.username}}</abbr></a></p>
           <p>Aberta em: {{demanda.data.strftime('%x - %H:%M')}}</p>

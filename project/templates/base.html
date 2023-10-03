@@ -40,12 +40,12 @@
   </head>
   <body>
 
-    <nav class="navbar navbar-expand-lg navbar-light" style="background-color: #e3f2fd;">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
 
 
 
       <a class="navbar-brand" href="#">
-        <img src="/static/coop_nac.png" width="30" height="41" alt="">
+        <img src="/static/agu.png" width="60" height="40" alt="">
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -62,49 +62,14 @@
             <a class="nav-link" href="{{url_for('core.info')}}">Sobre</a>
           </li>
 
-          {% if current_user.is_authenticated and current_user.trab_conv == 1 %}
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown1" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Convênios
-              </a>
-              <div class="dropdown-menu" aria-labelledby="navbarDropdown1">
-                <a class="dropdown-item" href="{{url_for('convenios.lista_programas_pref')}}">Programas</a>
-                <a class="dropdown-item" href="{{url_for('convenios.lista_convenios_SICONV',lista='todos',coord='usu')}}">Lista todos</a>
-                <a class="dropdown-item" href="{{url_for('convenios.lista_convenios_SICONV',lista='em execução',coord='usu')}}">Lista em execução</a>
-                <a class="dropdown-item" href="{{url_for('convenios.quadro_convenios')}}">Em execução por UF e Programa</a>
-                <a class="dropdown-item" href="{{url_for('convenios.resumo_convenios')}}">Histórico por Programa</a>
-                <a class="dropdown-item" href="{{url_for('convenios.brasil_convenios')}}">Mapa</a>
-                <a class="dropdown-item" href="{{url_for('convenios.msg_siconv')}}">Mensagens SICONV</a>
-              </div>
-            </li>
-          {% endif %}
-
-          {% if current_user.is_authenticated and current_user.trab_acordo == 1 %}
+          {% if current_user.is_authenticated %}
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Acordos/TEDs
+                objetos
               </a>
               <div class="dropdown-menu" aria-labelledby="navbarDropdown2">
-                <a class="dropdown-item" href="{{url_for('acordos.lista_programa_cnpq')}}">Programas CNPq</a>
-                <a class="dropdown-item" href="{{url_for('acordos.lista_acordos',lista='todos',coord='usu')}}">Todos</a>
-                <a class="dropdown-item" href="{{url_for('acordos.lista_acordos',lista='em execução',coord='usu')}}">Vigentes</a>
-                <a class="dropdown-item" href="{{url_for('acordos.quadro_acordos')}}">Vigentes por UF e Programa</a>
-                <a class="dropdown-item" href="{{url_for('acordos.resumo_acordos')}}">Histórico por Programa</a>
-                <a class="dropdown-item" href="{{url_for('acordos.brasil_acordos')}}">Mapa</a>
-                <a class="dropdown-item" href="{{url_for('bolsas.lista_bolsas')}}">Bolsas</a>
-              </div>
-            </li>
-
-          {% endif %}
-
-          {% if current_user.is_authenticated and current_user.trab_instru == 1 %}
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Instrumentos
-              </a>
-              <div class="dropdown-menu" aria-labelledby="navbarDropdown2">
-                <a class="dropdown-item" href="{{url_for('instrumentos.lista_instrumentos',lista='todos',coord='*')}}">Todos</a>
-                <a class="dropdown-item" href="{{url_for('instrumentos.lista_instrumentos',lista='em execução',coord='*')}}">Vigentes</a>
+                <a class="dropdown-item" href="{{url_for('objetos.lista_objetos',lista='todos',coord='*')}}">Todos</a>
+                <a class="dropdown-item" href="{{url_for('objetos.lista_objetos',lista='em execução',coord='*')}}">Vigentes</a>
               </div>
             </li>
           {% endif %}
@@ -112,11 +77,11 @@
           {% if current_user.is_authenticated %}
 
             <li class="nav-item">
-              <a class="nav-link" href="{{url_for('users.logout')}}"><div class="text-success">Sair</div></a>
+              <a class="nav-link" href="{{url_for('users.logout')}}"><div class="text-dark">Sair</div></a>
             </li>
 
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle text-success" href="#" id="navbarDropdown5" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              <a class="nav-link dropdown-toggle text-dark" href="#" id="navbarDropdown5" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 {{current_user.username}}
               </a>
               <div class="dropdown-menu" aria-labelledby="navbarDropdown5">
@@ -141,40 +106,20 @@
               </div>
             </li>
 
-            {% if current_user.is_authenticated %}
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle text-warning" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                  Carga
-                </a>
-                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                  {% if current_user.trab_acordo == 1 %}
-                    <a class="dropdown-item" href="{{url_for('acordos.programas_por_unidade_DW')}}">Pega Programas DW</a>
-                    <a class="dropdown-item" href="{{url_for('acordos.espera_carga',carga='acordos#chamadas_por_programa_DW')}}">Pega Chamadas DW</a>
-                    <a class="dropdown-item" href="{{url_for('acordos.espera_carga',carga='acordos#dados_financeiros_acordos_DW')}}">Pega Financeiro DW</a>
-                    <div class="dropdown-divider"></div>
-                  {% endif %}
-                  {% if current_user.trab_conv == 1 %}
-                    <button class="dropdown-item" data-toggle='modal' data-target='#siconv_modal'>Carrega SICONV</button>
-                    <a class="dropdown-item" href="{{url_for('core.carregaMSG')}}">Carrega Caixa de Entrada SICONV</a>
-                  {% endif %}
-                </div>
-              </li>
-            {% endif %}
-
           {% else %}
 
             <li class="nav-item">
-              <a class="nav-link" href="{{url_for('users.login')}}"><div class="text-success">Entrar</div></a>
+              <a class="nav-link" href="{{url_for('users.login')}}"><div class="text-dark">Entrar</div></a>
             </li>
 
             <li class="nav-item">
-              <a class="nav-link" href="{{url_for('users.register')}}"><div class="text-success">Registrar-se</div></a>
+              <a class="nav-link" href="{{url_for('users.register')}}"><div class="text-dark">Registrar-se</div></a>
             </li>
 
           {% endif %}
 
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-primary" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <a class="nav-link dropdown-toggle text-dark" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               Demandas
             </a>
             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
@@ -190,13 +135,7 @@
             </div>
           </li>
 
-          {% set ver = namespace(num='5.0.5') %}
-
-          {% if current_user.is_authenticated and current_user.sversion != ver.num %}
-            <li class="nav-item">
-              <span class="navbar-text text-danger">ATENÇÃO! VOCÊ NÃO ESTÁ EXECUTANDO A VERSÃO CORRETA DO SISTEMA!</span>
-            </li>
-          {% endif %}
+          {% set ver = namespace(num='1.0.0') %}
 
         </ul>
 
@@ -243,35 +182,6 @@
 
       {% endif %}
     {% endwith %}
-
-{# modal para carga #}
-
-<div class="modal" tabindex="-1" role="dialog" id="siconv_modal">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Fazer carga SICONV?</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p>Deseja realmente iniciar a carga de dados SICONV?</p>
-        <p class="text-danger">ATENÇÃO!</p>
-        <p class="text-danger">A carga pode demorar até 30 min. Acompanhe pela janela do terminal.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-
-        <form action="{{url_for('core.carregaSICONV')}}" method="post">
-          <input class="btn btn-primary" type="submit" name="" value="Iniciar">
-        </form>
-
-      </div>
-    </div>
-  </div>
-</div>
-
 
 
   {% block content %}

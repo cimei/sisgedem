@@ -42,7 +42,7 @@
               <td align="center"> {% if user.registered_on != None %} {{user.registered_on.strftime('%x')}} {% endif %} </td>
               <td align="center"> {% if user.email_confirmed == 1 %} Sim {% else %} Não {% endif %} </td>
               <td align="center"> {% if user.email_confirmed_on != None %} {{user.email_confirmed_on.strftime('%x')}} {% endif %}</td>
-              <td align="center"> {% if user.current_logged_in != None %} {{user.current_logged_in.strftime('%c')}} {% endif %}</td>
+              <td align="center"> {% if user.current_logged_in != None %} {{user.current_logged_in.strftime('%x')}} {% endif %}</td>
               <td align="center"> {% if user.ativo == 1 %} Sim {% else %} Não {% endif %} </td>
             </tr>
           {% endfor %}

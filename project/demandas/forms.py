@@ -83,7 +83,7 @@ class Admin_Altera_Demanda_Form(FlaskForm):
 
 class DemandaForm1(FlaskForm):
     # choices do campo tipo são definido na view
-    sei                 = StringField('SEI:',validators=[DataRequired(message="Informe o Processo!")]) # incluir regex para sei, talvez ?!?!
+    sei                 = StringField('Processo:',validators=[DataRequired(message="Informe o Processo!")]) # incluir regex para sei, talvez ?!?!
     tipo                = SelectField('Tipo:', validators=[DataRequired(message="Escolha um Tipo!")])
     submit              = SubmitField('Verificar')
 
@@ -107,7 +107,7 @@ class Demanda_ATU_Form(FlaskForm):
 
     # programa            = StringField('Programa:',validators=[DataRequired(message="Escolha um Programa!")])
     atividade     = SelectField('Atividade:', validators=[DataRequired(message="Escolha uma atividade do plano de trabalho!")])
-    sei           = StringField('SEI:')
+    sei           = StringField('Processo:')
     tipo          = SelectField('Tipo:')
     convênio      = IntegerField('Convênio:', validators=[Optional()])
     ano_convênio  = IntegerField('Ano do Convênio:', validators=[Optional()])
@@ -146,7 +146,7 @@ class ProvidenciaForm(FlaskForm):
 class PesquisaForm(FlaskForm):
 
     coord               = SelectField('Coordenação:')
-    sei                 = StringField('SEI:')
+    sei                 = StringField('Processo:')
     convênio            = StringField('Convênio:')
     tipo                = SelectField()
     titulo              = StringField('Título:')

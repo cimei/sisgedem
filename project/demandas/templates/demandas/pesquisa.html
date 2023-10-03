@@ -15,8 +15,7 @@
        <li class="list-inline-item">Coord: {% if pesq_l[9] == "%" %}Vazio{% else %} <mark>{{pesq_l[9]}}</mark>{% endif %} </li>
        <li class="list-inline-item">Demanda: {% if pesq_l[7] == "%%" %}Vazio{% else %} <mark>{{pesq_l[7]}}</mark>{% endif %} </li>
        <li class="list-inline-item">Atividade: {% if pesq_l[8] == "%%" %}Vazio{% else %} <mark>{{pesq_l[8]}}</mark>{% endif %} </li>
-       <li class="list-inline-item">SEI: {% if pesq_l[0] == ""%}Vazio{% else %} <mark>{{pesq_l[0]}}</mark>{% endif %} </li>
-       <li class="list-inline-item">Convênio: {% if pesq_l[5] == ""%} Vazio{% else %} <mark>{{pesq_l[5]}}</mark>{% endif %} </li>
+       <li class="list-inline-item">Processo: {% if pesq_l[0] == ""%}Vazio{% else %} <mark>{{pesq_l[0]}}</mark>{% endif %} </li>
        <li class="list-inline-item">Título: {% if pesq_l[1] == ""%} Vazio{% else %} <mark>{{pesq_l[1]}}</mark>{% endif %} </li>
        <li class="list-inline-item">Resp.: {% if pesq_l[6] == ""%} Vazio{% else %} <mark>{{pesq_l[6]}}</mark>{% endif %} </li>
        <li class="list-inline-item">Tipo: {% if pesq_l[2] == "Todos"%} Todos{% else %} <mark>{{pesq_l[2]}}</mark>{% endif %} </li>
@@ -45,12 +44,8 @@
           <span>Demanda: {{demanda.id}} ({{demanda.coord}}) - {{demanda.atividade_sigla}}</span>
           <h4><a class="card-title" href="{{url_for('demandas.demanda',demanda_id=demanda.id)}}">{{demanda.titulo}}</a></h4>
           <p>Tipo: {{demanda.tipo}}</p>
-          SEI: {{demanda.sei}}
-            {% if demanda.convênio != None and demanda.convênio != '' and demanda.convênio != 0 %}
-              <p>Convênio: {{demanda.convênio}}/{{demanda.ano_convênio}}</p>
-            {% else %}
-              <p></p>
-            {% endif %}
+          Processo: {{demanda.sei}}
+
           <p>Responsável: <a href="{{url_for('users.user_posts',username=demanda.username,filtro='*')}}">{{demanda.username}}</a></p>
 
           <p>Aberta em: {{demanda.data.strftime('%x - %H:%M')}}</p>

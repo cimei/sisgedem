@@ -48,21 +48,26 @@ class RegistrationForm(FlaskForm):
     password     = PasswordField('Senha: ', validators=[DataRequired(message="Informe uma senha!"),EqualTo('pass_confirm',message='Senhas devem ser iguais!')])
     pass_confirm = PasswordField('Confirmar Senha: ', validators=[DataRequired(message="Confirme a senha!")])
     # não é utilizada a lista de coordenações, pois o usuário pode se registrar antes de existirem coordenações no banco.
-    coord        = StringField('Coordenação:',validators=[DataRequired(message="Informe a Coordenação!")])
+    coord        = StringField('Unidade:',validators=[DataRequired(message="Informe a Unidade organizacional!")])
     despacha     = BooleanField('Você é coordenador, ou o seu substituto?')
     despacha2    = BooleanField('Você é coordenador-geral, ou o seu substituto?')
     despacha0    = BooleanField('Você é chefe de serviço, ou o seu substituto?')
     submit       = SubmitField('Registrar-se')
 
+       
     def check_email(self,field):
         if User.query.filter_by(email=field.data).first():
-            flash('Este e-mail já foi registrado!','erro')
-            raise ValidationError('Este e-mail já foi registrado!')
+            flash('O e-mail ' + field.data + ' já foi registrado!','erro')
+            return False
+        else:
+            return True    
 
     def check_username(self,field):
-        if User.query.filter_by(username=field.data).first():
-            flash('Este nome de usuário já foi registrado! Por favor, escolha outro.','erro')
-            raise ValidationError('Este nome de usuário já foi registrado!')
+        if User.query.filter_by(usernamne=field.data).first():
+            flash('Nome de usuário ' + field.data + ' já foi registrado! Por favor, escolha outro.','erro')
+            return False
+        else:
+            return True    
 
 
 class UpdateUserForm(FlaskForm):
@@ -115,7 +120,7 @@ class AdminForm(FlaskForm):
     ativo        = BooleanField('Usuário está ativo?')
     trab_conv    = BooleanField('Usuário trabalha com convênios?')
     trab_acordo  = BooleanField('Usuário trabalha com acordos e encomendas?')
-    trab_instru  = BooleanField('Usuário trabalha com instrumentos?')
+    trab_instru  = BooleanField('Usuário trabalha com objetos?')
     submit       = SubmitField('Atualizar')
 
 class CoordForm(FlaskForm):
@@ -129,7 +134,6 @@ class LogForm(FlaskForm):
 
     data_ini = DateField('Data Inicial: ', format='%Y-%m-%d')
     data_fim = DateField('Data Final: ', format='%Y-%m-%d')
-    log_part = StringField('Ação: ')
     submit   = SubmitField('Procurar')
 
 class LogFormMan(FlaskForm):
@@ -152,7 +156,7 @@ class VerForm(FlaskForm):
     descritivo            = TextAreaField('Descritivo: ')
     funcionalidade_conv   = BooleanField('Habilitar funcionalidade convênios?')
     funcionalidade_acordo = BooleanField('Habilitar funcionalidade acordos?')
-    funcionalidade_instru = BooleanField('Habilitar funcionalidade instrumentos?')
+    funcionalidade_instru = BooleanField('Habilitar funcionalidade objetos?')
     carga_auto            = BooleanField('Habilitar carga automática?')
     submit                = SubmitField('Registrar')
 

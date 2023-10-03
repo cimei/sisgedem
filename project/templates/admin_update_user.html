@@ -53,20 +53,6 @@
     {{ render_field(form.ativo,class="form-control", obr=True) }}
   </div>
 
-  <div class="row">
-    <div class="form-group col-4">
-      {{ render_field(form.trab_conv,class="form-control", obr=False) }}
-    </div>
-    <div class="form-group col-4">
-      {{ render_field(form.trab_acordo,class="form-control", obr=False) }}
-    </div>
-    <div class="form-group col-4">
-      {{ render_field(form.trab_instru,class="form-control", obr=False) }}
-    </div>
-    <div class="col-8">
-      <p align="center">OBS: Estas opções dependem do uso das respectivas funcionalidades pelo sistema.</p>
-    </div>
-  </div>
 
   <div class="form-group">
     {{ form.submit(class="btn btn-outline-primary") }}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="jumbotron">
+<h5>Lista de objetos</h5>
+
+  {% if current_user.is_authenticated %}
+    <div>
+      <div class="row">
+        <div class="col-1">
+          <a href="{{url_for('objetos.cria_objeto')}}" class="btn btn-primary active" role="button" aria-pressed="true">Inserir novo</a>
+        </div>
+        <div class="col">
+          <small class="form-text text-muted">Ou clique em um número de sequência para alterar dados do respectivo objeto.</small>
+        </div>
+
+  {% endif %}
+        <div class="col">
+          <form class="form-group" method='POST'>
+            {{ form.hidden_tag() }}
+              <div class="row">
+                <div class="col">
+                  {{ form.coord(class="form-control form-control-sm") }}
+                </div>
+                <div class="col">
+                  {{ form.submit(class="btn btn-outline-primary btn-sm") }}
+                </div>
+              </div>
+          </div>
+      </div>
+<br>
+
+<caption>
+  <div class="row">
+      <div class="col">
+        <p>Lista dos <span class="badge badge-pill badge-primary">{{quantidade}}</span>
+          <span class="font-weight-bold">objetos</span> cadastrados
+          {% if lista == 'todos' %}
+            <span class="text-info font-weight-bold">(todos)</span>
+          {% endif %}
+          {% if lista == 'em execução' %}
+            <span class="text-info font-weight-bold">(vigentes)</span>
+          {% endif %}
+      </p>
+      </div>
+
+  </div>
+</caption>
+
+  <table class="table table-striped table-hover table-sm">
+    <caption>objetos</caption>
+    <thead>
+      <tr>
+        <th scope="col"><p align = "center">#</p></th>
+        <th scope="col"><p align = "center">Coord.</p></th>
+        <th scope="col"><p align = "center">Título</p></th>
+        <th scope="col"><p align = "center">Contraparte</p></th>
+        <th scope="col"><p align = "center">SEI</p></th>
+        <th scope="col"><p align = "center">Início</p></th>
+        <th scope="col"><p align = "center">Término</p></th>
+        <th scope="col"><p align = "center">Valor</p></th>
+
+      </tr>
+    </thead>
+    <tbody>
+      {% for objeto in objetos %}
+
+      <tr>
+        <th scope="row"><p align = "center">
+          {% if (objetos.index(objeto) + 1) <= quantidade %}
+            <a href="{{url_for('objetos.update', objeto_id=objeto[0])}}"><abbr title="Clique aqui atualizar">{{objetos.index(objeto) + 1}}</abbr></a>
+          {% endif %}
+        </p></th>
+        <td><p align = "center"><small> {{objeto[1]}}</small></p></td>
+        <td><p align = "center"><small> {{objeto[2]}}</small></p></td>
+        <td><p align = "center"><small> {{objeto[3]}}</small></p></td>
+        {% if objeto[4] != None%}
+          <td><p align = "center"> <a href="{{url_for('objetos.objeto_demandas', objeto_id=objeto[0])}}"><abbr title="Clique aqui para ver demandas deste objeto"><small> {{objeto[4]}} </small></abbr></a> </p></td>
+        {% else %}
+          <td><p align = "center"><small> {{objeto[4]}}</small></p></td>
+        {% endif %}
+        <td><p align = "center"><small> {{objeto[5]}}</small></p></td>
+        {% if objeto[8] <= 30 and objeto[8] >= 0 %}
+          <td><p align = "center" class="bg-danger text-white font-weight-bold"><small> {{objeto[6]}}</small> </p></td>
+        {% elif objeto[8] <= 60 and objeto[8] > 30 %}
+          <td><p align = "center" class="bg-warning text-dark font-weight-bold"><small> {{objeto[6]}}</small> </p></td>
+        {% elif objeto[8] <= 90 and objeto[8] > 60 %}
+          <td><p align = "center" class="bg-secondary text-white font-weight-bold"><small> {{objeto[6]}}</small> </p></td>
+        {% else %}
+          <td><p align = "center"> <small> {{objeto[6]}}</small> </p></td>
+        {% endif %}
+        <td><p align = "center"><small> {{objeto[7]}}</small></p></td>
+      </tr>
+
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+
+{% endblock %}

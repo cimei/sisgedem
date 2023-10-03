@@ -39,9 +39,6 @@
           <div class="form-group col-2">
             {{ render_field(form.data_fim,class="form-control",placeholder="dd/mm/aaaa",obr=False) }}
           </div>
-          <div class="form-group col-4">
-            {{ render_field(form.log_part,class="form-control",obr=False) }}
-          </div>
         </div>
 
         <div class="form-group row">
@@ -73,91 +70,56 @@
   <h3>Nada, por enquanto.</h3>
 {% else %}
 
-<div style="overflow-y: auto; height:300px">
-  <table class="table table-striped table-hover table-sm">
-    <thead>
-      <tr>
-        <th scope="col"><p align = "center">#</p></th>
-        <th scope="col"><p align = "center">Data e Hora</p></th>
-        {% if usu != '*' %}
-          <th scope="col"><p align = "left">Usuário</p></th>
-        {% endif %}
-        <th scope="col"><p align = "center">Atividade</p></th>
-        <th scope="col"><p align = "center">Demanda</p></th>
-        <th scope="col"><p align = "left">Ação</p></th>
-      </tr>
-    </thead>
+  <div style="overflow-y: auto; height:300px">
+    <table class="table table-striped table-hover table-sm">
+      <thead>
+        <tr>
+          <th scope="col"><p align = "center">#</p></th>
+          <th scope="col"><p align = "center">Data e Hora</p></th>
+          {% if usu != '*' %}
+            <th scope="col"><p align = "left">Usuário</p></th>
+          {% endif %}
+          <th scope="col"><p align = "center">Atividade</p></th>
+          <th scope="col"><p align = "center">Demanda</p></th>
+          <th scope="col"><p align = "left">Ação</p></th>
+        </tr>
+      </thead>
 
-    <tbody>
+      <tbody>
 
-      {% for registro in atividades %}
+        {% for registro in atividades %}
 
-      <tr>
-        <th scope="row"><p align = "center"><small>{{registro.id}}</small></p></th>
+        <tr>
+          <th scope="row"><p align = "center"><small>{{registro.id}}</small></p></th>
 
-        <td><p align = "center"><small> {{registro.data_hora.strftime("%x - %H:%M")}} </small> </p></td>
-        {% if usu != '*' %}
-          <td><p align = "left"><small> {{registro.username}} </small></p></td>
-        {% endif %}
-        {% if registro.atividade_sigla == Null or registro.atividade_sigla == None %}
-					{% if registro.ativ_sigla == Null or registro.ativ_sigla == None %}
-						<td><p align = "center"><small>Geral</small></p></td>
-					{% else %}
-						<td><p align = "center"><small>{{registro.ativ_sigla}}</small></p></td>
-					{% endif %}
-				{% else %}
-					<td><p align = "center"><small>{{registro.atividade_sigla}}</small></p></td>
-				{% endif %}
-        {% if registro.demanda_id != None %}
-          <td><p align = "center"><small> <a href="{{url_for('demandas.demanda', demanda_id=registro.demanda_id)}}"><abbr title="Clique aqui para ver a demanda">{{registro.demanda_id}}</abbr></a> </small></p></td>
-        {% else %}
-          <td><p align = "center"><small> N.R. </small></p></td>
-        {% endif %}
-        {% if registro.tipo_registro[0:3] == 'man' %}
-          <td><p align = "left"><small><b>Observação do usuário: </b> {{registro.tipo_registro[5:]}} {% if registro.duracao > 0 %} - Tempo registrado: {{registro.duracao}} min. {% endif %}</small></p></td>
-        {% else %}
-          <td><p align = "left"><small> {{registro.desc_registro}} {% if registro.duracao > 0 %} - Tempo registrado: {{registro.duracao}} min. {% endif %}</small></p></td>
-        {% endif %}
-      </tr>
+          <td><p align = "center"><small> {{registro.data_hora.strftime("%x - %H:%M")}} </small> </p></td>
+          {% if usu != '*' %}
+            <td><p align = "left"><small> {{registro.username}} </small></p></td>
+          {% endif %}
+          {% if registro.atividade_sigla == Null or registro.atividade_sigla == None %}
+            {% if registro.ativ_sigla == Null or registro.ativ_sigla == None %}
+              <td><p align = "center"><small>Geral</small></p></td>
+            {% else %}
+              <td><p align = "center"><small>{{registro.ativ_sigla}}</small></p></td>
+            {% endif %}
+          {% else %}
+            <td><p align = "center"><small>{{registro.atividade_sigla}}</small></p></td>
+          {% endif %}
+          {% if registro.demanda_id != None %}
+            <td><p align = "center"><small> <a href="{{url_for('demandas.demanda', demanda_id=registro.demanda_id)}}"><abbr title="Clique aqui para ver a demanda">{{registro.demanda_id}}</abbr></a> </small></p></td>
+          {% else %}
+            <td><p align = "center"><small> N.R. </small></p></td>
+          {% endif %}
+          <td><p align = "left"><small> {{registro.registro}} {% if registro.duracao > 0 %} - Tempo registrado: {{registro.duracao}} min. {% endif %}</small></p></td>
+        </tr>
 
-      {% endfor %}
+        {% endfor %}
 
-    </tbody>
+      </tbody>
 
-  </table>
-</div>
+    </table>
+  </div>
 
-<div class="container small">
-
-<h4>Resumo</h4>
-
-  <table class="table table-striped table-hover table-sm">
-    <thead>
-      <tr>
-        <th scope="col"><p align = "left">Tipo de entrada</p></th>
-        <th scope="col"><p align = "center">Quantidade</p></th>
-      </tr>
-    </thead>
-
-    <tbody>
-
-      {% for tipo,qtd in agregado.items() %}
-
-      <tr>
-        {% if tipo == None%}
-          <th scope="row"><p align = "left">Diversos</p></th>
-        {% else %}
-          <th scope="row"><p align = "left">{{tipo}}</p></th>
-        {% endif %}
-        <td><p align = "center"> {{qtd}}  </p></td>
-      </tr>
-
-      {% endfor %}
-
-    </tbody>
-
-  </table>
-</div>
 {% endif %}
 
 </div>

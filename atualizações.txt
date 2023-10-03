@@ -73,7 +73,7 @@ O sistema tratará as duas situações em função do legado.
 v4.12.0
 
 30/12/2022
-Correção de erro no cadastro e visualização de Instrumentos.
+Correção de erro no cadastro e visualização de objetos.
 v4.11.5
 
 07/10/2022
@@ -423,7 +423,7 @@ Lista das demandas do usuário passam a ser exibidas no formato de tabela. Inclu
 
 18/11/2020
 
-Correções de pequenos problemas e inclusão da funcionalidade Instrumentos. v 4.4.0
+Correções de pequenos problemas e inclusão da funcionalidade objetos. v 4.4.0
 
 11/11/2020
 

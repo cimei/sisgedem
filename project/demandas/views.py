@@ -9,7 +9,6 @@
 
     * Processo SEI relacionado (obrigatório)
     * Tipo (obrigatório e conforme valores prédefinidos)
-    * Convênio e ano do convênio (quando for o caso)
     * Atividade do plano de trabalho
     * Título
     * Descrição
@@ -61,17 +60,15 @@ from sqlalchemy.sql import label
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.functions import coalesce
 from project import db, mail, app
-from project.models import Demanda, Providencia, Despacho, User, Tipos_Demanda, DadosSEI, Acordo, Log_Auto, Plano_Trabalho,\
-                           Sistema, Ativ_Usu, Passos_Tipos, Msgs_Recebidas, Proposta, Convenio, grupo_programa_cnpq, Coords
+from project.models import Demanda, Providencia, Despacho, User, Tipos_Demanda, Log_Auto, Plano_Trabalho,\
+                           Sistema, Ativ_Usu, Passos_Tipos, Msgs_Recebidas, Coords
 from project.demandas.forms import DemandaForm1, DemandaForm, Demanda_ATU_Form, DespachoForm, ProvidenciaForm, PesquisaForm,\
                                    Tipos_DemandaForm, TransferDemandaForm, Admin_Altera_Demanda_Form, PesosForm, Afere_Demanda_Form,\
                                    Plano_TrabalhoForm, Pdf_Form, CoordForm, Passos_Tipos_Form
 #from project.users.views import send_email, send_async_email
 from datetime import datetime, date, timedelta
 from fpdf import FPDF
-#from apiclient.discovery import build
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
+
 import pickle
 import os.path
 import sys
@@ -103,21 +100,21 @@ def send_email(subject, recipients, text_body, html_body):
     thr.start()
 
 # função para registrar comits no log
-def registra_log_auto(user_id,demanda_id,tipo_registro,atividade=None,duracao=0):
+def registra_log_auto(user_id,demanda_id,registro,atividade=None,duracao=0):
     """
     +---------------------------------------------------------------------------------------+
     |Função que registra ação do usuário na tabela log_auto.                                |
-    |INPUT: id usúario, id demanda, tipo de registro                                        |
+    |INPUT: id usúario, id demanda, registro                                                |
     |Os tipos de registro estão na tabela log_desc.                                         |
     +---------------------------------------------------------------------------------------+
     """
 
-    reg_log = Log_Auto(data_hora     = datetime.now(),
-                       user_id       = user_id,
-                       demanda_id    = demanda_id,
-                       tipo_registro = tipo_registro,
-                       atividade     = atividade,
-                       duracao       = duracao)
+    reg_log = Log_Auto(data_hora   = datetime.now(),
+                       user_id     = user_id,
+                       demanda_id  = demanda_id,
+                       registro    = registro,
+                       atividade   = atividade,
+                       duracao     = duracao)
     db.session.add(reg_log)
     db.session.commit()
 
@@ -223,7 +220,7 @@ def update_plano_trabalho(id):
 
         db.session.commit()
 
-        registra_log_auto(current_user.id,None,'ipt')
+        registra_log_auto(current_user.id,None,'Atividade atualizada no Plano de Trabalho.')
 
         flash('Atividade atualizada no Plano de Trabalho!')
         return redirect(url_for('demandas.plano_trabalho'))
@@ -278,7 +275,7 @@ def cria_atividade():
         db.session.add(atividade)
         db.session.commit()
 
-        registra_log_auto(current_user.id,None,'ipt')
+        registra_log_auto(current_user.id,None,'Atividade inserida no plano de trabalho.')
 
         flash('Atividade inserida no plano de trabalho!')
         return redirect(url_for('demandas.plano_trabalho'))
@@ -305,7 +302,7 @@ def delete_atividade(atividade_id):
     db.session.delete(atividade)
     db.session.commit()
 
-    registra_log_auto(current_user.id,None,'xpt')
+    registra_log_auto(current_user.id,None,'Atividade excluída do plano de trabalho.')
 
     flash ('Atividade excluída!','sucesso')
 
@@ -477,7 +474,7 @@ def delete_tipo_demanda(id):
         db.session.delete(tipo)
         db.session.commit()
 
-        registra_log_auto(current_user.id,None,'det')
+        registra_log_auto(current_user.id,None, 'Tipo de demanda '+ tipo.tipo + ' excluído.')
 
         flash ('Tipo de demanda '+ tipo.tipo + ' excluído!','sucesso')
 
@@ -523,7 +520,7 @@ def tipos_update(id):
                 demanda.tipo = form.tipo.data
             db.session.commit()
 
-        registra_log_auto(current_user.id,None,'iat')
+        registra_log_auto(current_user.id,None,'Tipo de demanda atualizado.')
 
         flash('Tipo de demanda atualizado!')
         return redirect(url_for('demandas.lista_tipos'))
@@ -558,7 +555,7 @@ def cria_tipo_demanda():
         db.session.add(tipo)
         db.session.commit()
 
-        registra_log_auto(current_user.id,None,'iat')
+        registra_log_auto(current_user.id,None,'Tipo de demanda inserido.')
 
         flash('Tipo de demanda inserido!')
         return redirect(url_for('demandas.lista_tipos'))
@@ -603,7 +600,7 @@ def cria_passo_tipo(tipo_id):
         db.session.add(passo_reg)
         db.session.commit()
 
-        registra_log_auto(current_user.id,None,'ips')
+        registra_log_auto(current_user.id,None,'Passo de tipo de demanda inserido.')
 
         flash('Passo de tipo de demanda inserido!')
         return redirect(url_for('demandas.lista_passos_tipos', tipo_id=tipo_id))
@@ -650,7 +647,7 @@ def update_passo_tipo(id,tipo_id):
                 desp.passo = form.passo.data
             db.session.commit()
 
-        registra_log_auto(current_user.id,None,'aps')
+        registra_log_auto(current_user.id,None,'Passo de Tipo de demanda atualizado.')
 
         flash('Passo de Tipo de demanda atualizado!')
         return redirect(url_for('demandas.lista_passos_tipos', tipo_id=tipo_id))
@@ -791,8 +788,6 @@ def confirma_cria_demanda(sei,tipo,mensagem):
     else:
         l_unid = [unidade]
 
-    sistema = db.session.query(Sistema.funcionalidade_conv,Sistema.funcionalidade_acordo).first()
-
     # o choices do campo atividade são definidos aqui e não no form
     atividades = db.session.query(Plano_Trabalho.id, Plano_Trabalho.atividade_sigla)\
                            .filter(Plano_Trabalho.unidade.in_(l_unid))\
@@ -806,40 +801,13 @@ def confirma_cria_demanda(sei,tipo,mensagem):
 
     if form.validate_on_submit():
 
-        sei = str(sei).split('_')[0]+'/'+str(sei).split('_')[1]
-
-        if form.convênio.data != '' and form.convênio.data != None:
-
-            verif_sei = db.session.query(DadosSEI).filter(DadosSEI.nr_convenio == str(form.convênio.data)).first()
-
-            if verif_sei == None:
-                dadosSEI = DadosSEI(nr_convenio = str(form.convênio.data),
-                                    sei         = sei,
-                                    epe         = '*',
-                                    fiscal      = '')
-                db.session.add(dadosSEI)
-                db.session.commit()
-
-                registra_log_auto(current_user.id,None,'sei')
-
-                flash('Registro SEI criado a partir desta demanda!','sucesso')
-
-        data_conclu = None
+        sei               = str(sei).split('_')[0]+'/'+str(sei).split('_')[1]
+        data_conclu       = None
         data_env_despacho = None
 
         if form.conclu.data != '0':
             form.necessita_despacho.data = False
             data_conclu = datetime.now()
-
-        # verifica se o SEI informado é de um convênio, acordo ou instrumentos
-        if form.convênio.data == ''  or form.convênio.data == None:
-            tem_conv = db.session.query(DadosSEI.nr_convenio).filter(DadosSEI.sei == sei).first()
-            if tem_conv == None:
-                conv = ''
-            else:
-                conv = tem_conv.nr_convenio
-        else:
-            conv = form.convênio.data
 
         if form.necessita_despacho.data == True:
             desp = 1
@@ -849,7 +817,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
 
         demanda = Demanda(programa              = form.atividade.data,
                           sei                   = sei,
-                          convênio              = conv,
+                          convênio              = None,
                           ano_convênio          = '',
                           tipo                  = tipo,
                           data                  = datetime.now(),
@@ -868,7 +836,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
         db.session.add(demanda)
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda.id,'inc')
+        registra_log_auto(current_user.id,demanda.id,'Demanda criada.')
 
         flash ('Demanda criada!','sucesso')
 
@@ -953,6 +921,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
 
 
 #CRIANDO uma demanda a partir de um acordo ou convênio
+### verificar se deve ser usado para objetos
 
 # VERIFICANDO
 @demandas.route('/<prog>/<sei>/<conv>/<ano>/criar',methods=['GET','POST'])
@@ -1022,6 +991,7 @@ def acordo_convenio_demanda(prog,sei,conv,ano):
 
 
 # CONFIRMANDO
+### verificar se deve ser usado para objetos
 
 @demandas.route('/<prog>/<sei>/<conv>/<ano>/<tipo>/<mensagem>/criar',methods=['GET','POST'])
 @login_required
@@ -1098,7 +1068,7 @@ def confirma_acordo_convenio_demanda(prog,sei,conv,ano,tipo,mensagem):
         db.session.add(demanda)
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda.id,'inc')
+        registra_log_auto(current_user.id,demanda.id,'Demanda criada.')
 
         flash ('Demanda criada!','sucesso')
 
@@ -1202,8 +1172,6 @@ def demanda(demanda_id):
     demanda = db.session.query(Demanda.id,
                                 Demanda.programa,
                                 Demanda.sei,
-                                Demanda.convênio,
-                                Demanda.ano_convênio,
                                 Demanda.tipo,
                                 Demanda.data,
                                 Demanda.user_id,
@@ -1268,18 +1236,7 @@ def demanda(demanda_id):
     else:
         data_conclu = ''
 
-    # verifica se a demanda tem relação com um acordo
-
-    acordo = db.session.query(Acordo.id, Acordo.uf, grupo_programa_cnpq.cod_programa)\
-                       .join(grupo_programa_cnpq,grupo_programa_cnpq.id_acordo==Acordo.id)\
-                       .filter(Acordo.sei == demanda.sei)\
-                       .first()
-    if acordo != None:
-        acordo_id = acordo.id
-        lista = 'uf'+str(acordo.uf)+str(acordo.cod_programa)
-    else:
-        acordo_id = ''
-        lista = ''
+    lista = ''
 
     # resgata tipo_id do tipo da demanda para resgatar os passos
     tipo_demanda = db.session.query(Tipos_Demanda.id).filter(Tipos_Demanda.tipo == demanda.tipo).first()
@@ -1332,7 +1289,7 @@ def demanda(demanda_id):
                 self.set_text_color(0,0,0)
                 self.cell(90, 8, demanda.tipo, 0, 0)
                 self.set_text_color(127,127,127)
-                self.cell(12, 8, 'SEI: ', 0, 0)
+                self.cell(12, 8, 'Processo: ', 0, 0)
                 self.set_text_color(0,0,0)
                 self.cell(0, 8, demanda.sei, 0, 1)
                 # responsável
@@ -1424,8 +1381,6 @@ def demanda(demanda_id):
                             id                    = demanda.id,
                             programa              = demanda.atividade_sigla,
                             sei                   = demanda.sei,
-                            convênio              = demanda.convênio,
-                            ano_convênio          = demanda.ano_convênio,
                             data                  = demanda.data,
                             tipo                  = demanda.tipo,
                             tipo_demanda_id       = tipo_demanda.id,
@@ -1439,7 +1394,7 @@ def demanda(demanda_id):
                             leitor_despacha       = leitor_despacha,
                             pro_des               = pro_des,
                             data_verific          = demanda.data_verific,
-                            acordo_id             = acordo_id,
+                            acordo_id             = None,
                             lista                 = lista,
                             form                  = form)
 
@@ -1506,8 +1461,6 @@ def list_demandas():
     demandas = db.session.query(Demanda.id,
                                 Demanda.programa,
                                 Demanda.sei,
-                                Demanda.convênio,
-                                Demanda.ano_convênio,
                                 Demanda.tipo,
                                 Demanda.data,
                                 Demanda.user_id,
@@ -1614,7 +1567,6 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
                                               Demanda.necessita_despacho,
                                               Demanda.necessita_despacho_cg,
                                               Demanda.urgencia,
-                                              Demanda.convênio,
                                               User.username)\
                             .join(User, Demanda.user_id == User.id)\
                             .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
@@ -1636,7 +1588,6 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
                                               Demanda.necessita_despacho,
                                               Demanda.necessita_despacho_cg,
                                               Demanda.urgencia,
-                                              Demanda.convênio,
                                               User.username)\
                             .join(User, Demanda.user_id == User.id)\
                             .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
@@ -1650,15 +1601,7 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
 
         for demanda in demandas:
             # identifica UF
-            if demanda.convênio != 0 and demanda.convênio != '':
-                uf = db.session.query(Proposta.UF_PROPONENTE)\
-                               .filter(Convenio.NR_CONVENIO == demanda.convênio)\
-                               .join(Convenio, Proposta.ID_PROPOSTA == Convenio.ID_PROPOSTA)\
-                               .first()
-            else:
-                uf = db.session.query(Acordo.uf).filter_by(sei=demanda.sei).first()
-            if uf == None:
-                uf = ('*',)
+            uf = ('*',)
 
             # identifica relevância
             relev = db.session.query(Tipos_Demanda.relevancia).filter_by(tipo=demanda.tipo).first()
@@ -1717,8 +1660,6 @@ def demandas_por_tipo(tipo):
     demandas = db.session.query(Demanda.id,
                                 Demanda.programa,
                                 Demanda.sei,
-                                Demanda.convênio,
-                                Demanda.ano_convênio,
                                 Demanda.tipo,
                                 Demanda.data,
                                 Demanda.user_id,
@@ -1806,7 +1747,6 @@ def update_demanda(demanda_id):
     +---------------------------------------------------------------------------------------+
     """
     demanda = Demanda.query.get_or_404(demanda_id)
-    sistema = db.session.query(Sistema.funcionalidade_conv, Sistema.funcionalidade_acordo).first()
 
     if demanda.author != current_user:
         abort(403)
@@ -1849,14 +1789,6 @@ def update_demanda(demanda_id):
 
         demanda.programa              = form.atividade.data
         demanda.sei                   = form.sei.data
-
-        if form.convênio.data == ''  or form.convênio.data == None:
-            demanda.convênio = ''
-            demanda.ano_convênio  = ''
-        else:
-            demanda.convênio = form.convênio.data
-            demanda.ano_convênio = form.ano_convênio.data
-
         demanda.tipo                  = form.tipo.data
         demanda.titulo                = form.titulo.data
         demanda.desc                  = form.desc.data
@@ -1963,7 +1895,7 @@ def update_demanda(demanda_id):
 
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda_id,'alt')
+        registra_log_auto(current_user.id,demanda_id,'Demanda atualizada.')
 
         flash ('Demanda atualizada!','sucesso')
         return redirect(url_for('demandas.demanda',demanda_id=demanda.id))
@@ -1971,8 +1903,6 @@ def update_demanda(demanda_id):
     elif request.method == 'GET':
         form.atividade.data             = str(demanda.programa)
         form.sei.data                   = demanda.sei
-        form.convênio.data              = demanda.convênio
-        form.ano_convênio.data          = demanda.ano_convênio
         form.tipo.data                  = demanda.tipo
         form.titulo.data                = demanda.titulo
         form.desc.data                  = demanda.desc
@@ -2026,8 +1956,6 @@ def transfer_demanda(demanda_id):
 
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda_id,'tra')
-
         recebedor = db.session.query(User.username,User.email).filter(User.id==int(form.pessoa.data)).first()
 
         providencia = Providencia(demanda_id = demanda_id,
@@ -2059,6 +1987,8 @@ def transfer_demanda(demanda_id):
 
         db.session.add(msg)
         db.session.commit()
+        
+        registra_log_auto(current_user.id,demanda_id,'Demanda transferida.')
 
         flash ('Demanda transferida!','sucesso')
 
@@ -2100,7 +2030,7 @@ def avocar_demanda(demanda_id):
     demanda.user_id   = current_user.id
     db.session.commit()
 
-    registra_log_auto(current_user.id,demanda_id,'avo')
+    registra_log_auto(current_user.id,demanda_id,'Demanda avocada.')
 
     flash ('Demanda avocada!','sucesso')
 
@@ -2136,7 +2066,7 @@ def admin_altera_demanda(demanda_id):
 
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda_id,'dat')
+        registra_log_auto(current_user.id,demanda_id,'Data de conclusão alterada.')
 
         flash ('Data de conclusão alterada!','sucesso')
 
@@ -2171,7 +2101,7 @@ def delete_demanda(demanda_id):
     db.session.delete(demanda)
     db.session.commit()
 
-    registra_log_auto(current_user.id,demanda_id,'del')
+    registra_log_auto(current_user.id,demanda_id,'Demanda excluída.')
 
     flash ('Demanda excluída!','sucesso')
 
@@ -2229,7 +2159,6 @@ def pesquisa_demanda():
                    str(form.tipo.data)+';'+\
                    str(form.necessita_despacho.data)+';'+\
                    str(form.conclu.data)+';'+\
-                   str(form.convênio.data)+';'+\
                    str(form.autor.data)+';'+\
                    str(form.demanda_id.data)+';'+\
                    str(form.atividade.data)+';'+\
@@ -2243,7 +2172,6 @@ def pesquisa_demanda():
                    str(form.tipo.data)+';'+\
                    str(form.necessita_despacho.data)+';'+\
                    str(form.conclu.data)+';'+\
-                   str(form.convênio.data)+';'+\
                    str(form.autor.data)+';'+\
                    str(form.demanda_id.data)+';'+\
                    str(form.atividade.data)+';'+\
@@ -2288,9 +2216,9 @@ def list_pesquisa(pesq):
         p_n_d = '0'
 
     p_n_dcg = 'Todos'
-    if pesq_l[10] == 'Sim':
+    if pesq_l[9] == 'Sim':
         p_n_dcg = '1'
-    if pesq_l[10] == 'Não':
+    if pesq_l[9] == 'Não':
         p_n_dcg = '0'
 
     # p_conclu = 'Todos'
@@ -2300,37 +2228,30 @@ def list_pesquisa(pesq):
         p_conclu = pesq_l[4]
 
     if pesq_l[5] != '':
-        conv = pesq_l[5]
-    else:
-        conv = '%'
-
-    if pesq_l[6] != '':
-        autor_id = pesq_l[6]
+        autor_id = pesq_l[5]
     else:
         autor_id = '%'
 
+    if pesq_l[6] == '':
+        pesq_l[6] = '%'+str(pesq_l[6])+'%'
+    else:
+        pesq_l[6] = str(pesq_l[6])
+    #atividade
     if pesq_l[7] == '':
         pesq_l[7] = '%'+str(pesq_l[7])+'%'
     else:
         pesq_l[7] = str(pesq_l[7])
-    #atividade
+
     if pesq_l[8] == '':
-        pesq_l[8] = '%'+str(pesq_l[8])+'%'
+        pesq_l[8] = '%'
     else:
         pesq_l[8] = str(pesq_l[8])
-
-    if pesq_l[9] == '':
-        pesq_l[9] = '%'
-    else:
-        pesq_l[9] = str(pesq_l[9])
 
 
 
     demandas = db.session.query(Demanda.id,
                                 Demanda.programa,
                                 Demanda.sei,
-                                Demanda.convênio,
-                                Demanda.ano_convênio,
                                 Demanda.tipo,
                                 Demanda.data,
                                 Demanda.user_id,
@@ -2349,7 +2270,6 @@ def list_pesquisa(pesq):
                          .join(User, User.id == Demanda.user_id)\
                          .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
                          .filter(Demanda.sei.like('%'+sei+'%'),
-                                 coalesce(Demanda.convênio,'').like(conv),
                                  Demanda.titulo.like('%'+pesq_l[1]+'%'),
                                  Demanda.tipo.like('%'+p_tipo_pattern+'%'),
                                  cast(Demanda.necessita_despacho,String) != p_n_d,
@@ -2438,7 +2358,7 @@ def cria_despacho(demanda_id):
         db.session.add(despacho)
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda_id,'des')
+        registra_log_auto(current_user.id,demanda_id,'Despacho registrato.')
 
         # marca a demanda quanto à necessidade de despacho da CG
         # e desmarca, dependendo de quem deu o despacho.
@@ -2498,7 +2418,7 @@ def cria_despacho(demanda_id):
             demanda.conclu      = form.conclu.data
             demanda.data_conclu = datetime.now()
             db.session.commit()
-            registra_log_auto(current_user.id,demanda_id,'alt')
+            registra_log_auto(current_user.id,demanda_id,'Demanda concluída.')
 
         else:
 
@@ -2542,8 +2462,6 @@ def cria_despacho(demanda_id):
 
     return render_template('add_despacho.html', form                  = form,
                                                 sei                   = demanda.sei,
-                                                convênio              = demanda.convênio,
-                                                ano_convênio          = demanda.ano_convênio,
                                                 data                  = demanda.data,
                                                 tipo                  = demanda.tipo,
                                                 tipo_demanda_id       = tipo.id,
@@ -2584,7 +2502,7 @@ def afere_demanda(demanda_id):
 
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda_id,'afe')
+        registra_log_auto(current_user.id,demanda_id,'Demanda aferida.')
 
         flash ('Demanda aferida!','sucesso')
 
@@ -2653,9 +2571,9 @@ def cria_providencia(demanda_id):
         db.session.commit()
 
         if programada == 1:
-            registra_log_auto(current_user.id,demanda_id,'age',demanda.programa,form.duracao.data)
+            registra_log_auto(current_user.id,demanda_id,'Providência agendada.',demanda.programa,form.duracao.data)
         else:
-            registra_log_auto(current_user.id,demanda_id,'pro',demanda.programa,form.duracao.data)
+            registra_log_auto(current_user.id,demanda_id,'Providência registrada.',demanda.programa,form.duracao.data)
 
 # para o caso da providência exigir um despacho
         if form.necessita_despacho.data == True:
@@ -2757,7 +2675,7 @@ def cria_providencia(demanda_id):
                         db.session.commit()
 
 
-                    registra_log_auto(current_user.id,demanda_id,'alt')
+                    registra_log_auto(current_user.id,demanda_id,'Demanda concluída.')
             else:
                 demanda.conclu = '0'
                 demanda.data_conclu = None
@@ -2877,8 +2795,6 @@ def cria_providencia(demanda_id):
                             form               = form,
                             demanda_user_id    = demanda.user_id,
                             sei                = demanda.sei,
-                            convênio           = demanda.convênio,
-                            ano_convênio       = demanda.ano_convênio,
                             data               = demanda.data,
                             tipo               = demanda.tipo,
                             tipo_demanda_id    = tipo.id,

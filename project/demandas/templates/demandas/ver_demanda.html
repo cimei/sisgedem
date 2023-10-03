@@ -39,14 +39,8 @@
             <p><h7><b>Tipo: </b>
             <a href="{{url_for('demandas.lista_passos_tipos', tipo_id=tipo_demanda_id)}}"><abbr title="Clique aqui para ver os passos."><b>{{tipo}}</b></a></h7></p>
 
-            <span class = "small">SEI: {{sei}}
-              {% if convênio != None and convênio != '' and convênio != 0 %}
-                <p>Convênio: <a href="{{url_for('convenios.convenio_detalhes', conv=convênio)}}">{{convênio}}/{{ano_convênio}}</a></p>
-              {% elif acordo_id != '' %}
-                <p><a href="{{url_for('acordos.update', acordo_id=acordo_id, lista=lista)}}"><abbr title="Clique aqui para detalhes do Acordo">Ver Acordo</abbr></a><p>
-              {% else %}
-                <br><br>
-              {% endif %}
+            <span class = "small">Processo: {{sei}}
+
             </span>
 
             <h6 class="text-muted">Resp.: <b>{{post.username}}</b></h6>

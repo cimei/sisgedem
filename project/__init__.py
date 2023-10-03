@@ -9,8 +9,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
 
-# from flask_apscheduler import APScheduler
-from apscheduler.schedulers.background import BackgroundScheduler
 
 from shutil import rmtree
 import time
@@ -30,8 +28,6 @@ mail = Mail(app)
 
 locale.setlocale( locale.LC_ALL, '' )
 
-# sched = APScheduler()
-sched = BackgroundScheduler()
 
 #################################
 ## log in - cofigurações
@@ -51,21 +47,11 @@ from project.users.views import users
 from project.demandas.views import demandas
 from project.error_pages.handlers import error_pages
 
-from project.bolsas.views import bolsas
-from project.acordos.views import acordos
-
-from project.convenios.views import convenios
-
-from project.instrumentos.views import instrumentos
+from project.objetos.views import objetos
 
 app.register_blueprint(core)
 app.register_blueprint(users)
 app.register_blueprint(demandas,url_prefix='/demandas')
 app.register_blueprint(error_pages)
 
-app.register_blueprint(bolsas,url_prefix='/bolsas')
-app.register_blueprint(acordos,url_prefix='/acordos')
-
-app.register_blueprint(convenios,url_prefix='/convenios')
-
-app.register_blueprint(instrumentos,url_prefix='/instrumentos')
+app.register_blueprint(objetos,url_prefix='/objetos')
