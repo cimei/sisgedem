@@ -32,7 +32,7 @@
         <p></p>
         <p class="font-weight-bold">
           {% if '_' in sei %}
-            Processo: {{ sei.split('_')[0]+'/'+sei.split('_')[1] }}
+            Processo: {{ sei.replace('_','/')}}
           {% else %}
             Processo: {{ sei }}
           {% endif %}

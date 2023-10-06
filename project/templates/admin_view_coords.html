@@ -23,16 +23,18 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>Unidade</th>
-            <th>Pai</th>
+            <th>Sigla</th>
+            <th>Chefe</th>
+            <th>Superior</th>
             </tr>
         </thead>
         <tbody>
           {% for c in coords %}
             <tr>
-              <td> <a href="{{url_for('users.admin_update_coord', id=c.id)}}"><abbr title="Clique aqui atualizar">{{coords.index(c) + 1}} </td>
-              <td> {{ c.sigla }} </td>
-              <td> {{ c.pai }} </td>
+              <td> {{coords.index(c) + 1}} </td>
+              <td> <a href="{{url_for('users.admin_update_coord', id=c.id)}}"><abbr title="Clique aqui atualizar">{{ c.sigla }} </abbr></td>
+              <td> {% if c.chefe %} {{ c.chefe }} {% else %} N.I. {% endif %}</td>
+              <td> {% if c.pai %} {{ c.pai }} {% else %} N.I. {% endif %}</td>
             </tr>
           {% endfor %}
         </tbody>

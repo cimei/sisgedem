@@ -6,7 +6,7 @@
    de um novo objeto e é o mesmo utilizado quando da atualização de dados de um objeto já existente.
 
    * objetoForm: registrar ou atualizar dados de um objeto.
-   * ListaForm: escolher coordenação
+   * ListaForm: escolher unidade
 
 **Campos definidos no formulário (todos são obrigatórios):**
 
@@ -17,26 +17,19 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, TextAreaField
 from wtforms.fields import DateField
-from wtforms.validators import DataRequired, Regexp
-from project import db
-from project.models import Coords
+from wtforms.validators import DataRequired, Regexp, Optional
 
 # form para inclusão ou alteração de um objeto
 class objetoForm(FlaskForm):
 
-    coords = db.session.query(Coords.sigla)\
-                      .order_by(Coords.sigla).all()
-    lista_coords = [(c[0],c[0]) for c in coords]
-    lista_coords.insert(0,('',''))
-
-    coord        = SelectField('Coordenação:',choices= lista_coords)
+    coord        = SelectField('Unidade:',validators=[DataRequired(message="Informe a unidade!")])
     nome         = StringField('Título:',validators=[DataRequired(message="Informe um título para o objeto!")])
-    contraparte  = StringField('Contraparte:',validators=[DataRequired(message="Informe a contraparte!")])
-    sei          = StringField('Processo:',validators=[DataRequired(message="Informe o Programa!")]) # incluir regex para sei
-    data_inicio  = DateField('Data de início:',format='%Y-%m-%d',validators=[DataRequired(message="Informe data do início!")])
-    data_fim     = DateField('Data de término:',format='%Y-%m-%d',validators=[DataRequired(message="Informe data do término!")])
+    contraparte  = StringField('Contraparte:')
+    sei          = StringField('Processo:',validators=[DataRequired(message="Informe um número para o processo!")]) 
+    data_inicio  = DateField('Data de início:',format='%Y-%m-%d', validators=(Optional(),))
+    data_fim     = DateField('Data de término:',format='%Y-%m-%d', validators=(Optional(),))
     descri       = TextAreaField('Descrição:',validators=[DataRequired(message="Informe a descrição!")])
-    valor        = StringField('Valor alocado:',validators=[DataRequired(message="Informe o valor!")])
+    valor        = StringField('Valor alocado:',default='0')
 
     submit       = SubmitField('Registrar')
 
@@ -44,10 +37,5 @@ class objetoForm(FlaskForm):
 # form para escolher a coordenação na lista de objetos
 class ListaForm(FlaskForm):
 
-    coords = db.session.query(Coords.sigla)\
-                      .order_by(Coords.sigla).all()
-    lista_coords = [(c[0],c[0]) for c in coords]
-    lista_coords.insert(0,('',''))
-
-    coord        = SelectField('Coordenação:',choices= lista_coords)
-    submit       = SubmitField('Filtrar coordenação')
+    coord        = SelectField('Unidade:')
+    submit       = SubmitField('Filtrar por unidade')

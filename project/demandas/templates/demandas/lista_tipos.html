@@ -58,23 +58,23 @@
 
       <tr>
         <th scope="row"><p align = "center"><a href="{{url_for('demandas.tipos_update', id=tipo[0])}}"><abbr title="Clique aqui para atualizar tipo."> {{tipos.index(tipo) + 1}} </a></p></th>
-        <td><p align = "center"> {{tipo[3]}} </p></td>
+        <td><p align = "center"> {{tipo[4]}} </p></td>
         <td><p align = "center"><a href="{{url_for('demandas.demandas_por_tipo', tipo=tipo[1])}}"><abbr title="Clique aqui para lista de demandas sob este tipo.">  {{tipo[1]}} </a></p></td>
-        <td><p align = "center"> {{tipo[6]}} </p></td>  
+        <td><p align = "center"> {{tipo[7]}} </p></td>  
         <td>
           {% if tipo[4] == 'Alta' %}
-            <p class="text-danger" align = "center"> {{tipo[4]}} </p>
+            <p class="text-danger" align = "center"> {{tipo[5]}} </p>
           {% elif tipo[4] == 'Média' %}
-            <p class="text-info" align = "center"> {{tipo[4]}} </p>
+            <p class="text-info" align = "center"> {{tipo[5]}} </p>
           {% else %}
-            <p class="text-success" align = "center"> {{tipo[4]}} </p>
+            <p class="text-success" align = "center"> {{tipo[5]}} </p>
           {% endif %}
         </td>
         <td>
           {% if tipo[5] == 0 %}
-            <p align = "center"><a class="text-warning" href="{{url_for('demandas.lista_passos_tipos', tipo_id=tipo[0])}}"><abbr title="Clique aqui para registrar passos."><b>{{tipo[5]}}</b></a></p>
+            <p align = "center"><a class="text-warning" href="{{url_for('demandas.lista_passos_tipos', tipo_id=tipo[0])}}"><abbr title="Clique aqui para registrar passos."><b>{{tipo[6]}}</b></a></p>
           {% else %}
-           <p align = "center"><a href="{{url_for('demandas.lista_passos_tipos', tipo_id=tipo[0])}}"><abbr title="Clique aqui para ver os passos."><b>{{tipo[5]}}</b></a></p>
+           <p align = "center"><a href="{{url_for('demandas.lista_passos_tipos', tipo_id=tipo[0])}}"><abbr title="Clique aqui para ver os passos."><b>{{tipo[6]}}</b></a></p>
           {% endif %}
         </td>
 

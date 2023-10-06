@@ -11,38 +11,14 @@
     <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.16.0/dist/bootstrap-table.min.css">  
     <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.16.0/extensions/filter-control/bootstrap-table-filter-control.css">
 
-    <title>Demandas etc</title>
+    <title>Sisgedem</title>
     <link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico">
 
-    <style>
-      .loader {
-        border: 16px solid #f3f3f3;
-        border-radius: 50%;
-        border-top: 16px solid blue;
-        border-bottom: 16px solid blue;
-        width: 120px;
-        height: 120px;
-        -webkit-animation: spin 2s linear infinite;
-        animation: spin 2s linear infinite;
-      }
-      
-      @-webkit-keyframes spin {
-        0% { -webkit-transform: rotate(0deg); }
-        100% { -webkit-transform: rotate(360deg); }
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      </style>
 
   </head>
   <body>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-
-
 
       <a class="navbar-brand" href="#">
         <img src="/static/agu.png" width="60" height="40" alt="">
@@ -62,22 +38,34 @@
             <a class="nav-link" href="{{url_for('core.info')}}">Sobre</a>
           </li>
 
+
           {% if current_user.is_authenticated %}
+
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                objetos
+              <a class="nav-link dropdown-toggle text-dark" href="#" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Objetos
               </a>
               <div class="dropdown-menu" aria-labelledby="navbarDropdown2">
                 <a class="dropdown-item" href="{{url_for('objetos.lista_objetos',lista='todos',coord='*')}}">Todos</a>
                 <a class="dropdown-item" href="{{url_for('objetos.lista_objetos',lista='em execução',coord='*')}}">Vigentes</a>
               </div>
             </li>
-          {% endif %}
 
-          {% if current_user.is_authenticated %}
-
-            <li class="nav-item">
-              <a class="nav-link" href="{{url_for('users.logout')}}"><div class="text-dark">Sair</div></a>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle text-dark" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Demandas
+              </a>
+              <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                <a class="dropdown-item" href="{{url_for('demandas.plano_trabalho')}}">Plano de Trabalho</a>
+                <a class="dropdown-item" href="{{url_for('demandas.list_demandas')}}">Todas</a>
+                <a class="dropdown-item" href="{{url_for('demandas.pesquisa_demanda')}}">Procurar demanda</a>
+                {% if current_user.is_authenticated %}
+                  <a class="dropdown-item" href="{{url_for('demandas.cria_demanda')}}">Criar demanda</a>
+                  <a class="dropdown-item" href="{{url_for('demandas.demandas_resumo',coord='*')}}">Resumo das demandas</a>
+                  <a class="dropdown-item" href="{{url_for('demandas.lista_tipos')}}">Tipos de Demanda</a>
+                  <a class="dropdown-item" href="{{url_for('demandas.prioriza',peso_R=1,peso_D=1,peso_U=1,coord='*',resp='*')}}">Priorização</a>
+                {% endif %}
+              </div>
             </li>
 
             <li class="nav-item dropdown">
@@ -90,20 +78,22 @@
                 <a class="dropdown-item" href="{{url_for('users.account')}}">Suas informações</a>
                 <a class="dropdown-item" href="{{url_for('users.user_log',usu='*')}}">Ver diário</a>
                 {% if current_user.role[0:5] == "admin" %}
-                  <a class="dropdown-item"  href="{{ url_for('users.admin_view_users') }}">Ver Usuários (Admin)</a>
-                  <a class="dropdown-item"  href="{{ url_for('users.admin_reg_ver') }}">Dados gerais do sistema (Admin)</a>
                   <a class="dropdown-item"  href="{{ url_for('users.admin_view_coords') }}">Unidades (Admin)</a>
+                  <a class="dropdown-item"  href="{{ url_for('users.admin_view_users') }}">Usuários (Admin)</a>
+                  <a class="dropdown-item"  href="{{ url_for('users.admin_reg_ver') }}">Dados do sistema (Admin)</a>
                 {% endif %}
                 {% if current_user.despacha == 1 or current_user.despacha0 == 1 %}
-                  <a class="dropdown-item"  href="{{ url_for('users.user_posts',username='todos',filtro='conclu') }}">Aferir demandas (Coord.)</a>
-                {% endif %}
-                {% if current_user.despacha == 1 or current_user.despacha0 == 1 or current_user.role[0:5] == "admin" %}
                   <a class="dropdown-item"  href="{{ url_for('users.coord_view_users') }}">Atribuir atividade (Coord.)</a>
+                  <a class="dropdown-item"  href="{{ url_for('users.user_posts',username='todos',filtro='conclu') }}">Aferir demandas (Coord.)</a>
                 {% endif %}
                 {% if current_user.ativo == 1 %}
                   <a class="dropdown-item"  href="{{ url_for('users.troca_senha') }}">Trocar senha</a>
                 {% endif %}
               </div>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="{{url_for('users.logout')}}"><div class="text-dark">Sair</div></a>
             </li>
 
           {% else %}
@@ -118,22 +108,7 @@
 
           {% endif %}
 
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-dark" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Demandas
-            </a>
-            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" href="{{url_for('demandas.plano_trabalho')}}">Plano de Trabalho</a>
-              <a class="dropdown-item" href="{{url_for('demandas.list_demandas')}}">Todas</a>
-              <a class="dropdown-item" href="{{url_for('demandas.pesquisa_demanda')}}">Procurar demanda</a>
-              {% if current_user.is_authenticated %}
-                <a class="dropdown-item" href="{{url_for('demandas.cria_demanda')}}">Criar demanda</a>
-                <a class="dropdown-item" href="{{url_for('demandas.demandas_resumo',coord='*')}}">Resumo das demandas</a>
-                <a class="dropdown-item" href="{{url_for('demandas.lista_tipos')}}">Tipos de Demanda</a>
-                <a class="dropdown-item" href="{{url_for('demandas.prioriza',peso_R=1,peso_D=1,peso_U=1,coord='*',resp='*')}}">Priorização</a>
-              {% endif %}
-            </div>
-          </li>
+
 
           {% set ver = namespace(num='1.0.0') %}
 

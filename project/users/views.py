@@ -55,7 +55,7 @@ from threading import Thread
 from datetime import datetime, date, timedelta, time
 from calendar import monthrange
 from werkzeug.security import generate_password_hash
-from sqlalchemy import func
+from sqlalchemy import func, cast, Integer
 from sqlalchemy.sql import label
 from sqlalchemy.orm import aliased
 from collections import Counter
@@ -194,22 +194,30 @@ def register():
     usuarios_qtd = User.query.count()
 
     form = RegistrationForm()
+    
+    unids = db.session.query(Coords.id, Coords.sigla)\
+                      .order_by(Coords.sigla).all()
+    lista_unids = [(u.id,u.sigla) for u in unids]
+    lista_unids.insert(0,(0,'')) 
+    
+    form.coord.choices = lista_unids
 
     if form.validate_on_submit():
+        
 
         if form.check_username(form.username) and form.check_email(form.email):
           
-            if form.despacha0:
+            if form.despacha0.data:
                 despacha0 = 1
             else:
                 despacha0 = 0
 
-            if form.despacha:
+            if form.despacha.data:
                 despacha = 1
             else:
                 despacha = 0
 
-            if form.despacha2:
+            if form.despacha2.data:
                 despacha2 = 1
             else:
                 despacha2 = 0    
@@ -229,16 +237,11 @@ def register():
             db.session.add(user)
             db.session.commit()
 
-            last_id = db.session.query(User.id).order_by(User.id.desc()).first()
+            # last_id = db.session.query(User.id).order_by(User.id.desc()).first()
 
-            registra_log_auto(last_id[0],None,'Usuário registrado.')
-
-            coords = db.session.query(Coords.sigla).all()
-
-            if form.coord.data not in coords:
-                coord = Coords(sigla = form.coord.data)
-                db.session.add(coord)
-                db.session.commit()
+            # registra_log_auto(last_id[0],None,'Usuário registrado.')
+            
+            registra_log_auto(user.id,None,'Usuário '+ user.username +' registrado.')
 
             send_confirmation_email(user.email)
             flash('Usuário registrado! Verifique sua caixa de e-mail para confirmar o endereço.','sucesso')
@@ -482,13 +485,15 @@ def account():
 
         form.username.data = current_user.username
         form.email.data = current_user.email
+        
+        coord = db.session.query(Coords.sigla).filter(Coords.id == cast(current_user.coord,Integer)).first()
 
         # calcula quantidade de demandas do usuário
         user_demandas = db.session.query(Demanda.user_id,
                                          label('qtd',func.count(Demanda.user_id)))\
                                   .filter(Demanda.user_id == current_user.id)\
                                   .group_by(Demanda.user_id)\
-                                  .all()
+                                  .first()
 
         if user_demandas:
             qtd_demandas = user_demandas.qtd
@@ -514,7 +519,9 @@ def account():
 
         ## calcula a vida média das demandas do usuário
         demandas_datas = db.session.query(Demanda.data,Demanda.data_conclu)\
-                                    .filter(Demanda.conclu == '1', Demanda.data_conclu != None, Demanda.user_id == current_user.id)
+                                    .filter(Demanda.conclu == '1', 
+                                            Demanda.data_conclu != None, 
+                                            Demanda.user_id == current_user.id)
 
         vida = 0
         vida_m = 0
@@ -643,7 +650,8 @@ def account():
                                           mes_max_hd=mes_max_hd,
                                           min_hd=min_hd,
                                           mes_min_hd=mes_min_hd,
-                                          horas=horas_dedicadas_semana)
+                                          horas=horas_dedicadas_semana,
+                                          coord = coord)
 
 # lista das demandas de um usuário
 
@@ -699,6 +707,21 @@ def user_posts (username,filtro):
                                 .order_by(Demanda.urgencia,Demanda.data.desc())\
                                 .all()
         else:
+            
+            if user.despacha == 1: # user é chefe
+                # pega unidades abaixo da unidade do chefe
+                coords_filho = db.session.query(Coords).filter(Coords.id_pai == cast(user.coord,Integer)).all()
+                coords_filho_ids = [c.id for c in coords_filho]
+                coords_filho_ids.insert(0,int(user.coord))
+
+                # pega pessoas das unidades do chefe das abaixo dela
+                pessoas_unid = db.session.query(User).filter(cast(User.coord,Integer).in_(coords_filho_ids)).all()
+                pessoas_unid_lista = [p.id for p in pessoas_unid]
+                
+            else:
+                pessoas_unid_lista = [user_id]    
+                
+            
             demandas = db.session.query(Demanda.id,
                                         Demanda.programa,
                                         Demanda.sei,
@@ -717,9 +740,13 @@ def user_posts (username,filtro):
                                         Demanda.data_env_despacho,
                                         Demanda.nota,
                                         Plano_Trabalho.atividade_sigla,
-                                        Demanda.data_verific)\
+                                        Demanda.data_verific,
+                                        User.username,
+                                        Coords.sigla)\
+                                .join(User, User.id == Demanda.user_id)\
+                                .join(Coords, Coords.id == cast(User.coord,Integer))\
                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
-                                .filter(Demanda.user_id == user_id,
+                                .filter(Demanda.user_id.in_(pessoas_unid_lista),
                                         Demanda.conclu == '0')\
                                 .order_by(Demanda.urgencia,Demanda.data.desc())\
                                 .all()
@@ -779,6 +806,20 @@ def user_posts (username,filtro):
                                         .order_by(Demanda.data_conclu.desc())\
                                         .all()
         else:
+            
+            if user.despacha == 1: # user é chefe
+                # pega unidades abaixo da unidade do chefe
+                coords_filho = db.session.query(Coords).filter(Coords.id_pai == cast(user.coord,Integer)).all()
+                coords_filho_ids = [c.id for c in coords_filho]
+                coords_filho_ids.insert(0,int(user.coord))
+
+                # pega pessoas das unidades do chefe das abaixo dela
+                pessoas_unid = db.session.query(User).filter(cast(User.coord,Integer).in_(coords_filho_ids)).all()
+                pessoas_unid_lista = [p.id for p in pessoas_unid]
+                
+            else:
+                pessoas_unid_lista = [user_id]
+            
             demandas = db.session.query(Demanda.id,
                                         Demanda.programa,
                                         Demanda.sei,
@@ -796,12 +837,16 @@ def user_posts (username,filtro):
                                         Demanda.urgencia,
                                         Demanda.data_env_despacho,
                                         Demanda.nota,
-                                        Plano_Trabalho.atividade_sigla)\
-                                        .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
-                                        .filter(Demanda.user_id == user_id,
-                                                Demanda.conclu != '0')\
-                                        .order_by(Demanda.data_conclu.desc())\
-                                        .all()
+                                        Plano_Trabalho.atividade_sigla,
+                                        User.username,
+                                        Coords.sigla)\
+                                 .join(User, User.id == Demanda.user_id)\
+                                 .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                                 .filter(Demanda.user_id.in_(pessoas_unid_lista),
+                                         Demanda.conclu != '0')\
+                                 .order_by(Demanda.data_conclu.desc())\
+                                 .all()
 
     # TODAS AS DEMANDAS
     else:
@@ -829,6 +874,20 @@ def user_posts (username,filtro):
                                         .order_by(Demanda.urgencia,Demanda.data.desc())\
                                         .all()
         else:
+            
+            if user.despacha == 1: # user é chefe
+                # pega unidades abaixo da unidade do chefe
+                coords_filho = db.session.query(Coords).filter(Coords.id_pai == cast(user.coord,Integer)).all()
+                coords_filho_ids = [c.id for c in coords_filho]
+                coords_filho_ids.insert(0,int(user.coord))
+
+                # pega pessoas das unidades do chefe das abaixo dela
+                pessoas_unid = db.session.query(User).filter(cast(User.coord,Integer).in_(coords_filho_ids)).all()
+                pessoas_unid_lista = [p.id for p in pessoas_unid]
+                
+            else:
+                pessoas_unid_lista = [user_id]
+            
             demandas = db.session.query(Demanda.id,
                                         Demanda.programa,
                                         Demanda.sei,
@@ -846,11 +905,15 @@ def user_posts (username,filtro):
                                         Demanda.urgencia,
                                         Demanda.data_env_despacho,
                                         Demanda.nota,
-                                        Plano_Trabalho.atividade_sigla)\
-                                        .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
-                                        .filter(Demanda.user_id == user_id)\
-                                        .order_by(Demanda.urgencia,Demanda.data.desc())\
-                                        .all()
+                                        Plano_Trabalho.atividade_sigla,
+                                        User.username,
+                                        Coords.sigla)\
+                                 .join(User, User.id == Demanda.user_id)\
+                                 .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                                 .filter(Demanda.user_id.in_(pessoas_unid_lista))\
+                                 .order_by(Demanda.urgencia,Demanda.data.desc())\
+                                 .all()
 
 
     qtd = len(demandas)
@@ -981,9 +1044,29 @@ def admin_view_users():
        +--------------------------------------------------------------------------------------+
     """
     if current_user.role[0:5] != 'admin':
+        
         abort(403)
+        
     else:
-        users = User.query.order_by(User.id).all()
+        
+        users = db.session.query(User.id,
+                                 User.username,
+                                 User.email,
+                                 User.coord,
+                                 User.role,
+                                 User.ativo,
+                                 User.registered_on,
+                                 User.email_confirmed,
+                                 User.email_confirmed_on,
+                                 User.current_logged_in,
+                                 User.despacha2,
+                                 User.despacha,
+                                 User.despacha0,
+                                 Coords.sigla)\
+                          .join(Coords, Coords.id == cast(User.coord,Integer))\
+                          .order_by(User.username)\
+                          .all()
+        
         return render_template('admin_view_users.html', users=users)
 
 #
@@ -1006,16 +1089,15 @@ def admin_update_user(user_id):
     else:
 
         user = User.query.get_or_404(user_id)
-        sistema = Sistema.query.first()
 
-        coords = db.session.query(Coords.sigla)\
+        unids = db.session.query(Coords.id, Coords.sigla)\
                           .order_by(Coords.sigla).all()
-        lista_coords = [(c[0],c[0]) for c in coords]
-        lista_coords.insert(0,('',''))
+        lista_unids = [(int(u.id),u.sigla) for u in unids]
+        lista_unids.insert(0,(0,''))
 
         form = AdminForm()
 
-        form.coord.choices = lista_coords
+        form.coord.choices = lista_unids
 
         if form.validate_on_submit():
 
@@ -1082,9 +1164,22 @@ def admin_view_coords():
        +--------------------------------------------------------------------------------------+
     """
     if current_user.role[0:5] != 'admin':
+        
         abort(403)
+        
     else:
-        coords = db.session.query(Coords).order_by(Coords.sigla).all()
+        
+        pais = db.session.query(Coords).subquery()
+                
+        coords = db.session.query(Coords.id,
+                                  Coords.sigla,
+                                  label('pai',pais.c.sigla),
+                                  label('chefe',User.username))\
+                           .outerjoin(pais, pais.c.id == Coords.id_pai)\
+                           .outerjoin(User, User.id == Coords.id_chefe)\
+                           .order_by(Coords.sigla)\
+                           .all()
+        
         return render_template('admin_view_coords.html', coords=coords)
 
 ## inserção de nova unidade pelo admin
@@ -1104,25 +1199,40 @@ def admin_insere_coord():
         abort(403)
 
     else:
+        
+        pessoas = db.session.query(User.id, User.username)\
+                            .order_by(User.username).all()
+        lista_pessoas = [(int(p.id),p.username) for p in pessoas]
+        lista_pessoas.insert(0,(0,''))
+        
+        unids = db.session.query(Coords.id, Coords.sigla)\
+                          .order_by(Coords.sigla).all()
+        lista_unids = [(int(u.id),u.sigla) for u in unids]
+        lista_unids.insert(0,(0,''))
 
         form = CoordForm()
+        
+        form.id_chefe.choices      = lista_pessoas
+        form.id_chefe_subs.choices = lista_pessoas
+        form.id_pai.choices        = lista_unids
 
         if form.validate_on_submit():
 
-            print ('**** ','inserino nova coord')
-
-            nova_coord = Coords(sigla = form.coord.data,
-                                pai   = form.pai.data)
+            nova_coord = Coords(sigla         = form.sigla.data,
+                                desc          = form.desc.data,
+                                id_pai        = form.id_pai.data,
+                                id_chefe      = form.id_chefe.data,
+                                id_chefe_subs = form.id_chefe_subs.data)
             db.session.add(nova_coord)
             db.session.commit()
 
-            registra_log_auto(current_user.id,None,'Unidade '+form.coord.data+' inserida no sistema.')
+            registra_log_auto(current_user.id,None,'Unidade '+form.sigla.data+' inserida no sistema.')
             
-            flash('Unidade '+form.coord.data+' inserida no sistema!','sucesso')
+            flash('Unidade '+form.sigla.data+' inserida no sistema!','sucesso')
 
             return redirect(url_for('users.admin_view_coords'))
 
-        return render_template('admin_update_coord.html', form=form)
+        return render_template('admin_update_coord.html', form=form, tipo='inserir')
 
 
 
@@ -1144,26 +1254,47 @@ def admin_update_coord(id):
     else:
 
         coord = Coords.query.get_or_404(id)
-
+        
         form = CoordForm()
+
+        pessoas = db.session.query(User.id, User.username)\
+                            .order_by(User.username).all()
+        lista_pessoas = [(int(p.id),p.username) for p in pessoas]
+        lista_pessoas.insert(0,(0,''))
+        
+        unids = db.session.query(Coords.id, Coords.sigla)\
+                          .order_by(Coords.sigla).all()
+        lista_unids = [(int(u.id),u.sigla) for u in unids]
+        lista_unids.insert(0,(0,''))
+        
+        form.id_chefe.choices      = lista_pessoas
+        form.id_chefe_subs.choices = lista_pessoas
+        form.id_pai.choices        = lista_unids
 
         if form.validate_on_submit():
 
-            coord.sigla = form.coord.data
-            coord.pai   = form.pai.data
+            coord.sigla         = form.sigla.data
+            coord.desc          = form.desc.data
+            coord.id_pai        = form.id_pai.data
+            coord.id_chefe      = form.id_chefe.data
+            coord.id_chefe_subs = form.id_chefe_subs.data
+            
             db.session.commit()
 
-            registra_log_auto(current_user.id,None,'Unidade '+form.coord.data+' alterada.')
-            flash('Unidade '+form.coord.data+' alterada!','sucesso')
+            registra_log_auto(current_user.id,None,'Unidade '+form.sigla.data+' alterada.')
+            flash('Unidade '+form.sigla.data+' alterada!','sucesso')
 
             return redirect(url_for('users.admin_view_coords'))
 
         elif request.method == 'GET':    
 
-            form.coord.data  = coord.sigla
-            form.pai.data    = coord.pai 
-
-        return render_template('admin_update_coord.html', form=form)
+            form.sigla.data         = coord.sigla  
+            form.desc.data          = coord.desc
+            form.id_pai.data        = coord.id_pai
+            form.id_chefe.data      = coord.id_chefe
+            form.id_chefe_subs.data = coord.id_chefe_subs
+            
+        return render_template('admin_update_coord.html', form=form, tipo='atualizar')
 
 
 #

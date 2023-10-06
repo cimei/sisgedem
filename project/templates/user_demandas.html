@@ -3,7 +3,7 @@
 
   <div class="jumbotron">
     <div align = 'center'>
-      <h2>{{qtd}} Demandas {% if filtro == 'conclu'%} concluídas{% endif %} {% if filtro[0:2] == 'nc'%}(em aberto){% endif %} {% if user != None%}de {{user.username}} - {{user.coord}}{% endif %}</h2>
+      <h2>{{qtd}} Demanda(s) {% if filtro == 'conclu'%} concluídas{% endif %} {% if filtro[0:2] == 'nc'%}(em aberto){% endif %} {% if user != None%}{% endif %}</h2>
       <br>
 
       {% if filtro[0:2] != 'nc' and filtro != 'conclu' %}
@@ -57,7 +57,9 @@
       <tr>
         <th scope="col"><p align = "center">#</p></th>
         <th scope="col"><p align = "center">Demanda</p></th>
-        <th scope="col"><p align = "center">SEI</p></th>
+        <th scope="col"><p align = "center">Resp.</p></th>
+        <th scope="col"><p align = "center">Unidade</p></th>
+        <th scope="col"><p align = "center">Proc.</p></th>
         <th scope="col"><p align = "center">Atividade</p></th>
         <th scope="col"><p align = "center">Tipo</p></th>
         <th scope="col"><p align = "center">Registro</p></th>
@@ -79,13 +81,15 @@
     <tbody>
       {% for post in demandas %}
 
-<!-- TODAS AS DEMANDAS DO USUÁRIO - SEM FILTRO ADICIONAL PARA AS EM ABERTO -->
+              <!-- TODAS AS DEMANDAS DO USUÁRIO - SEM FILTRO ADICIONAL PARA AS EM ABERTO -->
 
         {% if filtro[-1] != '1' and filtro[-1] != '2' and filtro[-1] != '3' %}
 
           <tr>
             <th scope="row"><p align = "center"> {{demandas.index(post) + 1}}.</p></th>
             <td><p align = "center"> <a href="{{url_for('demandas.demanda',demanda_id = post.id)}}">{{post.id}} </p></td>
+            <td><p align = "left"> {{post.username}} </p></td>
+            <td><p align = "center"> {{post.sigla}} </p></td>
             <td><p align = "center"> {{post.sei}} </p></td>
             <td><p align = "center"> <b>{{post.atividade_sigla}}</b> </p></td>
             <td><p align = "center"> {{post.tipo}} </p></td>
@@ -136,7 +140,7 @@
             {% endif %}
           </tr>
 
-<!-- DEMANDAS EM ABERTO QUE AGUARDAM DESPACHO -->
+              <!-- DEMANDAS EM ABERTO QUE AGUARDAM DESPACHO -->
 
         {% elif filtro[-1] == '1' %}
           {% if post.necessita_despacho == 1 or post.necessita_despacho_cg == 1 %}
@@ -144,6 +148,8 @@
           <tr>
             <th scope="row"><p align = "center"> {{demandas.index(post) + 1}}.</p></th>
             <td><p align = "center"> <a href="{{url_for('demandas.demanda',demanda_id = post.id)}}">{{post.id}} </p></td>
+            <td><p align = "left"> {{post.username}} </p></td>
+            <td><p align = "center"> {{post.sigla}} </p></td>
             <td><p align = "center"> {{post.sei}} </p></td>
             <td><p align = "center"> <b>{{post.atividade_sigla}}</b> </p></td>
             <td><p align = "center"> {{post.tipo}} </p></td>
@@ -184,7 +190,7 @@
 
           {% endif %}
 
-<!-- DEMANDAS EM ABERTO CUJO ÚLTIMO REGISTRO É UM DESPADHO (DESPACHO RECENTE) -->
+            <!-- DEMANDAS EM ABERTO CUJO ÚLTIMO REGISTRO É UM DESPADHO (DESPACHO RECENTE) -->
 
         {% elif filtro[-1] == '2' %}
           {% if post.id in com_despacho_novo %}
@@ -192,6 +198,8 @@
           <tr>
             <th scope="row"><p align = "center"> {{demandas.index(post) + 1}}.</p></th>
             <td><p align = "center"> <a href="{{url_for('demandas.demanda',demanda_id = post.id)}}">{{post.id}}</p></td>
+            <td><p align = "left"> {{post.username}} </p></td>
+            <td><p align = "center"> {{post.sigla}} </p></td>  
             <td><p align = "center"> {{post.sei}} </p></td>
             <td><p align = "center"> <b>{{post.atividade_sigla}}</b> </p></td>
             <td><p align = "center"> {{post.tipo}} </p></td>
@@ -232,55 +240,57 @@
 
           {% endif %}
 
-<!-- DEMANDAS EM ABERTO QUE ESTÃO COM O USUÁRIO -->
+              <!-- DEMANDAS EM ABERTO QUE ESTÃO COM O USUÁRIO -->
 
         {% elif filtro[-1] == '3' %}
           {% if post.id not in com_despacho_novo and post.necessita_despacho == 0 and post.necessita_despacho_cg == 0 %}
 
-          <tr>
-            <th scope="row"><p align = "center"> {{demandas.index(post) + 1}}.</p></th>
-            <td><p align = "center"> <a href="{{url_for('demandas.demanda',demanda_id = post.id)}}">{{post.id}} </p></td>
-            <td><p align = "center"> {{post.sei}} </p></td>
-            <td><p align = "center"> <b>{{post.atividade_sigla}}</b> </p></td>
-            <td><p align = "center"> {{post.tipo}} </p></td>
-            <td><p align = "center"> <b>{{post.data.strftime("%x")}}</b> </p></td>
-            <td><p align = "left"> <abbr title="{{post.titulo}}"><span class="d-inline-block text-truncate" style="max-width: 350px;">{{post.titulo}}</span> </p></td>
-            <td><p align = "center">
-              {% if post.necessita_despacho == 1 %}
-                <span class="bg-warning text-dark">
-                  {% if post.data_env_despacho != None %} desde {{post.data_env_despacho.strftime('%x')}} {% else %} <b>Sim</b> {% endif %}
-                </span>
-              {% elif post.necessita_despacho_cg == 1 %} <span class="bg-info text-dark">SUPERIOR</span>
-              {% else %}
-                Não
-              {% endif %}
-            </p></td>
-            <td><p align = "center">
-              {% if post.id in com_despacho_novo %} <span class="bg-success text-white"> {{com_despacho_novo_data[post.id].strftime('%x')}} </span> {% else %} Não {% endif %}
-            </p></td>
-            {% if filtro[0:2] == 'nc' %}
-              {% if post.data_verific != None%}
-                {% if post.id in com_despacho_novo %}
-                  {% if post.data_verific < com_despacho_novo_data[post.id] %}
-                    <td><p align = "center" class = "text-danger">{{post.data_verific.strftime('%x')}}</p></td>
+            <tr>
+              <th scope="row"><p align = "center"> {{demandas.index(post) + 1}}.</p></th>
+              <td><p align = "center"> <a href="{{url_for('demandas.demanda',demanda_id = post.id)}}">{{post.id}} </p></td>
+              <td><p align = "left"> {{post.username}} </p></td>
+              <td><p align = "center"> {{post.sigla}} </p></td>
+              <td><p align = "center"> {{post.sei}} </p></td>
+              <td><p align = "center"> <b>{{post.atividade_sigla}}</b> </p></td>
+              <td><p align = "center"> {{post.tipo}} </p></td>
+              <td><p align = "center"> <b>{{post.data.strftime("%x")}}</b> </p></td>
+              <td><p align = "left"> <abbr title="{{post.titulo}}"><span class="d-inline-block text-truncate" style="max-width: 350px;">{{post.titulo}}</span> </p></td>
+              <td><p align = "center">
+                {% if post.necessita_despacho == 1 %}
+                  <span class="bg-warning text-dark">
+                    {% if post.data_env_despacho != None %} desde {{post.data_env_despacho.strftime('%x')}} {% else %} <b>Sim</b> {% endif %}
+                  </span>
+                {% elif post.necessita_despacho_cg == 1 %} <span class="bg-info text-dark">SUPERIOR</span>
+                {% else %}
+                  Não
+                {% endif %}
+              </p></td>
+              <td><p align = "center">
+                {% if post.id in com_despacho_novo %} <span class="bg-success text-white"> {{com_despacho_novo_data[post.id].strftime('%x')}} </span> {% else %} Não {% endif %}
+              </p></td>
+              {% if filtro[0:2] == 'nc' %}
+                {% if post.data_verific != None%}
+                  {% if post.id in com_despacho_novo %}
+                    {% if post.data_verific < com_despacho_novo_data[post.id] %}
+                      <td><p align = "center" class = "text-danger">{{post.data_verific.strftime('%x')}}</p></td>
+                    {% else %}
+                      <td><p align = "center" class = "text-secondary">{{post.data_verific.strftime('%x')}}</p></td>
+                    {% endif %}
                   {% else %}
                     <td><p align = "center" class = "text-secondary">{{post.data_verific.strftime('%x')}}</p></td>
                   {% endif %}
                 {% else %}
-                  <td><p align = "center" class = "text-secondary">{{post.data_verific.strftime('%x')}}</p></td>
+                    <td><p align = "center">Não Verificada</p></td>
                 {% endif %}
               {% else %}
-                  <td><p align = "center">Não Verificada</p></td>
+                <td><p align = "center">
+                  {% if post.conclu == '1' or post.conclu == '2' %} {{post.data_conclu.strftime('%x')}} {% else %} Não {% endif %}
+                </p></td>
+                <td><p align = "center">
+                  {% if post.conclu == '1' or post.conclu == '2' %}{% if post.nota != -1 and post.nota != None%} <b>{{post.nota}}</b>{% else %}<b>Não</b>{% endif %}{% endif %}
+                </p></td>
               {% endif %}
-            {% else %}
-              <td><p align = "center">
-                {% if post.conclu == '1' or post.conclu == '2' %} {{post.data_conclu.strftime('%x')}} {% else %} Não {% endif %}
-              </p></td>
-              <td><p align = "center">
-                {% if post.conclu == '1' or post.conclu == '2' %}{% if post.nota != -1 and post.nota != None%} <b>{{post.nota}}</b>{% else %}<b>Não</b>{% endif %}{% endif %}
-              </p></td>
-            {% endif %}
-          </tr>
+            </tr>
 
           {% endif %}
 

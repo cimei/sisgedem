@@ -55,7 +55,7 @@ from flask import render_template, url_for, flash, request, redirect, Blueprint,
 from flask_login import current_user, login_required
 from flask_mail import Message
 from threading import Thread
-from sqlalchemy import or_, and_, func, cast, String
+from sqlalchemy import or_, and_, func, cast, String, Integer
 from sqlalchemy.sql import label
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.functions import coalesce
@@ -135,10 +135,10 @@ def plano_trabalho():
     unidade = current_user.coord
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.id).filter(Coords.id_pai == cast(unidade,Integer)).all()
 
     if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
+        l_unid = [str(f.id) for f in hierarquia]
         l_unid.append(unidade)
     else:
         l_unid = [unidade]
@@ -163,9 +163,11 @@ def plano_trabalho():
                                   label('titular',user_titular.c.username),
                                   label('suplente',user_suplente.c.username),
                                   Plano_Trabalho.situa,
-                                  Plano_Trabalho.unidade)\
+                                  Plano_Trabalho.unidade,
+                                  Coords.sigla)\
                            .outerjoin(user_titular, Plano_Trabalho.id == user_titular.c.atividade_id)\
                            .outerjoin(user_suplente, Plano_Trabalho.id == user_suplente.c.atividade_id)\
+                           .join(Coords, Coords.id == cast(Plano_Trabalho.unidade, Integer))\
                            .filter(Plano_Trabalho.unidade.in_(l_unid))\
                            .order_by(Plano_Trabalho.atividade_sigla)\
                            .all()
@@ -191,18 +193,18 @@ def update_plano_trabalho(id):
 
     atividade = Plano_Trabalho.query.get_or_404(id)
 
-    unidade = current_user.coord
+    unidade = db.session.query(Coords.id,Coords.sigla).filter(Coords.id == int(current_user.coord)).first()
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.id,Coords.sigla).filter(Coords.id_pai == unidade.id).all()
 
     if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
+        l_unid = [(u.id,u.sigla) for u in hierarquia]
         l_unid.append(unidade)
     else:
-        l_unid = [unidade]
+        l_unid = [(unidade.id,unidade.sigla)]
 
-    lista_unids = [(u,u) for u in l_unid]
+    lista_unids = [(str(u[0]),u[1]) for u in l_unid]
     lista_unids.insert(0,('',''))
 
     form = Plano_TrabalhoForm()
@@ -247,18 +249,18 @@ def cria_atividade():
     +---------------------------------------------------------------------------------------+
     """
 
-    unidade = current_user.coord
+    unidade = db.session.query(Coords.id,Coords.sigla).filter(Coords.id == int(current_user.coord)).first()
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.id,Coords.sigla).filter(Coords.id_pai == int(current_user.coord)).all()
 
     if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
+        l_unid = [(u.id,u.sigla) for u in hierarquia]
         l_unid.append(unidade)
     else:
-        l_unid = [unidade]
+        l_unid = [(unidade.id,unidade.sigla)]
 
-    lista_unids = [(u,u) for u in l_unid]
+    lista_unids = [(str(u[0]),u[1]) for u in l_unid]
     lista_unids.insert(0,('',''))
 
     form = Plano_TrabalhoForm()
@@ -323,10 +325,10 @@ def lista_tipos():
     unidade = current_user.coord
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.id).filter(Coords.id_pai == cast(unidade,Integer)).all()
 
     if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
+        l_unid = [str(f.id) for f in hierarquia]
         l_unid.append(unidade)
     else:
         l_unid = [unidade]
@@ -337,7 +339,9 @@ def lista_tipos():
     tipos = db.session.query(Tipos_Demanda.id,
                              Tipos_Demanda.tipo,
                              Tipos_Demanda.relevancia,
-                             Tipos_Demanda.unidade)\
+                             Tipos_Demanda.unidade,
+                             Coords.sigla)\
+                      .join(Coords, Coords.id == cast(Tipos_Demanda.unidade,Integer))\
                       .filter(Tipos_Demanda.unidade.in_(l_unid))\
                       .order_by(Tipos_Demanda.tipo).all()
 
@@ -723,10 +727,10 @@ def cria_demanda():
     unidade = current_user.coord
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.id).filter(Coords.id_pai == cast(unidade,Integer)).all()
 
     if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
+        l_unid = [str(f.id) for f in hierarquia]
         l_unid.append(unidade)
     else:
         l_unid = [unidade]    
@@ -757,7 +761,7 @@ def cria_demanda():
             mensagem = 'KO'+str(verif_demanda.id)
 
         if '/' in str(form.sei.data):
-            sei=str(form.sei.data).split('/')[0]+'_'+str(form.sei.data).split('/')[1]
+            sei = str(form.sei.data).replace('/','_')
         else:
             sei = str(form.sei.data)
 
@@ -778,9 +782,11 @@ def confirma_cria_demanda(sei,tipo,mensagem):
        +--------------------------------------------------------------------------------------+
     """
     unidade = current_user.coord
+    
+    sistema = db.session.query(Sistema.nome_sistema).first()
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.id_pai == unidade).all()
 
     if hierarquia:
         l_unid = [f.sigla for f in hierarquia]
@@ -801,7 +807,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
 
     if form.validate_on_submit():
 
-        sei               = str(sei).split('_')[0]+'/'+str(sei).split('_')[1]
+        sei               = str(sei).replace('_','/')
         data_conclu       = None
         data_env_despacho = None
 
@@ -854,8 +860,6 @@ def confirma_cria_demanda(sei,tipo,mensagem):
 
             if len(destino) > 1:
 
-                sistema = db.session.query(Sistema.nome_sistema).first()
-
                 html = render_template('email_demanda_conclu.html',demanda=demanda.id,user=current_user.username,
                                         titulo=form.titulo.data, sistema=sistema.nome_sistema)
 
@@ -884,8 +888,6 @@ def confirma_cria_demanda(sei,tipo,mensagem):
             destino.append(current_user.email)
 
             if len(destino) > 1:
-
-                sistema = db.session.query(Sistema.nome_sistema).first()
 
                 html = render_template('email_pede_despacho.html',demanda=demanda.id,user=current_user.username,
                                         titulo=form.titulo.data,sistema=sistema.nome_sistema)
@@ -937,7 +939,7 @@ def acordo_convenio_demanda(prog,sei,conv,ano):
     unidade = current_user.coord
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.id_pai == unidade).all()
 
     if hierarquia:
         l_unid = [f.sigla for f in hierarquia]
@@ -979,13 +981,13 @@ def acordo_convenio_demanda(prog,sei,conv,ano):
 
         return redirect(url_for('demandas.confirma_acordo_convenio_demanda',
                                                         prog=atividade.id,
-                                                        sei=str(form.sei.data).split('/')[0]+'_'+str(form.sei.data).split('/')[1],
+                                                        sei = str(form.sei.data).replace('/','_'),
                                                         conv=conv,
                                                         ano=ano,
                                                         tipo=form.tipo.data,
                                                         mensagem=mensagem))
 
-    form.sei.data = str(sei).split('_')[0]+'/'+str(sei).split('_')[1]
+    form.sei.data = str(form.sei.data).replace('_','/')
 
     return render_template('add_demanda1.html', form = form)
 
@@ -1006,7 +1008,7 @@ def confirma_acordo_convenio_demanda(prog,sei,conv,ano,tipo,mensagem):
     unidade = current_user.coord
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.id_pai == unidade).all()
 
     if hierarquia:
         l_unid = [f.sigla for f in hierarquia]
@@ -1048,7 +1050,7 @@ def confirma_acordo_convenio_demanda(prog,sei,conv,ano,tipo,mensagem):
             desp = 0
 
         demanda = Demanda(programa              = form.atividade.data,
-                          sei                   = str(sei).split('_')[0]+'/'+str(sei).split('_')[1],
+                          sei                   = str(sei).replace('_','/'),
                           convênio              = conv,
                           ano_convênio          = '',
                           tipo                  = tipo,
@@ -1186,11 +1188,13 @@ def demanda(demanda_id):
                                 Demanda.nota,
                                 Plano_Trabalho.atividade_sigla,
                                 User.coord,
+                                Coords.sigla,
                                 User.username,
                                 Demanda.data_verific)\
                          .filter(Demanda.id == demanda_id)\
                          .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
-                         .outerjoin(User, User.id == Demanda.user_id)\
+                         .join(User, User.id == Demanda.user_id)\
+                         .join(Coords,Coords.id == cast(User.coord,Integer))\
                          .first()
 
     providencias = db.session.query(Providencia.demanda_id,
@@ -1260,14 +1264,14 @@ def demanda(demanda_id):
                     self.set_text_color(127,127,127)
                     self.cell(25, 8, 'Demanda: ', 0, 0)
                     self.set_text_color(0,0,0)
-                    self.cell(35, 8, str(demanda.id)+' ('+demanda.coord+')', 0, 0,'C')
+                    self.cell(35, 8, str(demanda.id)+' ('+demanda.sigla+')', 0, 0,'C')
                     self.set_text_color(0,0,0)
                     self.cell(0, 8, ' Atividade não definida', 0, 1)
                 else:
                     self.set_text_color(127,127,127)
                     self.cell(25, 8, 'Demanda: ', 0, 0)
                     self.set_text_color(0,0,0)
-                    self.cell(35, 8, str(demanda.id)+' ('+demanda.coord+')', 0, 0,'C')
+                    self.cell(35, 8, str(demanda.id)+' ('+demanda.sigla+')', 0, 0,'C')
                     self.set_text_color(127,127,127)
                     self.cell(25, 8, ' Atividade: ', 0, 0)
                     self.set_text_color(0,0,0)
@@ -1427,6 +1431,23 @@ def list_demandas():
         |Lista todas as demandas, bem como providências e despachos associados.|
         +----------------------------------------------------------------------+
     """
+    
+    # limitando a visão às demandas da unidade e subordinadas
+    
+    unidade = current_user.coord
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.id).filter(Coords.id_pai == cast(unidade,Integer)).all()
+
+    if hierarquia:
+        l_unid = [f.id for f in hierarquia]
+        l_unid.append(int(unidade))
+    else:
+        l_unid = [int(unidade)]
+        
+    unidade_usu = db.session.query(Coords.sigla).filter(Coords.id == cast(unidade,Integer)).first()    
+    
+    
     pesquisa = False
 
     page = request.args.get('page', 1, type=int)
@@ -1475,15 +1496,19 @@ def list_demandas():
                                 Demanda.nota,
                                 Plano_Trabalho.atividade_sigla,
                                 User.coord,
+                                Coords.sigla,
+                                Coords.id,
                                 User.username)\
                          .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
-                         .outerjoin(User, User.id == Demanda.user_id)\
+                         .join(User, User.id == Demanda.user_id)\
+                         .join(Coords, Coords.id == cast(User.coord,Integer))\
+                         .filter(Coords.id.in_(l_unid))\
                          .order_by(Demanda.data.desc())\
                          .paginate(page=page,per_page=8)
 
 
     return render_template ('demandas.html',pesquisa=pesquisa,demandas=demandas,
-                            pro_des = pro_des, demandas_count = demandas_count)
+                            pro_des = pro_des, demandas_count = demandas_count, sigla=unidade_usu.sigla)
 
 #
 #lista das demandas que aguardam despacho seguindo ordem de prioridades
@@ -1496,8 +1521,21 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
         +---------------------------------------------------------------------------+
     """
 
+    coords = db.session.query(Coords.id,Coords.sigla)\
+                      .order_by(Coords.sigla).all()
+    lista_coords = [(str(c.id),c.sigla) for c in coords]
+    lista_coords.insert(0,('',''))
+
+    pessoas = db.session.query(User.username, User.id)\
+                      .order_by(User.username).all()
+    lista_pessoas = [(str(p.id),p.username) for p in pessoas]
+    lista_pessoas.insert(0,('',''))
+
     #
     form = PesosForm()
+    
+    form.coord.choices  = lista_coords
+    form.pessoa.choices = lista_pessoas
 
     if form.validate_on_submit():
 
@@ -1746,6 +1784,9 @@ def update_demanda(demanda_id):
     |Uma vez que a demanda é marcada como concluída, a necessidade de despacho é desmarcada.|
     +---------------------------------------------------------------------------------------+
     """
+    
+    sistema = db.session.query(Sistema.nome_sistema).first()
+    
     demanda = Demanda.query.get_or_404(demanda_id)
 
     if demanda.author != current_user:
@@ -1757,7 +1798,7 @@ def update_demanda(demanda_id):
     unidade = current_user.coord
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.pai == unidade).all()
+    hierarquia = db.session.query(Coords.sigla).filter(Coords.id_pai == unidade).all()
 
     if hierarquia:
         l_unid = [f.sigla for f in hierarquia]
@@ -1815,8 +1856,6 @@ def update_demanda(demanda_id):
 
                 if len(destino) > 1:
 
-                    sistema = db.session.query(Sistema.nome_sistema).first()
-
                     html = render_template('email_pede_despacho.html',demanda=demanda_id,user=current_user.username,
                                             titulo=form.titulo.data,sistema=sistema.nome_sistema)
 
@@ -1868,8 +1907,6 @@ def update_demanda(demanda_id):
                 destino.append(current_user.email)
 
                 if len(destino) > 1:
-
-                    sistema = db.session.query(Sistema.nome_sistema).first()
 
                     html = render_template('email_demanda_conclu.html',demanda=demanda_id,user=current_user.username,
                                             titulo=form.titulo.data,sistema=sistema.nome_sistema)
@@ -2120,32 +2157,54 @@ def pesquisa_demanda():
     """
 
     pesquisa = True
+    
+    form = PesquisaForm()
 
     # os choices dos campos de escolha são definidos aqui e não no form
 
-    coords = db.session.query(Coords.sigla)\
-                      .order_by(Coords.sigla).all()
-    lista_coords = [(c[0],c[0]) for c in coords]
-    lista_coords.insert(0,('',''))
+    # coords = db.session.query(Coords.id,Coords.sigla)\
+    #                   .order_by(Coords.sigla).all()
+    # lista_coords = [(str(c.id),c.sigla) for c in coords]
+    # lista_coords.insert(0,('',''))
+    
+    # limitando a visão às demandas da unidade e subordinadas
+    
+    unidade = current_user.coord
+    unidade_usu = db.session.query(Coords.sigla).filter(Coords.id == cast(unidade,Integer)).first() 
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.id,Coords.sigla).filter(Coords.id_pai == cast(unidade,Integer)).all()
+
+    if hierarquia:
+        l_unid = [(str(f.id),f.sigla) for f in hierarquia]
+        l_unid.append((unidade,unidade_usu.sigla))
+        l_unid.insert(0,('',''))
+        l_unid_id = [str(f.id) for f in hierarquia]
+        l_unid_id.append(unidade)
+    else:
+        l_unid = [(unidade,unidade_usu.sigla)]
+        l_unid_id = [unidade]
+    
+    pessoas = db.session.query(User.username, User.id)\
+                        .filter(User.coord.in_(l_unid_id))\
+                        .order_by(User.username).all()
+    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
+    lista_pessoas.insert(0,('',''))
 
     tipos = db.session.query(Tipos_Demanda.tipo)\
+                      .filter(Tipos_Demanda.unidade.in_(l_unid_id))\
                       .order_by(Tipos_Demanda.tipo).all()
     lista_tipos = [(t[0],t[0]) for t in tipos]
     lista_tipos.insert(0,('',''))
 
-    pessoas = db.session.query(User.username, User.id)\
-                      .order_by(User.username).all()
-    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
-    lista_pessoas.insert(0,('',''))
-
     atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
-                      .order_by(Plano_Trabalho.atividade_sigla).all()
+                           .filter(Plano_Trabalho.unidade.in_(l_unid_id))\
+                           .order_by(Plano_Trabalho.atividade_sigla).all()
     lista_atividades = [(str(a[1]),a[0]) for a in atividades]
     lista_atividades.insert(0,('',''))
 
-    form = PesquisaForm()
 
-    form.coord.choices = lista_coords
+    form.coord.choices = l_unid
     form.tipo.choices = lista_tipos
     form.autor.choices = lista_pessoas
     form.atividade.choices = lista_atividades
@@ -2154,7 +2213,7 @@ def pesquisa_demanda():
         # a / do campo sei precisou ser trocada por _ para poder ser passado no URL da pesquisa
         if str(form.sei.data).find('/') != -1:
 
-            pesq = str(form.sei.data).split('/')[0]+'_'+str(form.sei.data).split('/')[1]+';'+\
+            pesq = str(form.sei.data).replace('/','_') +';'+\
                    str(form.titulo.data)+';'+\
                    str(form.tipo.data)+';'+\
                    str(form.necessita_despacho.data)+';'+\
@@ -2178,14 +2237,14 @@ def pesquisa_demanda():
                    str(form.coord.data)+';'+\
                    str(form.necessita_despacho_cg.data)
 
-        return redirect(url_for('demandas.list_pesquisa',pesq = pesq))
+        return redirect(url_for('demandas.list_pesquisa',pesq = pesq,unid=unidade_usu.sigla))
 
-    return render_template('pesquisa_demanda.html', form = form)
+    return render_template('pesquisa_demanda.html', form = form, sigla = unidade_usu.sigla)
 
 # lista as demandas com base em uma procura
 
-@demandas.route('/<pesq>/list_pesquisa')
-def list_pesquisa(pesq):
+@demandas.route('/<pesq>/<unid>/list_pesquisa')
+def list_pesquisa(pesq,unid):
     """+--------------------------------------------------------------------------------------+
        |Com os dados recebidos da formulário de pesquisa, traz as demandas, bem como          |
        |providências e despachos, encontrados no banco de dados.                              |
@@ -2202,7 +2261,7 @@ def list_pesquisa(pesq):
 
     sei = pesq_l[0]
     if sei.find('_') != -1:
-        sei = str(pesq_l[0]).split('_')[0]+'/'+str(pesq_l[0]).split('_')[1]
+        sei = str(pesq_l[0]).replace('_','/')
 
     if pesq_l[2] == 'Todos':
         p_tipo_pattern = ''
@@ -2310,7 +2369,7 @@ def list_pesquisa(pesq):
     pro_des.sort(key=lambda ordem: ordem.data,reverse=True)
 
     return render_template ('pesquisa.html', demandas_count = demandas_count, demandas = demandas,
-                             pro_des = pro_des, pesq = pesq, pesq_l = pesq_l)
+                             pro_des = pro_des, pesq = pesq, pesq_l = pesq_l,unid=unid)
 
 #################################################################
 
@@ -2333,13 +2392,27 @@ def cria_despacho(demanda_id):
     demanda = Demanda.query.get_or_404(demanda_id)
 
     tipo = db.session.query(Tipos_Demanda.id).filter(Tipos_Demanda.tipo == demanda.tipo).first()
+    
+    #pega unidade da demanda e unidade do chefe para determinar tipo de despacho
+    unid_demanda = db.session.query(User.coord).filter(User.id == demanda_id).first()
+    unid_pai = db.session.query(Coords.id_pai).filter(Coords.id == cast(unid_demanda.coord,Integer)).first()
+    if current_user.coord == str(unid_pai.id_pai):
+        tipo_despacho = 'superior'
+    else:
+        tipo_despacho = 'normal'
+        
+    
 
     # o choices do campo passos são definidos aqui e não no form
     passos = db.session.query(Passos_Tipos.passo, Passos_Tipos.ordem).filter(Passos_Tipos.tipo_id == tipo.id).order_by(Passos_Tipos.ordem).all()
+    
     qtd = len(passos)
+    
     lista_passos = [('('+str(p[1])+'/'+str(qtd)+') '+p[0],'('+str(p[1])+'/'+str(qtd)+') '+p[0]) for p in passos]
     lista_passos.insert(0,('',''))
+    
     form = DespachoForm()
+    
     form.passo.choices = lista_passos
 
     if form.validate_on_submit():
@@ -2358,9 +2431,9 @@ def cria_despacho(demanda_id):
         db.session.add(despacho)
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda_id,'Despacho registrato.')
+        registra_log_auto(current_user.id,demanda_id,'Despacho registrado.')
 
-        # marca a demanda quanto à necessidade de despacho da CG
+        # marca a demanda quanto à necessidade de despacho na unidade superior
         # e desmarca, dependendo de quem deu o despacho.
         if form.necessita_despacho_cg.data:
             demanda.necessita_despacho_cg = 1
@@ -2370,10 +2443,10 @@ def cria_despacho(demanda_id):
         if form.necessita_despacho_cg == 1:
             demanda.data_env_despacho = datetime.now()
 
-        if current_user.despacha == 1 or current_user.despacha0 == 1:
+        if tipo_despacho == 'normal':
             demanda.necessita_despacho = 0
 
-        if current_user.despacha2 == 1 and current_user.despacha == 0:
+        if tipo_despacho == 'superior':
             demanda.necessita_despacho_cg = 0
 
         db.session.commit()
@@ -2470,7 +2543,8 @@ def cria_despacho(demanda_id):
                                                 necessita_despacho    = demanda.necessita_despacho,
                                                 necessita_despacho_cg = demanda.necessita_despacho_cg,
                                                 conclu                = demanda.conclu,
-                                                post                  = demanda)
+                                                post                  = demanda,
+                                                tipo_despacho         = tipo_despacho)
 
 #################################################################
 
@@ -2816,8 +2890,30 @@ def demandas_resumo(coord):
     """
 
     hoje = date.today()
+    
     form = CoordForm()
+    
+    # limitando a visão às demandas da unidade e subordinadas
+    
+    unidade = current_user.coord
+    unidade_usu = db.session.query(Coords.sigla).filter(Coords.id == cast(unidade,Integer)).first() 
 
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.id,Coords.sigla).filter(Coords.id_pai == cast(unidade,Integer)).all()
+
+    if hierarquia:
+        l_unid = [(str(f.id),f.sigla) for f in hierarquia]
+        l_unid.append((unidade,unidade_usu.sigla))
+        l_unid.insert(0,('',''))
+        l_unid_id = [str(f.id) for f in hierarquia]
+        l_unid_id.append(unidade)
+    else:
+        l_unid = [(unidade,unidade_usu.sigla)]
+        l_unid_id = [unidade]
+    
+    
+    form.coord.choices = l_unid
+    
     if form.validate_on_submit():
 
         if form.coord.data != '':
@@ -2832,31 +2928,33 @@ def demandas_resumo(coord):
         form.coord.data  = coord
 
         if coord == '*':
-            coord = '%'
+            coord = l_unid_id
+        else:
+            coord = [unidade]
 
         ## conta demandas por tipo, destacando a quantidade concluída e a vida média
         demandas_count = db.session.query(Demanda,User.coord)\
                                    .join(User, Demanda.user_id == User.id)\
-                                   .filter(User.coord.like(coord))\
+                                   .filter(User.coord.in_(coord))\
                                    .count()
 
         demandas_por_tipo = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
                                       .join(User, Demanda.user_id == User.id)\
                                       .order_by(func.count(Demanda.id).desc())\
-                                      .filter(User.coord.like(coord))\
+                                      .filter(User.coord.in_(coord))\
                                       .group_by(Demanda.tipo)
 
         demandas_por_tipo_ano_anterior = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
                                                    .join(User, Demanda.user_id == User.id)\
                                                    .filter(Demanda.data >= str(hoje.year - 1) + '-1-1',
                                                            Demanda.data <= str(hoje.year - 1) + '-12-31',
-                                                           User.coord.like(coord))\
+                                                           User.coord.in_(coord))\
                                                    .group_by(Demanda.tipo)
 
         demandas_por_tipo_ano_corrente = db.session.query(Demanda.tipo,label('qtd_por_tipo',func.count(Demanda.id)))\
                                                    .join(User, Demanda.user_id == User.id)\
                                                    .filter(Demanda.data >= str(hoje.year) + '-1-1',
-                                                           User.coord.like(coord))\
+                                                           User.coord.in_(coord))\
                                                    .group_by(Demanda.tipo)
 
         m_top = hoje.month
@@ -2875,10 +2973,10 @@ def demandas_resumo(coord):
                                               .join(User, Demanda.user_id == User.id)\
                                               .filter(Demanda.data >= s_y_ini+'-'+s_m_ini+'-1',
                                                       Demanda.data <= s_y_top+'-'+s_m_top+'-'+str(monthrange(y_top,m_top)[1]),
-                                                      User.coord.like(coord))\
+                                                      User.coord.in_(coord))\
                                               .group_by(Demanda.tipo)
 
-        demandas_tipos = db.session.query(Tipos_Demanda.tipo).filter(Tipos_Demanda.unidade.like(coord)).order_by(Tipos_Demanda.tipo).all()
+        demandas_tipos = db.session.query(Tipos_Demanda.tipo).filter(Tipos_Demanda.unidade.in_(coord)).order_by(Tipos_Demanda.tipo).all()
 
         ## calcula a vida média das demandas por tipo
         vida_m_por_tipo = []
@@ -2890,14 +2988,14 @@ def demandas_resumo(coord):
                                         .filter(Demanda.tipo == demanda.tipo,
                                                 Demanda.conclu == '1',
                                                 Demanda.data_conclu != None,
-                                                User.coord.like(coord))
+                                                User.coord.in_(coord))
 
             demandas_conclu_por_tipo = db.session.query(Demanda.tipo,
                                                         label('qtd_conclu',func.count(Demanda.id)))\
                                                  .join(User, Demanda.user_id == User.id)\
                                                  .filter(Demanda.tipo == demanda.tipo,
                                                          Demanda.conclu == '1',
-                                                         User.coord.like(coord))\
+                                                         User.coord.in_(coord))\
                                                  .group_by(Demanda.tipo)      
 
             vida = 0
@@ -2921,7 +3019,7 @@ def demandas_resumo(coord):
                                     .join(User, Demanda.user_id == User.id)\
                                     .filter(Demanda.conclu == '1',
                                             Demanda.data_conclu != None,
-                                            User.coord.like(coord))
+                                            User.coord.in_(coord))
 
         vida = 0
         vida_m = 0
@@ -2943,7 +3041,7 @@ def demandas_resumo(coord):
                                   .join(User, Demanda.user_id == User.id)\
                                   .filter(Demanda.conclu == '1',
                                           Demanda.data > inic_ano,
-                                          User.coord.like(coord))
+                                          User.coord.in_(coord))
         vida = 0
         vida_m_ano = 0
 
@@ -2963,7 +3061,7 @@ def demandas_resumo(coord):
                                      label('i_data',Demanda.data))\
                                .join(User, Despacho.user_id == User.id)\
                                .outerjoin(Demanda, Despacho.demanda_id == Demanda.id)\
-                               .filter(User.coord.like(coord))\
+                               .filter(User.coord.in_(coord))\
                                .all()
 
         desp = 0
@@ -2984,7 +3082,7 @@ def demandas_resumo(coord):
         demandas_conclu = db.session.query(Demanda,User.coord)\
                                     .join(User, Demanda.user_id == User.id)\
                                     .filter(Demanda.conclu == '1',
-                                            User.coord.like(coord))\
+                                            User.coord.in_(coord))\
                                     .count()
 
         if demandas_total != 0:
@@ -2997,11 +3095,11 @@ def demandas_resumo(coord):
         colaborador_demandas = db.session.query(Demanda.user_id,
                                                 label('qtd',func.count(Demanda.user_id)))\
                                          .join(User, Demanda.user_id == User.id)\
-                                         .filter(User.coord.like(coord))\
+                                         .filter(User.coord.in_(coord))\
                                          .group_by(Demanda.user_id)
 
         pessoas = db.session.query(User.id,User.ativo)\
-                            .filter(User.coord.like(coord))\
+                            .filter(User.coord.in_(coord))\
                             .all()
 
         qtd_demandas = []
@@ -3037,7 +3135,7 @@ def demandas_resumo(coord):
                                       .join(User, Demanda.user_id == User.id)\
                                       .filter(Demanda.data >= mes[1]+'-'+mes[0]+'-01',
                                               Demanda.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
-                                              User.coord.like(coord))\
+                                              User.coord.in_(coord))\
                                       .count()
                             for mes in meses]
 
@@ -3055,7 +3153,7 @@ def demandas_resumo(coord):
                                           .join(User, Providencia.user_id == User.id)\
                                           .filter(Providencia.data >= mes[1]+'-'+mes[0]+'-01',
                                                   Providencia.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
-                                                  User.coord.like(coord))\
+                                                  User.coord.in_(coord))\
                                           .count()
                                 for mes in meses]
 
@@ -3073,7 +3171,7 @@ def demandas_resumo(coord):
                                        .join(User, Despacho.user_id == User.id)\
                                        .filter(Despacho.data >= mes[1]+'-'+mes[0]+'-01',
                                                Despacho.data <= mes[1]+'-'+mes[0]+'-'+str(monthrange(int(mes[1]),int(mes[0]))[1]),
-                                               User.coord.like(coord))\
+                                               User.coord.in_(coord))\
                                        .count()
                              for mes in meses]
 

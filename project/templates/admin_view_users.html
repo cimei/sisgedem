@@ -14,7 +14,7 @@
             <th>ID</th>
             <th>Usuário</th>
             <th>E-mail</th>
-            <th align="center">Coord.</th>
+            <th align="center">Unidade</th>
             <th align="center">Papel</th>
             <th align="center">Data reg.</th>
             <th align="center">E-mail conf.?</th>
@@ -26,18 +26,21 @@
         <tbody>
           {% for user in users %}
             <tr>
-              <td> <a href="{{url_for('users.admin_update_user', user_id=user.id)}}"><abbr title="Clique aqui atualizar">{{ user.id }} </td>
-              {% if user.despacha0 == 1 %}
-                <td> <span class="text-warning">{{user.username }}</span> </td>
-              {% elif user.despacha == 1 %}
-                <td> <span class="text-success">{{user.username }}</span> </td>
-              {% elif user.despacha2 == 1 %}
-                <td> <span class="text-danger">{{user.username }}</span> </td>
-              {% else %}
-                <td> {{user.username }} </td>
-              {% endif %}
+              <td> {{ user.id }} </td>
+              <td> <a href="{{url_for('users.admin_update_user', user_id=user.id)}}"><abbr title="Clique aqui atualizar">
+                {% if user.despacha0 == 1 %}
+                  <span class="text-warning">{{user.username }}</span> 
+                {% elif user.despacha == 1 %}
+                  <span class="text-success">{{user.username }}</span> 
+                {% elif user.despacha2 == 1 %}
+                  <span class="text-danger">{{user.username }}</span> 
+                {% else %}
+                  {{user.username }} </td>
+                {% endif %}
+                </abbr>
+              </td>
               <td> {{ user.email }} </td>
-              <td> {{ user.coord }} </td>
+              <td> {{ user.sigla }} </td>
               <td align="center"> {{ user.role }} </td>
               <td align="center"> {% if user.registered_on != None %} {{user.registered_on.strftime('%x')}} {% endif %} </td>
               <td align="center"> {% if user.email_confirmed == 1 %} Sim {% else %} Não {% endif %} </td>

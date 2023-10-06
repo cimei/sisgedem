@@ -5,7 +5,7 @@
 
 <div class="jumbotron">
 
-    <h5>Lista de todas as Demandas</h5>
+    <h5>Lista de todas as Demandas da Unidade <b>{{sigla}}</b> e suas subordinadas</h5>
     <p>Total de <span class="badge badge-primary badge-pill">{{demandas_count}}</span> demandas - pág. {{demandas.page}} de {{demandas.pages}}</p>
 
 
@@ -18,7 +18,7 @@
     <div class="col-sm-5">
       <div class="card">
         <div class="card-body">
-          <span>Demanda: {{demanda.id}} ({{demanda.coord}}) - {{demanda.atividade_sigla}}</span>
+          <span>Demanda nº {{demanda.id}} - {{demanda.sigla}} - {{demanda.atividade_sigla}}</span>
           {% if demanda.titulo != None %}
             <h4><a class="card-title" href="{{url_for('demandas.demanda',demanda_id=demanda.id)}}"><abbr title="Clique aqui para ver detalhes da demanda">{{demanda.titulo}}</abbr></a></h4>
           {% endif %}

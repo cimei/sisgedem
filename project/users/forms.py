@@ -47,11 +47,11 @@ class RegistrationForm(FlaskForm):
     username     = StringField('Nome do usuário: ', validators=[DataRequired(message="Informe um nome de usuário!")])
     password     = PasswordField('Senha: ', validators=[DataRequired(message="Informe uma senha!"),EqualTo('pass_confirm',message='Senhas devem ser iguais!')])
     pass_confirm = PasswordField('Confirmar Senha: ', validators=[DataRequired(message="Confirme a senha!")])
-    # não é utilizada a lista de coordenações, pois o usuário pode se registrar antes de existirem coordenações no banco.
-    coord        = StringField('Unidade:',validators=[DataRequired(message="Informe a Unidade organizacional!")])
-    despacha     = BooleanField('Você é coordenador, ou o seu substituto?')
-    despacha2    = BooleanField('Você é coordenador-geral, ou o seu substituto?')
-    despacha0    = BooleanField('Você é chefe de serviço, ou o seu substituto?')
+    coord        = SelectField('Unidade:')
+    despacha2    = BooleanField('Você é subchefe da unidade, ou o seu substituto?')
+    despacha     = BooleanField('Você é chefe da unidade, ou o seu substituto?')
+    despacha0    = BooleanField('Você é chefe superior à unidade, ou o seu substituto?')
+    
     submit       = SubmitField('Registrar-se')
 
        
@@ -63,7 +63,7 @@ class RegistrationForm(FlaskForm):
             return True    
 
     def check_username(self,field):
-        if User.query.filter_by(usernamne=field.data).first():
+        if User.query.filter_by(username=field.data).first():
             flash('Nome de usuário ' + field.data + ' já foi registrado! Por favor, escolha outro.','erro')
             return False
         else:
@@ -111,22 +111,23 @@ class AdminForm(FlaskForm):
     lista_coords = [(c[0],c[0]) for c in coords]
     lista_coords.insert(0,('',''))
 
-    coord        = SelectField('Coordenação:',choices= lista_coords, validators=[DataRequired(message="Escolha uma Coordenção!")])
-    despacha0    = BooleanField('É chefe de serviço, ou o seu substituto?')
-    despacha     = BooleanField('É coordenador(a), ou substituto(a)?')
-    despacha2    = BooleanField('É coordenador(a)-geral, ou substituto(a)?')
+    coord        = SelectField('Unidade:',choices= lista_coords, validators=[DataRequired(message="Escolha uma Unidade!")])
+    despacha2    = BooleanField('Usuário é subchefe da unidade, ou o seu substituto?')
+    despacha     = BooleanField('Usuário é chefe da unidade, ou o seu substituto?')
+    despacha0    = BooleanField('Usuário é chefe superior à unidade, ou o seu substituto?')
     role         = SelectField('Role: ',choices=[('user','user'),('admin','admin')] ,validators=[DataRequired(message="Informe o papel do usuário!")])
     cargo_func   = StringField('Cargo e Função: ')
     ativo        = BooleanField('Usuário está ativo?')
-    trab_conv    = BooleanField('Usuário trabalha com convênios?')
-    trab_acordo  = BooleanField('Usuário trabalha com acordos e encomendas?')
-    trab_instru  = BooleanField('Usuário trabalha com objetos?')
+
     submit       = SubmitField('Atualizar')
 
 class CoordForm(FlaskForm):
 
-    coord  = StringField('Coordenação:',validators=[DataRequired(message="Informe a sigla da Unidade!")])  
-    pai    = StringField('Pai:')
+    sigla  = StringField('Sigla:',validators=[DataRequired(message="Informe a sigla da Unidade!")])  
+    desc   = StringField('Descrição:')
+    id_pai = SelectField('Und. Superior:',coerce=int)
+    id_chefe = SelectField('Chefe:',coerce=int)
+    id_chefe_subs = SelectField('Chefe substituto:',coerce=int)
 
     submit = SubmitField('Registrar') 
 

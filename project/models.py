@@ -70,17 +70,23 @@ class Coords (db.Model):
     __tablename__ = "coords"
     __table_args__ = {"schema": "dem"} 
 
-    id   = db.Column(db.Integer,primary_key=True)
-    sigla = db.Column(db.String)
-    pai = db.Column(db.String)
+    id            = db.Column(db.Integer,primary_key=True)
+    sigla         = db.Column(db.String)
+    desc          = db.Column(db.String)
+    id_pai        = db.Column(db.Integer)
+    id_chefe      = db.Column(db.Integer)
+    id_chefe_subs = db.Column(db.Integer)
 
-    def __init__ (self,sigla,pai):
+    def __init__ (self,sigla,desc,id_pai,id_chefe,id_chefe_subs):
 
-        self.sigla = sigla
-        self.pai   = pai
+        self.sigla         = sigla
+        self.desc          = desc
+        self.id_pai        = id_pai
+        self.id_chefe      = id_chefe
+        self.id_chefe_subs = id_chefe_subs
 
     def __repr__ (self):
-        return f"{self.sigla};{self.pai}"
+        return f"{self.sigla};{self.desc}"
 
 
 class Tipos_Demanda(db.Model):

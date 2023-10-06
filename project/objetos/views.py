@@ -26,7 +26,7 @@
 
 from flask import render_template,url_for,flash, redirect,request,Blueprint
 from flask_login import current_user,login_required
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, cast, Integer
 from sqlalchemy.sql import label
 from project import db
 from project.models import User, Demanda, Coords, Objeto
@@ -68,9 +68,16 @@ def lista_objetos(lista,coord):
     +---------------------------------------------------------------------------------------+
     """
 
-    hoje = datetime.today()
+    hoje = datetime.today().date()
 
     form = ListaForm()
+    
+    coords = db.session.query(Coords.id,Coords.sigla)\
+                       .order_by(Coords.sigla).all()
+    lista_coords = [(c.id,c.sigla) for c in coords]
+    lista_coords.insert(0,('',''))
+    
+    form.coord.choices = lista_coords
 
     if form.validate_on_submit():
 
@@ -97,7 +104,7 @@ def lista_objetos(lista,coord):
 
             coordenacao = db.session.query(Coords.id,
                                            Coords.sigla)\
-                                    .filter(Coords.sigla == coord)\
+                                    .filter(Coords.id == cast(coord,Integer))\
                                     .subquery()
 
         if lista == 'todos':
@@ -111,7 +118,7 @@ def lista_objetos(lista,coord):
                                          Objeto.data_fim,
                                          Objeto.valor,
                                          coordenacao.c.sigla)\
-                                  .join(coordenacao, coordenacao.c.sigla == Objeto.coord)\
+                                  .join(coordenacao, coordenacao.c.id == cast(Objeto.coord,Integer))\
                                   .order_by(Objeto.nome).all()
 
         elif lista == 'em execução':
@@ -125,43 +132,43 @@ def lista_objetos(lista,coord):
                                               Objeto.data_fim,
                                               Objeto.valor,
                                               coordenacao.c.sigla)\
-                                       .join(coordenacao, coordenacao.c.sigla == Objeto.coord)\
+                                       .join(coordenacao, coordenacao.c.id == cast(Objeto.coord,Integer))\
                                        .filter(Objeto.data_fim >= hoje,
                                                Objeto.data_inicio <= hoje)\
                                        .order_by(Objeto.data_fim,Objeto.nome).all()
 
         quantidade = len(objetos_v)
 
-        objetos = []
+        # objetos = []
 
-        for objeto in objetos_v:
-            # ajusta formatos para data e dinheiro
-            if objeto.data_inicio is not None:
-                início = objeto.data_inicio.strftime('%x')
-            else:
-                início = None
+        # for objeto in objetos_v:
+        #     # ajusta formatos para data e dinheiro
+        #     if objeto.data_inicio is not None:
+        #         início = objeto.data_inicio.strftime('%x')
+        #     else:
+        #         início = None
 
-            if objeto.data_fim is not None:
-                fim = objeto.data_fim.strftime('%x')
-                dias = (objeto.data_fim - hoje).days
-            else:
-                fim = None
-                dias = 999
+        #     if objeto.data_fim is not None:
+        #         fim = objeto.data_fim.strftime('%x')
+        #         dias = (objeto.data_fim - hoje).days
+        #     else:
+        #         fim = None
+        #         dias = 999
 
-            valor = locale.currency(objeto.valor, symbol=False, grouping = True)
+        #     valor = locale.currency(objeto.valor, symbol=False, grouping = True)
 
-            objetos.append([objeto.id,
-                                 objeto.sigla,
-                                 objeto.nome,
-                                 objeto.contraparte,
-                                 objeto.sei,
-                                 início,
-                                 fim,
-                                 valor,
-                                 dias,
-                                 objeto.descri])
+        #     objetos.append([objeto.id,
+        #                          objeto.sigla,
+        #                          objeto.nome,
+        #                          objeto.contraparte,
+        #                          objeto.sei,
+        #                          início,
+        #                          fim,
+        #                          valor,
+        #                          dias,
+        #                          objeto.descri])
 
-        return render_template('lista_objetos.html', objetos=objetos,quantidade=quantidade,lista=lista,form=form)
+        return render_template('lista_objetos.html', objetos=objetos_v,quantidade=quantidade,lista=lista,form=form)
 
 
 ### ATUALIZAR objeto
@@ -224,23 +231,30 @@ def cria_objeto():
     """
 
     form = objetoForm()
+    
+    coords = db.session.query(Coords.id,Coords.sigla)\
+                       .order_by(Coords.sigla).all()
+    lista_coords = [(c.id,c.sigla) for c in coords]
+    lista_coords.insert(0,('',''))
+    
+    form.coord.choices = lista_coords
 
     if form.validate_on_submit():
         objeto = Objeto(coord       = form.coord.data,
-                                  nome        = form.nome.data,
-                                  contraparte = form.contraparte.data,
-                                  sei         = form.sei.data,
-                                  data_inicio = form.data_inicio.data,
-                                  data_fim    = form.data_fim.data,
-                                  valor       = float(form.valor.data.replace('.','').replace(',','.')),
-                                  descri      = form.descri.data)
+                        nome        = form.nome.data,
+                        contraparte = form.contraparte.data,
+                        sei         = form.sei.data,
+                        data_inicio = form.data_inicio.data,
+                        data_fim    = form.data_fim.data,
+                        valor       = float(form.valor.data.replace('.','').replace(',','.')),
+                        descri      = form.descri.data)
 
-        db.session.add(Objeto)
+        db.session.add(objeto)
         db.session.commit()
 
-        registra_log_auto(current_user.id,None,'itm')
+        registra_log_auto(current_user.id,None,'Objeto registrado!')
 
-        flash('objeto criado!')
+        flash('Objeto registrado!')
         return redirect(url_for('objetos.lista_objetos',lista='todos',coord = '*'))
 
 
@@ -261,7 +275,7 @@ def objeto_demandas (objeto_id):
     objeto_SEI = db.session.query(Objeto.sei,Objeto.nome).filter_by(id=objeto_id).first()
 
     SEI = objeto_SEI.sei
-    SEI_s = str(SEI).split('/')[0]+'_'+str(SEI).split('/')[1]
+    SEI_s = str(SEI).replace('/','_')
 
     demandas_count = Demanda.query.filter(Demanda.sei.like('%'+SEI+'%')).count()
 

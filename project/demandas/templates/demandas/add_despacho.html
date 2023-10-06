@@ -70,11 +70,14 @@
                   {{ render_field(form.texto,class="form-control form-control-lg", rows="3",obr=True) }}
                 </div>
 
-                <div class="form-check">
-                  {{ form.necessita_despacho_cg(class="form-check-input", type="checkbox") }}
-                  {{ form.necessita_despacho_cg.label(class="form-check-label") }}
-                </div>
-                <br>
+                {% if tipo_despacho == 'normal' %}
+                  <div class="form-check">
+                    {{ form.necessita_despacho_cg(class="form-check-input", type="checkbox") }}
+                    {{ form.necessita_despacho_cg.label(class="form-check-label") }}
+                  </div>
+                  <br>
+                {% endif %}  
+                
                 <div class="form-group">
                   <div class="form-group col-6">
                     {{ render_field(form.conclu,class="form-control",obr=False) }}

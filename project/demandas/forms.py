@@ -173,21 +173,11 @@ class PesquisaForm(FlaskForm):
 # form para definir o peso de cada componente RDU
 class PesosForm(FlaskForm):
 
-    coords = db.session.query(Coords.sigla)\
-                      .order_by(Coords.sigla).all()
-    lista_coords = [(c[0],c[0]) for c in coords]
-    lista_coords.insert(0,('',''))
-
-    pessoas = db.session.query(User.username, User.id)\
-                      .order_by(User.username).all()
-    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
-    lista_pessoas.insert(0,('',''))
-
     peso_R = SelectField('Relevância:',choices= [('0.5','Importante'),('1','Normal'),('1.5','Sem importância')],default='1')
     peso_D = SelectField('Momento:',choices= [('0.5','Importante'),('1','Normal'),('1.5','Sem importância')],default='1')
     peso_U = SelectField('Urgência:',choices= [('0.5','Importante'),('1','Normal'),('1.5','Sem importância')],default='1')
-    coord  = SelectField('Coordenação:',choices= lista_coords)
-    pessoa = SelectField('Responsável:',choices= lista_pessoas)
+    coord  = SelectField('Unidade:')
+    pessoa = SelectField('Responsável:')
     submit = SubmitField('Aplicar')
 
 # form para aferir demanda
@@ -206,11 +196,6 @@ class Pdf_Form(FlaskForm):
 # form para escolher coordenação
 class CoordForm(FlaskForm):
 
-    coords = db.session.query(Coords.sigla)\
-                      .order_by(Coords.sigla).all()
-    lista_coords = [(c[0],c[0]) for c in coords]
-    lista_coords.insert(0,('',''))
-
-    coord  = SelectField('Coordenação:',choices= lista_coords)
+    coord  = SelectField('Unidade:')
 
     submit = SubmitField('Aplicar')

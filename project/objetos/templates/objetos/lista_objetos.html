@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="jumbotron">
-<h5>Lista de objetos</h5>
+<h5>Lista de Objetos</h5>
 
   {% if current_user.is_authenticated %}
     <div>
@@ -32,8 +32,8 @@
 <caption>
   <div class="row">
       <div class="col">
-        <p>Lista dos <span class="badge badge-pill badge-primary">{{quantidade}}</span>
-          <span class="font-weight-bold">objetos</span> cadastrados
+        <p>Lista com <span class="badge badge-pill badge-primary">{{quantidade}}</span>
+          <span class="font-weight-bold">Objeto(s)</span> cadastrado(s)
           {% if lista == 'todos' %}
             <span class="text-info font-weight-bold">(todos)</span>
           {% endif %}
@@ -51,9 +51,9 @@
     <thead>
       <tr>
         <th scope="col"><p align = "center">#</p></th>
-        <th scope="col"><p align = "center">Coord.</p></th>
+        <th scope="col"><p align = "center">Unidade</p></th>
         <th scope="col"><p align = "center">Título</p></th>
-        <th scope="col"><p align = "center">Contraparte</p></th>
+        <!-- <th scope="col"><p align = "center">Contraparte</p></th> -->
         <th scope="col"><p align = "center">SEI</p></th>
         <th scope="col"><p align = "center">Início</p></th>
         <th scope="col"><p align = "center">Término</p></th>
@@ -70,25 +70,37 @@
             <a href="{{url_for('objetos.update', objeto_id=objeto[0])}}"><abbr title="Clique aqui atualizar">{{objetos.index(objeto) + 1}}</abbr></a>
           {% endif %}
         </p></th>
-        <td><p align = "center"><small> {{objeto[1]}}</small></p></td>
-        <td><p align = "center"><small> {{objeto[2]}}</small></p></td>
-        <td><p align = "center"><small> {{objeto[3]}}</small></p></td>
-        {% if objeto[4] != None%}
-          <td><p align = "center"> <a href="{{url_for('objetos.objeto_demandas', objeto_id=objeto[0])}}"><abbr title="Clique aqui para ver demandas deste objeto"><small> {{objeto[4]}} </small></abbr></a> </p></td>
+        <td><p align = "center"><small> {{objeto.sigla}}</small></p></td>
+        <td><p align = "center"><small> {{objeto.nome}}</small></p></td>
+        <!-- <td><p align = "center"><small> {{objeto[3]}}</small></p></td> -->
+        {% if objeto.sei != None%}
+          <td><p align = "center"> <a href="{{url_for('objetos.objeto_demandas', objeto_id=objeto[0])}}"><abbr title="Clique aqui para ver demandas deste objeto"><small> {{objeto.sei}} </small></abbr></a> </p></td>
         {% else %}
-          <td><p align = "center"><small> {{objeto[4]}}</small></p></td>
+          <td><p align = "center"><small> {{objeto.sei}}</small></p></td>
         {% endif %}
-        <td><p align = "center"><small> {{objeto[5]}}</small></p></td>
-        {% if objeto[8] <= 30 and objeto[8] >= 0 %}
-          <td><p align = "center" class="bg-danger text-white font-weight-bold"><small> {{objeto[6]}}</small> </p></td>
-        {% elif objeto[8] <= 60 and objeto[8] > 30 %}
-          <td><p align = "center" class="bg-warning text-dark font-weight-bold"><small> {{objeto[6]}}</small> </p></td>
-        {% elif objeto[8] <= 90 and objeto[8] > 60 %}
-          <td><p align = "center" class="bg-secondary text-white font-weight-bold"><small> {{objeto[6]}}</small> </p></td>
-        {% else %}
-          <td><p align = "center"> <small> {{objeto[6]}}</small> </p></td>
-        {% endif %}
-        <td><p align = "center"><small> {{objeto[7]}}</small></p></td>
+        <td>
+          <p align = "center">
+            <small>
+                {% if objeto.data_inicio %}
+                  {{objeto.data_inicio.strftime('%d/%m/%Y')}}
+                {% else %}
+                  N.I.
+                {% endif %}  
+              </small>
+          </p>
+        </td>
+        <td>
+          <p align = "center">
+            <small>
+                {% if objeto.data_fim %}
+                  {{objeto.data_fim.strftime('%d/%m/%Y')}}
+                {% else %}
+                  N.I.
+                {% endif %}  
+              </small>
+          </p>
+        </td>
+        <td><p align = "center"><small> {{objeto.valor|converte_para_real}}</small></p></td>
       </tr>
 
       {% endfor %}
