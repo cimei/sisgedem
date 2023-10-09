@@ -116,7 +116,7 @@ class AdminForm(FlaskForm):
     despacha     = BooleanField('Usuário é chefe da unidade, ou o seu substituto?')
     despacha0    = BooleanField('Usuário é chefe superior à unidade, ou o seu substituto?')
     role         = SelectField('Role: ',choices=[('user','user'),('admin','admin')] ,validators=[DataRequired(message="Informe o papel do usuário!")])
-    cargo_func   = StringField('Cargo e Função: ')
+    cargo_func   = StringField('Cargo e Função:')
     ativo        = BooleanField('Usuário está ativo?')
 
     submit       = SubmitField('Atualizar')

@@ -59,12 +59,11 @@
         <th scope="col"><p align = "center">ID</p></th>
         <th scope="col"><p align = "center">Resp.</p></th>
         <th scope="col"><p align = "center">Atividade</p></th>
-        <th scope="col"><p align = "center">UF</p></th>
-        <th scope="col"><p align = "center">SEI</p></th>
+        <th scope="col"><p align = "center">Processo</p></th>
         <th scope="col"><p align = "center">Tipo</p></th>
         <th scope="col"><p align = "center">Início</p></th>
-        <th scope="col"><p align = "center">Coord. Téc.</p></th>
-        <th scope="col"><p align = "center">Coord. Geral</p></th>
+        <th scope="col"><p align = "center">Desp. niv. 1</p></th>
+        <th scope="col"><p align = "center">Desp. Sup.</p></th>
       </tr>
     </thead>
     <tbody>
@@ -72,11 +71,10 @@
 
       <tr>
         <th scope="row"><p align = "center"> {{demandas.index(demanda) + 1}} </p></th>
-        <th scope="row"><p align = "center"> <abbr title="{{demanda[11]}}">{{demanda[10]}} </p></th>
-        <td><p align = "center"><a href="{{url_for('demandas.demanda',demanda_id=demanda[0])}}"><abbr title="Clique aqui para ver detalhes da demanda"> {{demanda[0]}} </p></td>
-        <td><p align = "center"> {{demanda[9]}} </p></td>
+        <th scope="row"><p align = "center"> <abbr title="{{demanda[10]}}"> {{demanda[9]}} </abbr></p></th>
+        <td><p align = "center"><a href="{{url_for('demandas.demanda',demanda_id=demanda[0])}}"><abbr title="Clique aqui para ver detalhes da demanda"> {{demanda[0]}} </abbr></p></td>
+        <td><p align = "center"> {{demanda[8]}} </p></td>
         <td><p align = "center"> {{demanda[1]}} </p></td>
-        <td><p align = "center"> {{demanda[12][0]}} </p></td>
         <td><p align = "center"> {{demanda[2]}} </p></td>
         <td><p align = "center"> {{demanda[3]}} </p></td>
         <td><p align = "center"> {{demanda[4].strftime("%x")}} </p></td>

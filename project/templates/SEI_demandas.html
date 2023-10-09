@@ -7,7 +7,7 @@
     </div>
     {% if current_user.is_authenticated %}
       <div align = 'center'>
-        <a href="{{url_for('demandas.acordo_convenio_demanda',prog=dados[0],sei=dados[1],conv=dados[2],ano=dados[3])}}"
+        <a href="{{url_for('demandas.cria_demanda',proc=dados[1])}}"
            class="btn btn-outline-primary btn-sm" role="button" aria-pressed="true">Clique aqui para criar nova demanda relacionada a este processo</a>
       </div>
     {% endif %}

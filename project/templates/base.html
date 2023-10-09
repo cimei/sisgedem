@@ -60,7 +60,7 @@
                 <a class="dropdown-item" href="{{url_for('demandas.list_demandas')}}">Todas</a>
                 <a class="dropdown-item" href="{{url_for('demandas.pesquisa_demanda')}}">Procurar demanda</a>
                 {% if current_user.is_authenticated %}
-                  <a class="dropdown-item" href="{{url_for('demandas.cria_demanda')}}">Criar demanda</a>
+                  <a class="dropdown-item" href="{{url_for('demandas.cria_demanda',proc='*')}}">Criar demanda</a>
                   <a class="dropdown-item" href="{{url_for('demandas.demandas_resumo',coord='*')}}">Resumo das demandas</a>
                   <a class="dropdown-item" href="{{url_for('demandas.lista_tipos')}}">Tipos de Demanda</a>
                   <a class="dropdown-item" href="{{url_for('demandas.prioriza',peso_R=1,peso_D=1,peso_U=1,coord='*',resp='*')}}">Priorização</a>

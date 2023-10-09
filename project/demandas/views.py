@@ -29,8 +29,6 @@
     * Listar passos de um tipo de demanda: lista_passos_tipos
     * Criar demandas: cria_demanda
     * Confirma criação de demanda: confirma_cria_demanda
-    * Criar demamanda a partir de um acordo ou convênio: acordo_convenio_demanda
-    * Confirma criação de demanda a partir de acordo ou convênio: confirma_acordo_convenio_demanda
     * Ler demandas: demanda
     * Registrar data de verificação de uma demanda: verifica
     * Listar demandas: list_demandas
@@ -399,8 +397,6 @@ def lista_tipos():
 
         for tipo in tipos_s:
 
-            print('*** tipo: ',tipo)
-
             passos = db.session.query(Passos_Tipos.ordem, Passos_Tipos.passo, Passos_Tipos.desc)\
                                 .filter(Passos_Tipos.tipo_id == tipo[0])\
                                 .order_by(Passos_Tipos.ordem)\
@@ -409,7 +405,7 @@ def lista_tipos():
 
             pdf.set_text_color(0,0,0)
             pdf.set_font('Arial', 'B', 10)
-            pdf.cell(0, 10, tipo[1] +' ('+str(qtd)+' passos)'+'    Relevância: '+ tipo[4], 0, 0)
+            pdf.cell(0, 10, tipo[1] +' ('+str(qtd)+' passos)'+'    Relevância: '+ str(tipo[5]), 0, 0)
             pdf.ln(10)
 
             if qtd == 0:
@@ -714,9 +710,9 @@ def lista_passos_tipos(tipo_id):
 
 # Verificando se já existe demanda semelhante
 
-@demandas.route('/criar',methods=['GET','POST'])
+@demandas.route('/<proc>/criar',methods=['GET','POST'])
 @login_required
-def cria_demanda():
+def cria_demanda(proc):
     """+--------------------------------------------------------------------------------------+
        |Inicia o procedimento de registro de uma demanda.                                     |
        +--------------------------------------------------------------------------------------+
@@ -735,6 +731,8 @@ def cria_demanda():
     else:
         l_unid = [unidade]    
 
+    form = DemandaForm1()
+
     # o choices do campo tipo são definidos aqui e não no form
     tipos = db.session.query(Tipos_Demanda.tipo)\
                       .filter(Tipos_Demanda.unidade.in_(l_unid))\
@@ -743,9 +741,10 @@ def cria_demanda():
     lista_tipos = [(t.tipo,t.tipo) for t in tipos]
     lista_tipos.insert(0,('',''))
 
-    form = DemandaForm1()
-
     form.tipo.choices = lista_tipos
+    
+    if proc != '*':
+        form.sei.data = proc.replace('_','/')
 
     if form.validate_on_submit():
 
@@ -793,6 +792,8 @@ def confirma_cria_demanda(sei,tipo,mensagem):
         l_unid.append(unidade)
     else:
         l_unid = [unidade]
+        
+    form = DemandaForm()    
 
     # o choices do campo atividade são definidos aqui e não no form
     atividades = db.session.query(Plano_Trabalho.id, Plano_Trabalho.atividade_sigla)\
@@ -800,8 +801,6 @@ def confirma_cria_demanda(sei,tipo,mensagem):
                            .order_by(Plano_Trabalho.atividade_sigla).all()
     lista_atividades = [(str(a.id),a.atividade_sigla) for a in atividades]
     lista_atividades.insert(0,('',''))
-
-    form = DemandaForm()
 
     form.atividade.choices = lista_atividades
 
@@ -820,11 +819,14 @@ def confirma_cria_demanda(sei,tipo,mensagem):
             data_env_despacho = datetime.now()
         else:
             desp = 0
+            
+        if form.atividade.data == '':
+            ativ = None 
+        else:
+            ativ = form.atividade.data   
 
-        demanda = Demanda(programa              = form.atividade.data,
+        demanda = Demanda(programa              = ativ,
                           sei                   = sei,
-                          convênio              = None,
-                          ano_convênio          = '',
                           tipo                  = tipo,
                           data                  = datetime.now(),
                           user_id               = current_user.id,
@@ -918,246 +920,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
     else:
         flash ('OK, favor preencher os demais campos.','sucesso')
 
-    return render_template('add_demanda.html', form = form, sei=sei, tipo=tipo, sistema=sistema)
-
-
-
-#CRIANDO uma demanda a partir de um acordo ou convênio
-### verificar se deve ser usado para objetos
-
-# VERIFICANDO
-@demandas.route('/<prog>/<sei>/<conv>/<ano>/criar',methods=['GET','POST'])
-@login_required
-def acordo_convenio_demanda(prog,sei,conv,ano):
-    """+--------------------------------------------------------------------------------------+
-       |Inicia o procedimento de registro de uma demanda a partir de um acordo ou convênio.   |
-       +--------------------------------------------------------------------------------------+
-    """
-    if current_user.ativo == 0:
-        abort(403)
-
-    unidade = current_user.coord
-
-    # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.id_pai == unidade).all()
-
-    if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
-        l_unid.append(unidade)
-    else:
-        l_unid = [unidade]    
-
-    # o choices do campo tipo são definidos aqui e não no form
-    tipos = db.session.query(Tipos_Demanda.tipo)\
-                      .filter(Tipos_Demanda.unidade.in_(l_unid))\
-                      .order_by(Tipos_Demanda.tipo)\
-                      .all()
-    lista_tipos = [(t.tipo,t.tipo) for t in tipos]
-    lista_tipos.insert(0,('',''))
-
-    form = DemandaForm1()
-
-    form.tipo.choices = lista_tipos
-
-    if form.validate_on_submit():
-
-        verif_demanda = db.session.query(Demanda)\
-                                  .filter(Demanda.sei == form.sei.data,
-                                          Demanda.tipo == form.tipo.data,
-                                          Demanda.conclu == '0')\
-                                  .first()
-
-        if verif_demanda == None:
-            mensagem = 'OK'
-        else:
-            mensagem = 'KO'+str(verif_demanda.id)
-
-        atividade = db.session.query(Plano_Trabalho.id)\
-                              .filter(Plano_Trabalho.atividade_sigla == prog).first()
-
-        if atividade == None:
-            atividade = db.session.query(Plano_Trabalho.id)\
-                                  .filter(Plano_Trabalho.atividade_sigla == "Diversos").first()
-
-        return redirect(url_for('demandas.confirma_acordo_convenio_demanda',
-                                                        prog=atividade.id,
-                                                        sei = str(form.sei.data).replace('/','_'),
-                                                        conv=conv,
-                                                        ano=ano,
-                                                        tipo=form.tipo.data,
-                                                        mensagem=mensagem))
-
-    form.sei.data = str(form.sei.data).replace('_','/')
-
-    return render_template('add_demanda1.html', form = form)
-
-
-# CONFIRMANDO
-### verificar se deve ser usado para objetos
-
-@demandas.route('/<prog>/<sei>/<conv>/<ano>/<tipo>/<mensagem>/criar',methods=['GET','POST'])
-@login_required
-def confirma_acordo_convenio_demanda(prog,sei,conv,ano,tipo,mensagem):
-    """+--------------------------------------------------------------------------------------+
-       |Registra uma demanda a partir de um acordo ou convênio.                               |
-       |                                                                                      |
-       |Atenção para o Título da Demanda que não pode passar de 140 caracteres.               |
-       +--------------------------------------------------------------------------------------+
-    """
-
-    unidade = current_user.coord
-
-    # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.id_pai == unidade).all()
-
-    if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
-        l_unid.append(unidade)
-    else:
-        l_unid = [unidade]
-
-    sistema = db.session.query(Sistema.funcionalidade_conv,Sistema.funcionalidade_acordo).first()
-
-    # o choices do campo atividade são definidos aqui e não no form
-    atividades = db.session.query(Plano_Trabalho.id, Plano_Trabalho.atividade_sigla)\
-                           .filter(Plano_Trabalho.unidade.in_(l_unid))\
-                           .order_by(Plano_Trabalho.atividade_sigla).all()
-    lista_atividades = [(str(a.id),a.atividade_sigla) for a in atividades]
-    lista_atividades.insert(0,('',''))
-
-    form = DemandaForm()
-
-    form.atividade.choices= lista_atividades
-
-    if form.validate_on_submit():
-
-        data_conclu = None
-        data_env_despacho = None
-
-        if form.conclu.data != '0':
-            form.necessita_despacho.data = False
-            data_conclu = datetime.now()
-
-            if form.convênio.data == ''  or form.convênio.data == None:
-                conv = ''
-            else:
-                conv = form.convênio.data
-
-        if form.necessita_despacho.data == True:
-            data_env_despacho = datetime.now()
-            desp = 1
-        else:
-            desp = 0
-
-        demanda = Demanda(programa              = form.atividade.data,
-                          sei                   = str(sei).replace('_','/'),
-                          convênio              = conv,
-                          ano_convênio          = '',
-                          tipo                  = tipo,
-                          data                  = datetime.now(),
-                          user_id               = current_user.id,
-                          titulo                = form.titulo.data,
-                          desc                  = form.desc.data,
-                          necessita_despacho    = desp,
-                          necessita_despacho_cg = 0,
-                          conclu                = form.conclu.data,
-                          data_conclu           = data_conclu,
-                          urgencia              = form.urgencia.data,
-                          data_env_despacho     = data_env_despacho,
-                          nota                  = None,
-                          data_verific          = None)
-
-        db.session.add(demanda)
-        db.session.commit()
-
-        registra_log_auto(current_user.id,demanda.id,'Demanda criada.')
-
-        flash ('Demanda criada!','sucesso')
-
-        # enviar e-mail para chefes sobre demanda concluida
-        if form.conclu.data != '0':
-
-            chefes_emails = db.session.query(User.email)\
-                                      .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                              User.coord == current_user.coord)
-
-            destino = []
-            for email in chefes_emails:
-                destino.append(email[0])
-            destino.append(current_user.email)
-
-            if len(destino) > 1:
-
-                sistema = db.session.query(Sistema.nome_sistema).first()
-
-                html = render_template('email_demanda_conclu.html',demanda=demanda.id,user=current_user.username,
-                                        titulo=form.titulo.data,sistema=sistema.nome_sistema)
-
-                pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==form.atividade.data).first()
-
-                send_email('Demanda ' + str(demanda.id) + ' foi concluída (' + pt.atividade_sigla + ')', destino,'', html)
-
-                msg = Msgs_Recebidas(user_id    = demanda.user_id,
-                                     data_hora  = datetime.now(),
-                                     demanda_id = demanda.id,
-                                     msg        = 'A demanda foi concluída!')
-
-                db.session.add(msg)
-                db.session.commit()
-
-        # enviar e-mail para chefes sobre necessidade de despacho
-        if form.necessita_despacho.data == True:
-
-            chefes_emails = db.session.query(User.email,User.id)\
-                                      .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                              User.coord == current_user.coord)
-
-            destino = []
-            for email in chefes_emails:
-                destino.append(email[0])
-            destino.append(current_user.email)
-
-            if len(destino) > 1:
-
-                sistema = db.session.query(Sistema.nome_sistema).first()
-
-                html = render_template('email_pede_despacho.html',demanda=demanda.id,user=current_user.username,
-                                        titulo=form.titulo.data,sistema=sistema.nome_sistema)
-
-                pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==form.atividade.data).first()
-
-                send_email('Demanda ' + str(demanda.id) + ' requer despacho (' + pt.atividade_sigla + ')', destino,'', html)
-
-                for user in chefes_emails:
-                    msg = Msgs_Recebidas(user_id    = user.id,
-                                         data_hora  = datetime.now(),
-                                         demanda_id = demanda.id,
-                                         msg        = 'Chefia, a demanda está pedindo um despacho!')
-                    db.session.add(msg)
-
-                    msg = Msgs_Recebidas(user_id    = current_user.id,
-                                         data_hora  = datetime.now(),
-                                         demanda_id = demanda.id,
-                                         msg        = 'Você marcou a opção -Necessita despacho?- na demanda!')
-                    db.session.add(msg)
-
-                db.session.commit()
-
-        return redirect(url_for('demandas.demanda',demanda_id=demanda.id))
-
-    form.atividade.data       = prog
-
-    if conv == '0':
-        form.convênio.data   = ''
-    else:
-        form.convênio.data   = conv
-
-    if mensagem != 'OK':
-        flash ('ATENÇÃO: Existe uma demanda não concluída para este processo sob o mesmo tipo. Verifique demanda '+mensagem[2:],'perigo')
-    else:
-        flash ('OK, favor preencher os demais campos.','sucesso')
-
-    return render_template('add_demanda.html', form = form, sei = sei, tipo = tipo, sistema=sistema)
+    return render_template('add_demanda.html', form = form, sei=sei, tipo=tipo)
 
 
 #lendo uma demanda
@@ -1262,14 +1025,14 @@ def demanda(demanda_id):
                 # Nº da demanda, coordenação e atividade
                 if demanda.atividade_sigla == None:
                     self.set_text_color(127,127,127)
-                    self.cell(25, 8, 'Demanda: ', 0, 0)
+                    self.cell(20, 8, 'Demanda: ', 0, 0)
                     self.set_text_color(0,0,0)
                     self.cell(35, 8, str(demanda.id)+' ('+demanda.sigla+')', 0, 0,'C')
                     self.set_text_color(0,0,0)
                     self.cell(0, 8, ' Atividade não definida', 0, 1)
                 else:
                     self.set_text_color(127,127,127)
-                    self.cell(25, 8, 'Demanda: ', 0, 0)
+                    self.cell(20, 8, 'Demanda: ', 0, 0)
                     self.set_text_color(0,0,0)
                     self.cell(35, 8, str(demanda.id)+' ('+demanda.sigla+')', 0, 0,'C')
                     self.set_text_color(127,127,127)
@@ -1287,13 +1050,13 @@ def demanda(demanda_id):
                     pdf.ln(12)
                 else:
                     pdf.ln(tamanho_titulo/10)
-                # tipo e SEI
+                # tipo e processo
                 self.set_text_color(127,127,127)
                 self.cell(12, 8, 'Tipo: ', 0, 0)
                 self.set_text_color(0,0,0)
                 self.cell(90, 8, demanda.tipo, 0, 0)
                 self.set_text_color(127,127,127)
-                self.cell(12, 8, 'Processo: ', 0, 0)
+                self.cell(25, 8, 'Processo: ', 0, 0)
                 self.set_text_color(0,0,0)
                 self.cell(0, 8, demanda.sei, 0, 1)
                 # responsável
@@ -1521,20 +1284,32 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
         +---------------------------------------------------------------------------+
     """
 
-    coords = db.session.query(Coords.id,Coords.sigla)\
-                      .order_by(Coords.sigla).all()
-    lista_coords = [(str(c.id),c.sigla) for c in coords]
-    lista_coords.insert(0,('',''))
-
-    pessoas = db.session.query(User.username, User.id)\
-                      .order_by(User.username).all()
-    lista_pessoas = [(str(p.id),p.username) for p in pessoas]
-    lista_pessoas.insert(0,('',''))
-
-    #
     form = PesosForm()
     
-    form.coord.choices  = lista_coords
+    unidade = current_user.coord
+    unidade_usu = db.session.query(Coords.sigla).filter(Coords.id == cast(unidade,Integer)).first() 
+
+    # se unidade for pai, junta ela com seus filhos
+    hierarquia = db.session.query(Coords.id,Coords.sigla).filter(Coords.id_pai == cast(unidade,Integer)).all()
+
+    if hierarquia:
+        l_unid = [(str(f.id),f.sigla) for f in hierarquia]
+        l_unid.append((unidade,unidade_usu.sigla))
+        l_unid.insert(0,('',''))
+        l_unid_id = [str(f.id) for f in hierarquia]
+        l_unid_id.append(unidade)
+    else:
+        l_unid = [(unidade,unidade_usu.sigla)]
+        l_unid_id = [unidade]
+    
+    pessoas = db.session.query(User.username, User.id)\
+                        .filter(User.coord.in_(l_unid_id))\
+                        .order_by(User.username).all()
+    lista_pessoas = [(str(p[1]),p[0]) for p in pessoas]
+    lista_pessoas.insert(0,('',''))
+    
+    
+    form.coord.choices  = l_unid
     form.pessoa.choices = lista_pessoas
 
     if form.validate_on_submit():
@@ -1560,23 +1335,36 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
         form.peso_R.data = peso_R
         form.peso_D.data = peso_D
         form.peso_U.data = peso_U
+        
         form.coord.data  = coord
         form.pessoa.data = resp
+        
+        if coord == '*':
+            coord = l_unid_id
+        else:
+            coord = [coord]
 
         hoje = datetime.today()
 
         ## calcula vida média por tipo de demanda
 
-        demandas_conclu_por_tipo = db.session.query(Demanda.tipo,label('qtd',func.count(Demanda.id)))\
-                                      .filter(Demanda.conclu == '1')\
-                                      .order_by(Demanda.tipo)\
-                                      .group_by(Demanda.tipo)
+        demandas_conclu_por_tipo = db.session.query(Demanda.tipo,
+                                                    label('qtd',func.count(Demanda.id)))\
+                                             .join(User, Demanda.user_id == User.id)\
+                                             .filter(Demanda.conclu == '1',
+                                                     User.coord.in_(coord))\
+                                             .order_by(Demanda.tipo)\
+                                             .group_by(Demanda.tipo)
 
         vida_m_por_tipo_dict = {}
 
         for tipo in demandas_conclu_por_tipo:
-            demandas_datas = db.session.query(Demanda.data,Demanda.data_conclu)\
-                                        .filter(Demanda.tipo == tipo.tipo, Demanda.data_conclu != None)
+            demandas_datas = db.session.query(Demanda.data,
+                                              Demanda.data_conclu)\
+                                        .join(User, Demanda.user_id == User.id)\
+                                        .filter(Demanda.tipo == tipo.tipo, 
+                                                Demanda.data_conclu != None,
+                                                User.coord.in_(coord))
 
             vida = 0
             vida_m = 0
@@ -1596,7 +1384,7 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
 
         demandas_s = []
 
-        if coord == '*' and resp == '*':
+        if resp == '*':
             demandas       = db.session.query(Demanda.id,
                                               Plano_Trabalho.atividade_sigla,
                                               Demanda.sei,
@@ -1609,14 +1397,10 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
                             .join(User, Demanda.user_id == User.id)\
                             .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
                             .order_by(Demanda.data)\
-                            .filter(Demanda.conclu == '0')\
+                            .filter(Demanda.conclu == '0',
+                                    User.coord.in_(coord))\
                             .all()
         else:
-
-            if coord == '*':
-                coord = '%'
-            if resp == '*':
-                resp = '%'
 
             demandas       = db.session.query(Demanda.id,
                                               Plano_Trabalho.atividade_sigla,
@@ -1631,15 +1415,13 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
                             .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
                             .order_by(Demanda.data)\
                             .filter(Demanda.conclu == '0',
-                                    User.coord.like(coord),
-                                    User.id.like(resp))\
+                                    User.coord.in_(coord),
+                                    User.id == cast(resp,Integer))\
                             .all()
 
         quantidade = len(demandas)
 
         for demanda in demandas:
-            # identifica UF
-            uf = ('*',)
 
             # identifica relevância
             relev = db.session.query(Tipos_Demanda.relevancia).filter_by(tipo=demanda.tipo).first()
@@ -1671,9 +1453,9 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
                 r_relevancia = 0
 
             demanda_s = list(demanda)
+            
             demanda_s.append(float(peso_R)*r_relevancia + float(peso_D)*distancia + float(peso_U)*demanda.urgencia)
             demanda_s.append(str(r_relevancia)+','+str(distancia)+','+str(demanda.urgencia))
-            demanda_s.append(uf)
 
             demandas_s.append(demanda_s)
 
@@ -1798,13 +1580,15 @@ def update_demanda(demanda_id):
     unidade = current_user.coord
 
     # se unidade for pai, junta ela com seus filhos
-    hierarquia = db.session.query(Coords.sigla).filter(Coords.id_pai == unidade).all()
+    hierarquia = db.session.query(Coords.id).filter(Coords.id_pai == cast(unidade,Integer)).all()
 
     if hierarquia:
-        l_unid = [f.sigla for f in hierarquia]
+        l_unid = [str(f.id) for f in hierarquia]
         l_unid.append(unidade)
     else:
         l_unid = [unidade]
+        
+    form = Demanda_ATU_Form()    
 
     # o choices do campo tipo e do campo atividade são definidos aqui e não no form
     tipos = db.session.query(Tipos_Demanda.tipo)\
@@ -1820,8 +1604,6 @@ def update_demanda(demanda_id):
                            .all()
     lista_atividades = [(str(a.id),a.atividade_sigla) for a in atividades]
     lista_atividades.insert(0,('',''))
-
-    form = Demanda_ATU_Form()
 
     form.tipo.choices = lista_tipos
     form.atividade.choices = lista_atividades

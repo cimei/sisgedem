@@ -1497,6 +1497,8 @@ def user_rel():
        |                                                                                      |
        +--------------------------------------------------------------------------------------+
     """
+    
+    unidade = db.session.query(Coords.sigla).filter(Coords.id == cast(current_user.coord,Integer)).first()
 
     form = RelForm()
 
@@ -1509,15 +1511,18 @@ def user_rel():
                                         Plano_Trabalho.atividade_desc,
                                         Plano_Trabalho.natureza,
                                         Plano_Trabalho.meta)\
-                                        .join(Ativ_Usu, Plano_Trabalho.id == Ativ_Usu.atividade_id)\
-                                        .filter(Ativ_Usu.user_id == current_user.id, Ativ_Usu.nivel == 'Titular')\
-                                        .order_by(Plano_Trabalho.natureza,Plano_Trabalho.atividade_sigla).all()
+                                  .join(Ativ_Usu, Plano_Trabalho.id == Ativ_Usu.atividade_id)\
+                                  .filter(Ativ_Usu.user_id == current_user.id,
+                                          Ativ_Usu.nivel == 'Titular')\
+                                  .order_by(Plano_Trabalho.natureza,Plano_Trabalho.atividade_sigla).all()
 
         quantidade_1 = len(atividades_1)
 
         carga_1 = db.session.query(label('total',func.sum(Plano_Trabalho.meta)))\
                             .join(Ativ_Usu, Plano_Trabalho.id == Ativ_Usu.atividade_id)\
-                            .filter(Ativ_Usu.user_id == current_user.id, Ativ_Usu.nivel == 'Titular').all()
+                            .filter(Ativ_Usu.user_id == current_user.id, 
+                                    Ativ_Usu.nivel == 'Titular')\
+                            .all()
 
         atividades_2 = db.session.query(Plano_Trabalho.id,
                                         Plano_Trabalho.atividade_sigla,
@@ -1525,14 +1530,17 @@ def user_rel():
                                         Plano_Trabalho.natureza,
                                         Plano_Trabalho.meta)\
                                         .join(Ativ_Usu, Plano_Trabalho.id == Ativ_Usu.atividade_id)\
-                                        .filter(Ativ_Usu.user_id == current_user.id, Ativ_Usu.nivel == 'Suplente')\
+                                        .filter(Ativ_Usu.user_id == current_user.id, 
+                                                Ativ_Usu.nivel == 'Suplente')\
                                         .order_by(Plano_Trabalho.natureza,Plano_Trabalho.atividade_sigla).all()
 
         quantidade_2 = len(atividades_2)
 
         carga_2 = db.session.query(label('total',func.sum(Plano_Trabalho.meta)))\
                             .join(Ativ_Usu, Plano_Trabalho.id == Ativ_Usu.atividade_id)\
-                            .filter(Ativ_Usu.user_id == current_user.id, Ativ_Usu.nivel == 'Suplente').all()
+                            .filter(Ativ_Usu.user_id == current_user.id, 
+                                    Ativ_Usu.nivel == 'Suplente')\
+                            .all()
 
 
         # levanta dados de ações executadas
@@ -1540,12 +1548,7 @@ def user_rel():
         coordenador = db.session.query(User.username,
                                        User.cargo_func,
                                        User.email)\
-                                .filter(User.cargo_func == 'Coordenador(a)', User.ativo == 1, User.coord == current_user.coord).first()
-
-        coordenador_geral = db.session.query(User.username,
-                                             User.cargo_func,
-                                             User.email)\
-                                       .filter(User.cargo_func == 'Coordenador(a)-Geral').first()
+                                .filter(User.despacha == 1, User.ativo == 1, User.coord == current_user.coord).first()
 
         data_ini = form.data_ini.data
         data_fim = form.data_fim.data
@@ -1574,14 +1577,14 @@ def user_rel():
                                .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.programa)\
                                .all()
 
-        registra_log_auto(current_user.id,None,'rel')
+        registra_log_auto(current_user.id,None,'Gerado relatório de atividades de '+current_user.username)
 
         return render_template('form_atividades.html', log=log, atividades = atividades,
                                 atividades_1=atividades_1, atividades_2=atividades_2,
                                 quantidade_1=quantidade_1, quantidade_2=quantidade_2,
                                 carga_1=carga_1[0][0], carga_2=carga_2[0][0],
                                 data_ini=data_ini.strftime('%x'), data_fim=data_fim.strftime('%x'),
-                                coordenador=coordenador, coordenador_geral=coordenador_geral)
+                                coordenador=coordenador, unidade = unidade)
 
     return render_template('user_inf_datas.html', form=form)
 

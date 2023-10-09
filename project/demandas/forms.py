@@ -91,7 +91,7 @@ class DemandaForm1(FlaskForm):
 class DemandaForm(FlaskForm):
 
     # programa            = StringField('Programa:',validators=[DataRequired(message="Escolha um Programa!")])
-    atividade             = SelectField('Atividade:', validators=[DataRequired(message="Escolha uma atividade do plano de trabalho!")])
+    atividade             = SelectField('Atividade:')
     convênio              = IntegerField('Convênio:', validators=[Optional()])
     titulo                = StringField('Título:', validators=[DataRequired(message="Defina um Título!")])
     desc                  = TextAreaField('Descrição:',validators=[DataRequired(message="Descreva a Demanda!")])
@@ -100,13 +100,14 @@ class DemandaForm(FlaskForm):
     conclu                = SelectField('Concluída?',choices=[('0','Não'),('1','Sim, com sucesso'),('2','Sim, com insucesso')])
     urgencia              = SelectField('Urgência:',choices=[('3','Baixa'),('2','Média'),('1','Alta')],
                                        validators=[DataRequired(message="Defina a urgência!")])
+    
     submit                = SubmitField('Registrar')
 
 #
 class Demanda_ATU_Form(FlaskForm):
 
     # programa            = StringField('Programa:',validators=[DataRequired(message="Escolha um Programa!")])
-    atividade     = SelectField('Atividade:', validators=[DataRequired(message="Escolha uma atividade do plano de trabalho!")])
+    atividade     = SelectField('Atividade:')
     sei           = StringField('Processo:')
     tipo          = SelectField('Tipo:')
     convênio      = IntegerField('Convênio:', validators=[Optional()])
@@ -117,6 +118,7 @@ class Demanda_ATU_Form(FlaskForm):
     conclu        = SelectField('Concluída?',choices=[('0','Não'),('1','Sim, com sucesso'),('2','Sim, com insucesso')])
     urgencia      = SelectField('Urgência:',choices=[('3','Baixa'),('2','Média'),('1','Alta')],
                                        validators=[DataRequired(message="Defina a urgência!")])
+    
     submit              = SubmitField('Registrar')
 
 class TransferDemandaForm(FlaskForm):
@@ -178,6 +180,7 @@ class PesosForm(FlaskForm):
     peso_U = SelectField('Urgência:',choices= [('0.5','Importante'),('1','Normal'),('1.5','Sem importância')],default='1')
     coord  = SelectField('Unidade:')
     pessoa = SelectField('Responsável:')
+    
     submit = SubmitField('Aplicar')
 
 # form para aferir demanda

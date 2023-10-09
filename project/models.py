@@ -213,7 +213,7 @@ class Demanda(db.Model):
     __table_args__ = {"schema": "dem"}
 
     id                     = db.Column(db.Integer, primary_key=True)
-    programa               = db.Column(db.Integer, nullable=False)
+    programa               = db.Column(db.Integer)
     sei                    = db.Column(db.String, nullable=False)
     convênio               = db.Column(db.String)
     ano_convênio           = db.Column(db.Integer)
@@ -235,12 +235,10 @@ class Demanda(db.Model):
     despachos           = db.relationship('Despacho',backref='demanda',cascade="delete, delete-orphan")
 
 
-    def __init__(self, programa, sei, convênio, ano_convênio, tipo, data, user_id, titulo, desc, necessita_despacho,\
+    def __init__(self, programa, sei, tipo, data, user_id, titulo, desc, necessita_despacho,\
                  conclu, data_conclu,necessita_despacho_cg,urgencia,data_env_despacho,nota,data_verific):
         self.programa              = programa
         self.sei                   = sei
-        self.convênio              = convênio
-        self.ano_convênio          = ano_convênio
         self.tipo                  = tipo
         self.data                  = data
         self.user_id               = user_id
@@ -270,7 +268,7 @@ class Demanda(db.Model):
         else:
             flag3 = ''
 
-        return f"{self.programa};{self.sei};{self.convênio};{self.ano_convênio};{self.tipo};{self.data};\
+        return f"{self.programa};{self.sei};{self.tipo};{self.data};\
                  {self.user_id};{self.titulo};{flag1};{flag2};{flag3};{self.data_conclu};{self.data_verific}"
 
 class Despacho(db.Model):
