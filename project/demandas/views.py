@@ -825,7 +825,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
         else:
             ativ = form.atividade.data   
 
-        demanda = Demanda(programa              = ativ,
+        demanda = Demanda(atividade_id              = ativ,
                           sei                   = sei,
                           tipo                  = tipo,
                           data                  = datetime.now(),
@@ -935,7 +935,7 @@ def demanda(demanda_id):
     """
 
     demanda = db.session.query(Demanda.id,
-                                Demanda.programa,
+                                Demanda.atividade_id,
                                 Demanda.sei,
                                 Demanda.tipo,
                                 Demanda.data,
@@ -955,7 +955,7 @@ def demanda(demanda_id):
                                 User.username,
                                 Demanda.data_verific)\
                          .filter(Demanda.id == demanda_id)\
-                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                          .join(User, User.id == Demanda.user_id)\
                          .join(Coords,Coords.id == cast(User.coord,Integer))\
                          .first()
@@ -1146,7 +1146,7 @@ def demanda(demanda_id):
 
     return render_template('ver_demanda.html',
                             id                    = demanda.id,
-                            programa              = demanda.atividade_sigla,
+                            atividade_sigla       = demanda.atividade_sigla,
                             sei                   = demanda.sei,
                             data                  = demanda.data,
                             tipo                  = demanda.tipo,
@@ -1243,7 +1243,7 @@ def list_demandas():
     demandas_count = Demanda.query.count()
 
     demandas = db.session.query(Demanda.id,
-                                Demanda.programa,
+                                Demanda.atividade_id,
                                 Demanda.sei,
                                 Demanda.tipo,
                                 Demanda.data,
@@ -1262,7 +1262,7 @@ def list_demandas():
                                 Coords.sigla,
                                 Coords.id,
                                 User.username)\
-                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                          .join(User, User.id == Demanda.user_id)\
                          .join(Coords, Coords.id == cast(User.coord,Integer))\
                          .filter(Coords.id.in_(l_unid))\
@@ -1395,7 +1395,7 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
                                               Demanda.urgencia,
                                               User.username)\
                             .join(User, Demanda.user_id == User.id)\
-                            .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                            .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                             .order_by(Demanda.data)\
                             .filter(Demanda.conclu == '0',
                                     User.coord.in_(coord))\
@@ -1412,7 +1412,7 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
                                               Demanda.urgencia,
                                               User.username)\
                             .join(User, Demanda.user_id == User.id)\
-                            .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                            .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                             .order_by(Demanda.data)\
                             .filter(Demanda.conclu == '0',
                                     User.coord.in_(coord),
@@ -1478,7 +1478,7 @@ def demandas_por_tipo(tipo):
     l_act = {}
 
     demandas = db.session.query(Demanda.id,
-                                Demanda.programa,
+                                Demanda.atividade_id,
                                 Demanda.sei,
                                 Demanda.tipo,
                                 Demanda.data,
@@ -1497,7 +1497,7 @@ def demandas_por_tipo(tipo):
                                 User.username,
                                 User.coord)\
                          .join(User, Demanda.user_id == User.id)\
-                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                          .filter(Demanda.tipo == tipo)\
                          .order_by(Demanda.id.desc())\
                          .all()
@@ -1610,7 +1610,7 @@ def update_demanda(demanda_id):
 
     if form.validate_on_submit():
 
-        demanda.programa              = form.atividade.data
+        demanda.atividade_id              = form.atividade.data
         demanda.sei                   = form.sei.data
         demanda.tipo                  = form.tipo.data
         demanda.titulo                = form.titulo.data
@@ -1720,7 +1720,7 @@ def update_demanda(demanda_id):
         return redirect(url_for('demandas.demanda',demanda_id=demanda.id))
 
     elif request.method == 'GET':
-        form.atividade.data             = str(demanda.programa)
+        form.atividade.data             = str(demanda.atividade_id)
         form.sei.data                   = demanda.sei
         form.tipo.data                  = demanda.tipo
         form.titulo.data                = demanda.titulo
@@ -2091,7 +2091,7 @@ def list_pesquisa(pesq,unid):
 
 
     demandas = db.session.query(Demanda.id,
-                                Demanda.programa,
+                                Demanda.atividade_id,
                                 Demanda.sei,
                                 Demanda.tipo,
                                 Demanda.data,
@@ -2109,7 +2109,7 @@ def list_pesquisa(pesq,unid):
                                 User.coord,
                                 User.username)\
                          .join(User, User.id == Demanda.user_id)\
-                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                         .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                          .filter(Demanda.sei.like('%'+sei+'%'),
                                  Demanda.titulo.like('%'+pesq_l[1]+'%'),
                                  Demanda.tipo.like('%'+p_tipo_pattern+'%'),
@@ -2118,7 +2118,7 @@ def list_pesquisa(pesq,unid):
                                  cast(Demanda.conclu,String).like('%'+p_conclu+'%'),
                                  cast(Demanda.user_id,String).like (autor_id),
                                  cast(Demanda.id,String).like (pesq_l[7]),
-                                 cast(Demanda.programa,String).like (pesq_l[8]),
+                                 cast(Demanda.atividade_id,String).like (pesq_l[8]),
                                  cast(User.coord,String).like (pesq_l[9]))\
                          .order_by(Demanda.data.desc())\
                          .paginate(page=page,per_page=8)
@@ -2258,7 +2258,7 @@ def cria_despacho(demanda_id):
                     html = render_template('email_demanda_conclu.html',demanda=demanda_id,user=current_user.username,
                                             titulo=demanda.titulo, sistema=sistema.nome_sistema)
 
-                    pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.programa).first()
+                    pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.atividade_id).first()
 
                     send_email('Demanda ' + str(demanda_id) + ' foi concluída (' + pt.atividade_sigla + ')', destino,'', html)
 
@@ -2295,7 +2295,7 @@ def cria_despacho(demanda_id):
         html = render_template('email_despacho_emitido.html',demanda=demanda_id,user=current_user.username,
                                 dono=dono_email.username,titulo=demanda.titulo, sistema=sistema.nome_sistema)
 
-        pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.programa).first()
+        pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.atividade_id).first()
 
         send_email('Demanda ' + str(demanda_id) + ' recebeu um Despacho (' + pt.atividade_sigla + ')', destino,'', html)
 
@@ -2427,9 +2427,9 @@ def cria_providencia(demanda_id):
         db.session.commit()
 
         if programada == 1:
-            registra_log_auto(current_user.id,demanda_id,'Providência agendada.',demanda.programa,form.duracao.data)
+            registra_log_auto(current_user.id,demanda_id,'Providência agendada.',demanda.atividade_id,form.duracao.data)
         else:
-            registra_log_auto(current_user.id,demanda_id,'Providência registrada.',demanda.programa,form.duracao.data)
+            registra_log_auto(current_user.id,demanda_id,'Providência registrada.',demanda.atividade_id,form.duracao.data)
 
 # para o caso da providência exigir um despacho
         if form.necessita_despacho.data == True:
@@ -2456,7 +2456,7 @@ def cria_providencia(demanda_id):
                     html = render_template('email_pede_despacho.html',demanda=demanda_id,user=current_user.username,
                                             titulo=demanda.titulo,sistema=sistema.nome_sistema,tipo=demanda.tipo)
 
-                    pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.programa).first()
+                    pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.atividade_id).first()
 
                     send_email('Demanda ' + str(demanda_id) + ' requer despacho (' + pt.atividade_sigla + ')', destino,'', html)
 
@@ -2518,7 +2518,7 @@ def cria_providencia(demanda_id):
                         html = render_template('email_demanda_conclu.html',demanda=demanda_id,user=current_user.username,
                                                 titulo=demanda.titulo,sistema=sistema.nome_sistema)
 
-                        pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.programa).first()
+                        pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.atividade_id).first()
 
                         send_email('Demanda ' + str(demanda_id) + ' foi concluída (' + pt.atividade_sigla + ')', destino,'', html)
 
@@ -2554,7 +2554,7 @@ def cria_providencia(demanda_id):
                 html = render_template('email_provi_alheia.html',demanda=demanda_id,user=current_user.username,
                                         dono=dono_email.username,titulo=demanda.titulo,sistema=sistema.nome_sistema)
 
-                pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.programa).first()
+                pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id==demanda.atividade_id).first()
 
                 send_email('Demanda ' + str(demanda_id) + ' com providência alheia (' + pt.atividade_sigla + ')', destino,'', html)
 

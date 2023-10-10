@@ -15,7 +15,7 @@
 
 .. topic:: Ações relacionadas aos objetos
 
-    * Listar objetos por edição do programa: lista_objetos
+    * Listar objetos: lista_objetos
     * Atualizar/visualizar dados de um objeto: update
     * Registrar um objeto no sistema: cria_objeto
     * Listar demandas de um determinado objeto: objeto_demandas
@@ -56,14 +56,13 @@ def none_0(a):
 def lista_objetos(lista,coord):
     """
     +---------------------------------------------------------------------------------------+
-    |Apresenta uma lista dos objetos por edição do programa.                           |
+    |Apresenta uma lista dos objetos.                                                       |
     |                                                                                       |
-    |O objeto é algo tratado pela área técnica que justifica um registro específico.   |
-    |e que não pode ser caracterizado como convênio ou acordo.                              |
-    |Um contratao é um exemplo de objeto.                                              |
+    |O objeto é algo tratado pela área técnica que justifica um registro específico.        |
+    |Um contratao é um exemplo de objeto.                                                   |
     |                                                                                       |
-    |No topo da tela há a opção de se inserir um novo objeto e o número sequencial     |
-    |de cada objeto (#), ao ser clicado, permite que seus dados possam ser editados.   |
+    |No topo da tela há a opção de se inserir um novo objeto e o número sequencial          |
+    |de cada objeto (#), ao ser clicado, permite que seus dados possam ser editados.        |
     |                                                                                       |
     +---------------------------------------------------------------------------------------+
     """
@@ -184,7 +183,7 @@ def update(objeto_id):
     +---------------------------------------------------------------------------------------+
     """
 
-    objeto = Objeto.query.get_or_404(Objeto_id)
+    objeto = Objeto.query.get_or_404(objeto_id)
 
     form = objetoForm()
 

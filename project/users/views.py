@@ -684,10 +684,8 @@ def user_posts (username,filtro):
 
         if user_id == '%':
             demandas = db.session.query(Demanda.id,
-                                        Demanda.programa,
+                                        Demanda.atividade_id,
                                         Demanda.sei,
-                                        Demanda.convênio,
-                                        Demanda.ano_convênio,
                                         Demanda.tipo,
                                         Demanda.data,
                                         Demanda.user_id,
@@ -702,7 +700,7 @@ def user_posts (username,filtro):
                                         Demanda.nota,
                                         Plano_Trabalho.atividade_sigla,
                                         Demanda.data_verific)\
-                                .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                                .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                                 .filter(Demanda.conclu == '0')\
                                 .order_by(Demanda.urgencia,Demanda.data.desc())\
                                 .all()
@@ -723,10 +721,8 @@ def user_posts (username,filtro):
                 
             
             demandas = db.session.query(Demanda.id,
-                                        Demanda.programa,
+                                        Demanda.atividade_id,
                                         Demanda.sei,
-                                        Demanda.convênio,
-                                        Demanda.ano_convênio,
                                         Demanda.tipo,
                                         Demanda.data,
                                         Demanda.user_id,
@@ -745,7 +741,7 @@ def user_posts (username,filtro):
                                         Coords.sigla)\
                                 .join(User, User.id == Demanda.user_id)\
                                 .join(Coords, Coords.id == cast(User.coord,Integer))\
-                                .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                                .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                                 .filter(Demanda.user_id.in_(pessoas_unid_lista),
                                         Demanda.conclu == '0')\
                                 .order_by(Demanda.urgencia,Demanda.data.desc())\
@@ -784,10 +780,8 @@ def user_posts (username,filtro):
 
         if user_id == '%':
             demandas = db.session.query(Demanda.id,
-                                        Demanda.programa,
+                                        Demanda.atividade_id,
                                         Demanda.sei,
-                                        Demanda.convênio,
-                                        Demanda.ano_convênio,
                                         Demanda.tipo,
                                         Demanda.data,
                                         Demanda.user_id,
@@ -801,7 +795,7 @@ def user_posts (username,filtro):
                                         Demanda.data_env_despacho,
                                         Demanda.nota,
                                         Plano_Trabalho.atividade_sigla)\
-                                        .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                                        .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                                         .filter(Demanda.conclu != '0')\
                                         .order_by(Demanda.data_conclu.desc())\
                                         .all()
@@ -821,10 +815,8 @@ def user_posts (username,filtro):
                 pessoas_unid_lista = [user_id]
             
             demandas = db.session.query(Demanda.id,
-                                        Demanda.programa,
+                                        Demanda.atividade_id,
                                         Demanda.sei,
-                                        Demanda.convênio,
-                                        Demanda.ano_convênio,
                                         Demanda.tipo,
                                         Demanda.data,
                                         Demanda.user_id,
@@ -842,7 +834,7 @@ def user_posts (username,filtro):
                                         Coords.sigla)\
                                  .join(User, User.id == Demanda.user_id)\
                                  .join(Coords, Coords.id == cast(User.coord,Integer))\
-                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                                  .filter(Demanda.user_id.in_(pessoas_unid_lista),
                                          Demanda.conclu != '0')\
                                  .order_by(Demanda.data_conclu.desc())\
@@ -853,10 +845,8 @@ def user_posts (username,filtro):
 
         if user_id == '%':
             demandas = db.session.query(Demanda.id,
-                                        Demanda.programa,
+                                        Demanda.atividade_id,
                                         Demanda.sei,
-                                        Demanda.convênio,
-                                        Demanda.ano_convênio,
                                         Demanda.tipo,
                                         Demanda.data,
                                         Demanda.user_id,
@@ -870,7 +860,7 @@ def user_posts (username,filtro):
                                         Demanda.data_env_despacho,
                                         Demanda.nota,
                                         Plano_Trabalho.atividade_sigla)\
-                                        .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                                        .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                                         .order_by(Demanda.urgencia,Demanda.data.desc())\
                                         .all()
         else:
@@ -889,10 +879,8 @@ def user_posts (username,filtro):
                 pessoas_unid_lista = [user_id]
             
             demandas = db.session.query(Demanda.id,
-                                        Demanda.programa,
+                                        Demanda.atividade_id,
                                         Demanda.sei,
-                                        Demanda.convênio,
-                                        Demanda.ano_convênio,
                                         Demanda.tipo,
                                         Demanda.data,
                                         Demanda.user_id,
@@ -910,7 +898,7 @@ def user_posts (username,filtro):
                                         Coords.sigla)\
                                  .join(User, User.id == Demanda.user_id)\
                                  .join(Coords, Coords.id == cast(User.coord,Integer))\
-                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.programa)\
+                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                                  .filter(Demanda.user_id.in_(pessoas_unid_lista))\
                                  .order_by(Demanda.urgencia,Demanda.data.desc())\
                                  .all()
@@ -1339,7 +1327,7 @@ def user_log (usu):
                                 Log_Auto.registro,
                                 Log_Auto.atividade,
                                 User.username,
-                                Demanda.programa,
+                                Demanda.atividade_id,
                                 label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                 Log_Auto.duracao)\
                             .join(User, Log_Auto.user_id == User.id)\
@@ -1357,7 +1345,7 @@ def user_log (usu):
                                 Log_Auto.registro,
                                 Log_Auto.atividade,
                                 User.username,
-                                Demanda.programa,
+                                Demanda.atividade_id,
                                 label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                 Log_Auto.duracao)\
                             .join(User, Log_Auto.user_id == User.id)\
@@ -1372,7 +1360,7 @@ def user_log (usu):
 
         atividades = db.session.query(log,
                                       Plano_Trabalho.atividade_sigla)\
-                               .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.programa)\
+                               .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.atividade_id)\
                                .order_by(log.c.id.desc())\
                                .all()
 
@@ -1391,7 +1379,7 @@ def user_log (usu):
                                 Log_Auto.registro,
                                 Log_Auto.atividade,
                                 User.username,
-                                Demanda.programa,
+                                Demanda.atividade_id,
                                 label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                 Log_Auto.duracao)\
                             .join(User, Log_Auto.user_id == User.id)\
@@ -1407,7 +1395,7 @@ def user_log (usu):
                                 Log_Auto.registro,
                                 Log_Auto.atividade,
                                 User.username,
-                                Demanda.programa,
+                                Demanda.atividade_id,
                                 label('ativ_sigla',Plano_Trabalho.atividade_sigla),
                                 Log_Auto.duracao)\
                             .join(User, Log_Auto.user_id == User.id)\
@@ -1421,7 +1409,7 @@ def user_log (usu):
 
         atividades = db.session.query(log,
                                       Plano_Trabalho.atividade_sigla)\
-                               .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.programa)\
+                               .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.atividade_id)\
                                .order_by(log.c.id.desc())\
                                .all()
 
@@ -1559,7 +1547,7 @@ def user_rel():
                                Log_Auto.registro,
                                Log_Auto.atividade,
                                User.username,
-                               Demanda.programa,
+                               Demanda.atividade_id,
                                Demanda.sei,
                                Demanda.conclu,
                                label('ativ_sigla',Plano_Trabalho.atividade_sigla),
@@ -1574,7 +1562,7 @@ def user_rel():
 
         atividades = db.session.query(log,
                                       Plano_Trabalho.atividade_sigla)\
-                               .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.programa)\
+                               .outerjoin(Plano_Trabalho, Plano_Trabalho.id == log.c.atividade_id)\
                                .all()
 
         registra_log_auto(current_user.id,None,'Gerado relatório de atividades de '+current_user.username)

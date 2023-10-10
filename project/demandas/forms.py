@@ -90,9 +90,7 @@ class DemandaForm1(FlaskForm):
 
 class DemandaForm(FlaskForm):
 
-    # programa            = StringField('Programa:',validators=[DataRequired(message="Escolha um Programa!")])
     atividade             = SelectField('Atividade:')
-    convênio              = IntegerField('Convênio:', validators=[Optional()])
     titulo                = StringField('Título:', validators=[DataRequired(message="Defina um Título!")])
     desc                  = TextAreaField('Descrição:',validators=[DataRequired(message="Descreva a Demanda!")])
     necessita_despacho    = BooleanField('Necessita despacho?')
@@ -106,12 +104,9 @@ class DemandaForm(FlaskForm):
 #
 class Demanda_ATU_Form(FlaskForm):
 
-    # programa            = StringField('Programa:',validators=[DataRequired(message="Escolha um Programa!")])
     atividade     = SelectField('Atividade:')
     sei           = StringField('Processo:')
     tipo          = SelectField('Tipo:')
-    convênio      = IntegerField('Convênio:', validators=[Optional()])
-    ano_convênio  = IntegerField('Ano do Convênio:', validators=[Optional()])
     titulo        = StringField('Título:', validators=[DataRequired(message="Defina um Título!")])
     desc          = TextAreaField('Descrição:',validators=[DataRequired(message="Descreva a Demanda!")])
     tipo_despacho = RadioField('Necessita despacho?',choices=[('0','Nenhum'),('1','1º nível'),('2','Superior')])
@@ -149,7 +144,6 @@ class PesquisaForm(FlaskForm):
 
     coord               = SelectField('Coordenação:')
     sei                 = StringField('Processo:')
-    convênio            = StringField('Convênio:')
     tipo                = SelectField()
     titulo              = StringField('Título:')
     ## os valore nos dois campos a seguir vão ao contrário, pois na view a condição de pesquisa usa o !=

@@ -252,12 +252,8 @@ CREATE TABLE IF NOT EXISTS dem.users
     coord character varying COLLATE pg_catalog."default",
     despacha2 integer DEFAULT 0,
     ativo integer DEFAULT 1,
-    sversion character varying COLLATE pg_catalog."default",
     cargo_func character varying COLLATE pg_catalog."default",
-    trab_conv integer NOT NULL DEFAULT 1,
-    trab_acordo integer NOT NULL DEFAULT 1,
     despacha0 integer DEFAULT 0,
-    trab_instru integer DEFAULT 0,
     CONSTRAINT users_pkey PRIMARY KEY (id),
     CONSTRAINT users_email_key UNIQUE (email),
     CONSTRAINT users_username_key UNIQUE (username)
@@ -277,7 +273,10 @@ CREATE TABLE IF NOT EXISTS dem.coords
 (
     id integer NOT NULL DEFAULT nextval('dem.coords_id_seq'::regclass),
     sigla character varying COLLATE pg_catalog."default",
-    pai character varying COLLATE pg_catalog."default",
+    "desc" character varying COLLATE pg_catalog."default",
+    id_pai integer,
+    id_chefe integer,
+    id_chefe_subs integer,
     CONSTRAINT coords_pkey PRIMARY KEY (id)
 )
 
@@ -382,10 +381,8 @@ ALTER TABLE IF EXISTS dem.Objeto
 CREATE TABLE IF NOT EXISTS dem.demandas
 (
     id integer NOT NULL DEFAULT nextval('dem.demandas_id_seq'::regclass),
-    programa integer,
+    atividade_id integer,
     sei character varying COLLATE pg_catalog."default",
-    "convênio" character varying(6) COLLATE pg_catalog."default",
-    "ano_convênio" character varying(4) COLLATE pg_catalog."default",
     tipo character varying COLLATE pg_catalog."default",
     data timestamp without time zone,
     user_id integer NOT NULL,

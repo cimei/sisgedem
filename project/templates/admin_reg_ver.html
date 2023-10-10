@@ -25,12 +25,6 @@
 <form class="needs-validation" method='POST' >
   {{ form.hidden_tag() }}
 
-  {% if current_user.trab_conv == 1 %}
-    <div class="form-group col-3">
-      {{ render_field(form.cod_inst,class="form-control",obr=True) }}
-    </div>
-  {% endif %}
-
   <div class="form-group col-2">
     {{ render_field(form.ver,class="form-control",obr=True) }}
   </div>

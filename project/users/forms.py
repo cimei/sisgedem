@@ -152,13 +152,8 @@ class LogFormMan(FlaskForm):
 class VerForm(FlaskForm):
 
     ver                   = StringField('Versão: ')
-    cod_inst              = StringField('Cód. da Instituição: ')
     nome_sistema          = StringField('Nome do sistema: ')
     descritivo            = TextAreaField('Descritivo: ')
-    funcionalidade_conv   = BooleanField('Habilitar funcionalidade convênios?')
-    funcionalidade_acordo = BooleanField('Habilitar funcionalidade acordos?')
-    funcionalidade_instru = BooleanField('Habilitar funcionalidade objetos?')
-    carga_auto            = BooleanField('Habilitar carga automática?')
     submit                = SubmitField('Registrar')
 
 class RelForm(FlaskForm):

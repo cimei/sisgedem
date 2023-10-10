@@ -3,9 +3,6 @@
 
     Os modelos são classes que definem a estrutura das tabelas dos bancos de dados.
 
-    Antes este aplicativo utilizava dois bancos de dados, um para os dados referentes às demandas e o outro para os dados de
-    Acordos e Convênios, contudo, na migração para o PosgreSQL, optou-se por juntar tudo em um só.
-
     Demandas possui os modelos:
 
     * Tipos_Demanda: tipos de demanda
@@ -17,30 +14,7 @@
     * Providencia: dados das proviências tomadas para cada demanda.
     * Despacho: dados dos despachos, ou encaminhamentos, efetuados pela chefia imediata em cada demanda.
     * User: dados dos usuários registrados.
-
-    Acordos e Convênios tem os modelos:
-
-    * RefCargaPDCTR: datas de referência das cargas de dados realizadas, conforme planilhas COSAO.
-    * PagamentosPDCTR: dados brutos da planinha COSAO.
-    * Bolsa: dados das bolsas utilizada no PDCTR.
-    * Programa_CNPq: programas do CNPq, normalmente utilizados nos Acordos.
-    * Acordo: dados dos acordos celebrados.
-    * ProcessoMae: dados dos processos mãe (projetos) criados para permitir a implemtação de bolsas.
-    * Programa_Interesse: programas tratados na coordenação
-    * Chamadas: dados das chamadas homologadas pelo CNPq
-    * Homologados: projetos ou bolsistas homologados pelo CNPq
-    * Programa: programas importados do SICONV a partir de lista de interesse copes
-    * Proposta: propostas cadastradas no SICONV a partir dos programas selecionados
-    * Convenio: convênios cadastrados no SICONV a partir das propostas selecionadas
-    * Pagamento: relação dos pagamento efetuados pela convenente, aqui são armazemados os dados agregados por recebedor
-    * Empenho: empenhos realizados conforme o SICONV
-    * Desembolso: desembolsost realizados conforme o SICONV
-    * Crono_Desemb: cronograma de desembolso dos convênios
-    * Plano_Aplic: plano de aplicação das propostas
-    * Coords: coordenações técnicas
-    * RefSICONV: data da carga SICONV
-    * MSG_Siconv: mensagens do siconv
-    * objeto: demais objetos
+    * Objeto: objetos que tem um número único de identificação, geralmente um processo
 
     Abaixo seguem os Modelos e respectivos campos.
 """
@@ -59,12 +33,8 @@ from sqlalchemy.orm import relationship
 def load_user(user_id):
     return User.query.get(user_id)
 
-    ##############################################################################################
-    ##  banco demandas                                                                          ##
-    ##############################################################################################
-
 #
-## tabela das coordenações técnicas
+## tabela das unidades
 class Coords (db.Model):
 
     __tablename__ = "coords"
@@ -213,10 +183,8 @@ class Demanda(db.Model):
     __table_args__ = {"schema": "dem"}
 
     id                     = db.Column(db.Integer, primary_key=True)
-    programa               = db.Column(db.Integer)
+    atividade_id           = db.Column(db.Integer)
     sei                    = db.Column(db.String, nullable=False)
-    convênio               = db.Column(db.String)
-    ano_convênio           = db.Column(db.Integer)
     tipo                   = db.Column(db.String,nullable=False)
     data                   = db.Column(db.DateTime,nullable=False,default=datetime.now())
     user_id                = db.Column(db.Integer, db.ForeignKey('dem.users.id'),nullable=False)
@@ -235,9 +203,9 @@ class Demanda(db.Model):
     despachos           = db.relationship('Despacho',backref='demanda',cascade="delete, delete-orphan")
 
 
-    def __init__(self, programa, sei, tipo, data, user_id, titulo, desc, necessita_despacho,\
+    def __init__(self, atividade_id, sei, tipo, data, user_id, titulo, desc, necessita_despacho,\
                  conclu, data_conclu,necessita_despacho_cg,urgencia,data_env_despacho,nota,data_verific):
-        self.programa              = programa
+        self.atividade_id              = atividade_id
         self.sei                   = sei
         self.tipo                  = tipo
         self.data                  = data
@@ -268,7 +236,7 @@ class Demanda(db.Model):
         else:
             flag3 = ''
 
-        return f"{self.programa};{self.sei};{self.tipo};{self.data};\
+        return f"{self.atividade_id};{self.sei};{self.tipo};{self.data};\
                  {self.user_id};{self.titulo};{flag1};{flag2};{flag3};{self.data_conclu};{self.data_verific}"
 
 class Despacho(db.Model):
@@ -358,7 +326,6 @@ class User(db.Model, UserMixin):
         self.email                      = email
         self.username                   = username
         self.password_hash              = generate_password_hash(plaintext_password)
-        #self.password = plaintext_password
         self.despacha                   = despacha
         self.email_confirmation_sent_on = email_confirmation_sent_on
         self.email_confirmed            = 0
