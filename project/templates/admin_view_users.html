@@ -28,14 +28,12 @@
             <tr>
               <td> {{ user.id }} </td>
               <td> <a href="{{url_for('users.admin_update_user', user_id=user.id)}}"><abbr title="Clique aqui atualizar">
-                {% if user.despacha0 == 1 %}
-                  <span class="text-warning">{{user.username }}</span> 
-                {% elif user.despacha == 1 %}
-                  <span class="text-success">{{user.username }}</span> 
-                {% elif user.despacha2 == 1 %}
-                  <span class="text-danger">{{user.username }}</span> 
+                {% if user.despacha == 1 and user.id_pai %}
+                  <span class="text-primary">{{user.username }}</span> {# unidade tem superior, chefe azul #}
+                {% elif user.despacha == 1 and not user.id_pai %}
+                  <span class="text-success">{{user.username }}</span> {# unidade não tem superior, chefe verde #}
                 {% else %}
-                  {{user.username }} </td>
+                <span class="text-dark">{{user.username }} </span>
                 {% endif %}
                 </abbr>
               </td>

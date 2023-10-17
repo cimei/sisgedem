@@ -18,7 +18,7 @@
     <div class="col-sm-5">
       <div class="card">
         <div class="card-body">
-          <span>Demanda nº {{demanda.id}} - {{demanda.sigla}} - {{demanda.atividade_sigla}}</span>
+          <span>Demanda nº {{demanda.id}} - {{demanda.sigla}} {% if demanda.atividade_sigla %}- {{demanda.atividade_sigla}}{% endif %}</span>
           {% if demanda.titulo != None %}
             <h4><a class="card-title" href="{{url_for('demandas.demanda',demanda_id=demanda.id)}}"><abbr title="Clique aqui para ver detalhes da demanda">{{demanda.titulo}}</abbr></a></h4>
           {% endif %}
@@ -57,32 +57,42 @@
         <div class="card-header">Providências e Despachos</div>
         <div class="card-body">
           <div class="list-group">
+
           {% for item in pro_des %}
+
             {% if item.demanda_id == demanda.id %}
+
               <div class="list-group-item list-group-item-action">
                 <p class="card-text">{% if item.passo != None and item.passo != '' %} <b>{{ item.passo }}</b> - {% endif %} {{item.texto}}</p>
                 {% if item.username[-8:-1] == 'DESPACH' %}
-                  {% if item.despacha0 == 1 %}
-                    <p class="card-text"><small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
-                      <span class="text-warning"><b>({{item.username}})</b></span></small></p>
-                  {% elif item.despacha == 1%}
-                    <p class="card-text"><small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
-                      <span class="text-success"><b>({{item.username}})</b></span></small></p>
-                  {% else %}
-                    <p class="card-text"><small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
-                      <span class="text-danger"><b>({{item.username}})</b></span></small></p>
+
+                  {% if item.despacha == 1%}
+                    {% if item.user_id == chefes.id_chefe or item.user_id == chefes.id_chefe_subs  %}
+                      <p class="card-text"><small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
+                        <span class="text-success"><b>({{item.username}})</b></span></small>
+                      </p>
+                    {% else %}
+                      <p class="card-text"><small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
+                        <span class="text-primary"><b>({{item.username}})</b></span></small></p>
+                    {% endif %}
                   {% endif %}
+
                 {% else %}
+                
                   <p class="card-text">
                   {% if item.programada == 1 %}
-                  <small><b>P</b></small>
+                    <small><b>P</b></small>
                   {% endif %}
                   <small class="text-muted"> {{item.data.strftime('%x - %H:%M')}}
                     <span class="text-info">({{item.username}})</span></small></p>
+                    
                 {% endif %}
               </div>
+
             {% endif %}
+
           {% endfor %}
+
         </div>
         </div>
       </div>

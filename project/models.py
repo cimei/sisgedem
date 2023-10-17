@@ -205,7 +205,8 @@ class Demanda(db.Model):
 
     def __init__(self, atividade_id, sei, tipo, data, user_id, titulo, desc, necessita_despacho,\
                  conclu, data_conclu,necessita_despacho_cg,urgencia,data_env_despacho,nota,data_verific):
-        self.atividade_id              = atividade_id
+        
+        self.atividade_id          = atividade_id
         self.sei                   = sei
         self.tipo                  = tipo
         self.data                  = data
@@ -320,8 +321,8 @@ class User(db.Model, UserMixin):
     posts = db.relationship ('Demanda',backref='author',lazy=True)
     desp  = db.relationship ('Despacho',backref='author',lazy=True)
 
-    def __init__(self,email,username,plaintext_password,despacha,coord,despacha2,ativo,cargo_func,\
-                 despacha0,email_confirmation_sent_on=None,role='user'):
+    def __init__(self,email,username,plaintext_password,despacha,coord,ativo,cargo_func,\
+                 email_confirmation_sent_on=None,role='user'):
 
         self.email                      = email
         self.username                   = username
@@ -335,10 +336,8 @@ class User(db.Model, UserMixin):
         self.current_logged_in          = datetime.now()
         self.role                       = role
         self.coord                      = coord
-        self.despacha2                  = despacha2
         self.ativo                      = ativo
         self.cargo_func                 = cargo_func
-        self.despacha0                  = despacha0
 
     def check_password (self,plaintext_password):
 
@@ -346,7 +345,7 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
 
-        return f"{self.username};{self.despacha};{self.despacha2};{self.cargo_func};{self.despacha0}"
+        return f"{self.username};{self.email};{self.coord};{self.despacha};{self.cargo_func};{self.role};{self.ativo}"
 #
 ## tabela de registro dos principais commits
 class Log_Auto(db.Model):

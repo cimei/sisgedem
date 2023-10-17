@@ -4,7 +4,7 @@
 
 <div class="jumbotron">
   <div align = 'center'>
-    <h4>Visualizar e atualizar atividades do usuário {{ name }}</h4>
+    <h4>Visualizar e atualizar atividades do usuário {{ name }} - {{ unidade.sigla }}</h4>
     <br>
   </div>
 
@@ -60,7 +60,6 @@
       <div class="card-body">
         <h6 class="card-title">Atividades já atribuidas</h6>
           <table class="table table-striped table-hover table-sm">
-            <caption>Atividades</caption>
 
             <tbody>
               {% for item in atividades_usu %}

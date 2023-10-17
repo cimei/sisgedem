@@ -48,9 +48,9 @@ class RegistrationForm(FlaskForm):
     password     = PasswordField('Senha: ', validators=[DataRequired(message="Informe uma senha!"),EqualTo('pass_confirm',message='Senhas devem ser iguais!')])
     pass_confirm = PasswordField('Confirmar Senha: ', validators=[DataRequired(message="Confirme a senha!")])
     coord        = SelectField('Unidade:')
-    despacha2    = BooleanField('Você é subchefe da unidade, ou o seu substituto?')
+    # despacha2    = BooleanField('Você é subchefe da unidade, ou o seu substituto?')
     despacha     = BooleanField('Você é chefe da unidade, ou o seu substituto?')
-    despacha0    = BooleanField('Você é chefe superior à unidade, ou o seu substituto?')
+    # despacha0    = BooleanField('Você é chefe superior à unidade, ou o seu substituto?')
     
     submit       = SubmitField('Registrar-se')
 
@@ -112,9 +112,9 @@ class AdminForm(FlaskForm):
     lista_coords.insert(0,('',''))
 
     coord        = SelectField('Unidade:',choices= lista_coords, validators=[DataRequired(message="Escolha uma Unidade!")])
-    despacha2    = BooleanField('Usuário é subchefe da unidade, ou o seu substituto?')
+    # despacha2    = BooleanField('Usuário é subchefe da unidade, ou o seu substituto?')
     despacha     = BooleanField('Usuário é chefe da unidade, ou o seu substituto?')
-    despacha0    = BooleanField('Usuário é chefe superior à unidade, ou o seu substituto?')
+    # despacha0    = BooleanField('Usuário é chefe superior à unidade, ou o seu substituto?')
     role         = SelectField('Role: ',choices=[('user','user'),('admin','admin')] ,validators=[DataRequired(message="Informe o papel do usuário!")])
     cargo_func   = StringField('Cargo e Função:')
     ativo        = BooleanField('Usuário está ativo?')
@@ -139,12 +139,7 @@ class LogForm(FlaskForm):
 
 class LogFormMan(FlaskForm):
 
-    atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
-                      .order_by(Plano_Trabalho.atividade_sigla).all()
-    lista_atividades = [(str(a[1]),a[0]) for a in atividades]
-    lista_atividades.insert(0,('',''))
-
-    atividade   = SelectField('Atividade:',choices= lista_atividades)
+    atividade   = SelectField('Atividade:')
     entrada_log = TextAreaField('Entrada no Diário: ')
     duracao     = IntegerField('Duração (min.): ')
     submit      = SubmitField('Registrar')

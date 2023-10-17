@@ -82,9 +82,9 @@
                   <a class="dropdown-item"  href="{{ url_for('users.admin_view_users') }}">Usuários (Admin)</a>
                   <a class="dropdown-item"  href="{{ url_for('users.admin_reg_ver') }}">Dados do sistema (Admin)</a>
                 {% endif %}
-                {% if current_user.despacha == 1 or current_user.despacha0 == 1 %}
-                  <a class="dropdown-item"  href="{{ url_for('users.coord_view_users') }}">Atribuir atividade (Coord.)</a>
-                  <a class="dropdown-item"  href="{{ url_for('users.user_posts',username='todos',filtro='conclu') }}">Aferir demandas (Coord.)</a>
+                {% if current_user.despacha == 1 %}
+                  <a class="dropdown-item"  href="{{ url_for('users.coord_view_users') }}">Atribuir atividade (Chefe)</a>
+                  <a class="dropdown-item"  href="{{ url_for('users.user_posts',username='todos',filtro='conclu') }}">Aferir demandas (Chefe)</a>
                 {% endif %}
                 {% if current_user.ativo == 1 %}
                   <a class="dropdown-item"  href="{{ url_for('users.troca_senha') }}">Trocar senha</a>

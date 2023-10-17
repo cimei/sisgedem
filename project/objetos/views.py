@@ -24,7 +24,7 @@
 
 # views.py na pasta objetos
 
-from flask import render_template,url_for,flash, redirect,request,Blueprint
+from flask import render_template,url_for,flash, redirect,request,Blueprint, abort
 from flask_login import current_user,login_required
 from sqlalchemy import func, distinct, cast, Integer
 from sqlalchemy.sql import label
@@ -137,35 +137,6 @@ def lista_objetos(lista,coord):
                                        .order_by(Objeto.data_fim,Objeto.nome).all()
 
         quantidade = len(objetos_v)
-
-        # objetos = []
-
-        # for objeto in objetos_v:
-        #     # ajusta formatos para data e dinheiro
-        #     if objeto.data_inicio is not None:
-        #         início = objeto.data_inicio.strftime('%x')
-        #     else:
-        #         início = None
-
-        #     if objeto.data_fim is not None:
-        #         fim = objeto.data_fim.strftime('%x')
-        #         dias = (objeto.data_fim - hoje).days
-        #     else:
-        #         fim = None
-        #         dias = 999
-
-        #     valor = locale.currency(objeto.valor, symbol=False, grouping = True)
-
-        #     objetos.append([objeto.id,
-        #                          objeto.sigla,
-        #                          objeto.nome,
-        #                          objeto.contraparte,
-        #                          objeto.sei,
-        #                          início,
-        #                          fim,
-        #                          valor,
-        #                          dias,
-        #                          objeto.descri])
 
         return render_template('lista_objetos.html', objetos=objetos_v,quantidade=quantidade,lista=lista,form=form)
 
@@ -302,16 +273,18 @@ def delete_objeto(objeto_id):
        +----------------------------------------------------------------------+
 
     """
-    if current_user.ativo == 0 or (current_user.despacha0 == 0 and current_user.despacha == 0 and current_user.despacha2 == 0):
+    if current_user.ativo != 1 or current_user.despacha != 1 or current_user.role != 'admin':
         abort(403)
 
     objeto = Objeto.query.get_or_404(objeto_id)
+    
+    nome = objeto.nome
 
-    db.session.delete(Objeto)
+    db.session.delete(objeto)
     db.session.commit()
 
-    registra_log_auto(current_user.id,None,'xtm')
+    registra_log_auto(current_user.id,None,'Objeto ' + nome + ' excluído.')
 
-    flash ('objeto excluído!','sucesso')
+    flash ('objeto ' + nome + ' excluído!','sucesso')
 
     return redirect(url_for('objetos.lista_objetos',lista='todos',coord = '*'))

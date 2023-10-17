@@ -294,7 +294,7 @@ def delete_atividade(atividade_id):
        +----------------------------------------------------------------------+
 
     """
-    if current_user.ativo == 0 or (current_user.despacha0 == 0 and current_user.despacha == 0 and current_user.despacha2 == 0):
+    if current_user.ativo == 0 or current_user.despacha == 0:
         abort(403)
 
     atividade = Plano_Trabalho.query.get_or_404(atividade_id)
@@ -825,7 +825,7 @@ def confirma_cria_demanda(sei,tipo,mensagem):
         else:
             ativ = form.atividade.data   
 
-        demanda = Demanda(atividade_id              = ativ,
+        demanda = Demanda(atividade_id          = ativ,
                           sei                   = sei,
                           tipo                  = tipo,
                           data                  = datetime.now(),
@@ -851,15 +851,17 @@ def confirma_cria_demanda(sei,tipo,mensagem):
         # enviar e-mail para chefes sobre demanda concluida
         if form.conclu.data != '0':
 
-            chefes_emails = db.session.query(User.email)\
-                                      .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                              User.coord == current_user.coord)
+            chefes_emails = db.session.query(User.id,User.email)\
+                                      .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                      .filter(or_(User.id == Coords.id_chefe,User.id == Coords.id_chefe_subs),
+                                              User.coord == current_user.coord)\
+                                      .all()
 
             destino = []
             for email in chefes_emails:
-                destino.append(email[0])
+                destino.append(email.email)
             destino.append(current_user.email)
-
+            
             if len(destino) > 1:
 
                 html = render_template('email_demanda_conclu.html',demanda=demanda.id,user=current_user.username,
@@ -868,6 +870,13 @@ def confirma_cria_demanda(sei,tipo,mensagem):
                 pt = db.session.query(Plano_Trabalho.atividade_sigla).filter(Plano_Trabalho.id == form.atividade.data).first()
 
                 send_email('Demanda ' + str(demanda.id) + ' foi concluída (' + pt.atividade_sigla + ')', destino,'', html)
+                
+                for user in chefes_emails:
+                    msg = Msgs_Recebidas(user_id    = user.id,
+                                         data_hora  = datetime.now(),
+                                         demanda_id = demanda.id,
+                                         msg        = 'A demanda foi concluída!')
+                    db.session.add(msg)
 
                 msg = Msgs_Recebidas(user_id    = demanda.user_id,
                                      data_hora  = datetime.now(),
@@ -875,20 +884,23 @@ def confirma_cria_demanda(sei,tipo,mensagem):
                                      msg        = 'A demanda foi concluída!')
 
                 db.session.add(msg)
+                
                 db.session.commit()
 
         # enviar e-mail para chefes sobre necessidade de despacho
         if form.necessita_despacho.data == True:
 
-            chefes_emails = db.session.query(User.email, User.id)\
-                                      .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                              User.coord == current_user.coord)
+            chefes_emails = db.session.query(User.id, User.email)\
+                                      .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                      .filter(or_(User.id == Coords.id_chefe,User.id == Coords.id_chefe_subs),
+                                              User.coord == current_user.coord)\
+                                      .all()
 
             destino = []
             for email in chefes_emails:
-                destino.append(email[0])
+                destino.append(email.email)
             destino.append(current_user.email)
-
+            
             if len(destino) > 1:
 
                 html = render_template('email_pede_despacho.html',demanda=demanda.id,user=current_user.username,
@@ -902,14 +914,14 @@ def confirma_cria_demanda(sei,tipo,mensagem):
                     msg = Msgs_Recebidas(user_id    = user.id,
                                          data_hora  = datetime.now(),
                                          demanda_id = demanda.id,
-                                         msg        = 'Chefia, a demanda está pedindo um despacho!')
+                                         msg        = 'Esta demanda aguarda um despacho!')
                     db.session.add(msg)
 
-                    msg = Msgs_Recebidas(user_id    = current_user.id,
-                                         data_hora  = datetime.now(),
-                                         demanda_id = demanda.id,
-                                         msg        = 'Você marcou a opção -Necessita despacho?- na demanda!')
-                    db.session.add(msg)
+                msg = Msgs_Recebidas(user_id    = current_user.id,
+                                        data_hora  = datetime.now(),
+                                        demanda_id = demanda.id,
+                                        msg        = 'Você marcou a opção "Necessita despacho?" na demanda!')
+                db.session.add(msg)
 
                 db.session.commit()
 
@@ -959,6 +971,9 @@ def demanda(demanda_id):
                          .join(User, User.id == Demanda.user_id)\
                          .join(Coords,Coords.id == cast(User.coord,Integer))\
                          .first()
+                         
+    # pega ids dos chefes da unidade
+    chefes = db.session.query(Coords.id_chefe, Coords.id_chefe_subs).filter(Coords.id == cast(demanda.coord,Integer)).first()                     
 
     providencias = db.session.query(Providencia.demanda_id,
                                     Providencia.texto,
@@ -966,13 +981,12 @@ def demanda(demanda_id):
                                     Providencia.user_id,
                                     label('username',User.username),
                                     User.despacha,
-                                    User.despacha2,
-                                    Providencia.programada,
                                     Providencia.passo,
+                                    Providencia.programada,
                                     Providencia.duracao)\
-                                    .outerjoin(User, Providencia.user_id == User.id)\
-                                    .filter(Providencia.demanda_id == demanda_id)\
-                                    .order_by(Providencia.data.desc()).all()
+                             .outerjoin(User, Providencia.user_id == User.id)\
+                             .filter(Providencia.demanda_id == demanda_id)\
+                             .order_by(Providencia.data.desc()).all()
 
     despachos = db.session.query(Despacho.demanda_id,
                                  Despacho.texto,
@@ -980,12 +994,10 @@ def demanda(demanda_id):
                                  Despacho.user_id,
                                  label('username',User.username +' - DESPACHO'),
                                  User.despacha,
-                                 User.despacha2,
-                                 User.despacha0,
                                  Despacho.passo)\
-                                .filter_by(demanda_id=demanda_id)\
-                                .outerjoin(User, Despacho.user_id == User.id)\
-                                .order_by(Despacho.data.desc()).all()
+                          .filter_by(demanda_id=demanda_id)\
+                          .outerjoin(User, Despacho.user_id == User.id)\
+                          .order_by(Despacho.data.desc()).all()
 
     pro_des = providencias + despachos
     pro_des.sort(key=lambda ordem: ordem.data,reverse=True)
@@ -993,7 +1005,7 @@ def demanda(demanda_id):
     if current_user.is_anonymous:
         leitor_despacha = 'False'
     else:
-        if current_user.despacha == 1 or current_user.despacha0 == 1 or current_user.despacha2 == 1:
+        if current_user.despacha == 1:
             leitor_despacha = 'True'
         else:
             leitor_despacha = 'False'
@@ -1096,7 +1108,7 @@ def demanda(demanda_id):
                 if demanda.necessita_despacho == 1:
                     self.cell(0, 10, 'Aguarda despacho', 0, 1)
                 if demanda.necessita_despacho_cg == 1:
-                    self.cell(0, 10, 'Aguarda despacho Coord. Geral ou sup.', 0, 1)
+                    self.cell(0, 10, 'Aguarda despacho sup.', 0, 1)
                 # Line break
                 self.ln(10)
                 self.set_text_color(127,127,127)
@@ -1163,7 +1175,8 @@ def demanda(demanda_id):
                             data_verific          = demanda.data_verific,
                             acordo_id             = None,
                             lista                 = lista,
-                            form                  = form)
+                            form                  = form,
+                            chefes                = chefes)
 
 #
 #registrando a data de verificação da demanda
@@ -1203,13 +1216,19 @@ def list_demandas():
     hierarquia = db.session.query(Coords.id).filter(Coords.id_pai == cast(unidade,Integer)).all()
 
     if hierarquia:
-        l_unid = [f.id for f in hierarquia]
-        l_unid.append(int(unidade))
+        l_unid = [str(f.id) for f in hierarquia]
+        l_unid.append(unidade)
     else:
-        l_unid = [int(unidade)]
+        l_unid = [unidade]
         
     unidade_usu = db.session.query(Coords.sigla).filter(Coords.id == cast(unidade,Integer)).first()    
     
+    # monta lista com todas as pessoas da unidade
+    pessoas_unid = db.session.query(User.id).filter(User.coord.in_(l_unid)).all()
+    l_pessoas_unid = [str(p.id) for p in pessoas_unid]
+    
+    # pega ids dos chefes da unidade
+    chefes = db.session.query(Coords.id_chefe, Coords.id_chefe_subs).filter(Coords.id == cast(unidade,Integer)).first()
     
     pesquisa = False
 
@@ -1222,8 +1241,9 @@ def list_demandas():
                                     label('username',User.username),
                                     Providencia.programada,
                                     Providencia.passo)\
-                                    .outerjoin(User, Providencia.user_id == User.id)\
-                                    .order_by(Providencia.data.desc()).all()
+                              .outerjoin(User, Providencia.user_id == User.id)\
+                              .order_by(Providencia.data.desc())\
+                              .all()
 
     despachos = db.session.query(Despacho.demanda_id,
                                  Despacho.texto,
@@ -1231,16 +1251,13 @@ def list_demandas():
                                  Despacho.user_id,
                                  label('username',User.username +' - DESPACHO'),
                                  User.despacha,
-                                 User.despacha2,
-                                 User.despacha0,
                                  Despacho.passo)\
-                                .outerjoin(User, Despacho.user_id == User.id)\
-                                .order_by(Despacho.data.desc()).all()
+                             .outerjoin(User, Despacho.user_id == User.id)\
+                             .order_by(Despacho.data.desc())\
+                             .all()
 
     pro_des = providencias + despachos
     pro_des.sort(key=lambda ordem: ordem.data,reverse=True)
-
-    demandas_count = Demanda.query.count()
 
     demandas = db.session.query(Demanda.id,
                                 Demanda.atividade_id,
@@ -1260,18 +1277,27 @@ def list_demandas():
                                 Plano_Trabalho.atividade_sigla,
                                 User.coord,
                                 Coords.sigla,
-                                Coords.id,
-                                User.username)\
+                                label('unid_id',Coords.id),
+                                User.username,
+                                Coords.id_chefe,
+                                Coords.id_chefe_subs)\
                          .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                          .join(User, User.id == Demanda.user_id)\
                          .join(Coords, Coords.id == cast(User.coord,Integer))\
-                         .filter(Coords.id.in_(l_unid))\
+                         .filter(Demanda.user_id.in_(l_pessoas_unid))\
                          .order_by(Demanda.data.desc())\
-                         .paginate(page=page,per_page=8)
+                         .paginate(page=page,per_page=10)
+                         
+    demandas_count = demandas.total   
+    
 
-
-    return render_template ('demandas.html',pesquisa=pesquisa,demandas=demandas,
-                            pro_des = pro_des, demandas_count = demandas_count, sigla=unidade_usu.sigla)
+    return render_template ('demandas.html',
+                            pesquisa = pesquisa,
+                            demandas = demandas,
+                            pro_des = pro_des, 
+                            demandas_count = demandas_count, 
+                            sigla = unidade_usu.sigla,
+                            chefes = chefes)
 
 #
 #lista das demandas que aguardam despacho seguindo ordem de prioridades
@@ -1460,7 +1486,7 @@ def prioriza(peso_R,peso_D,peso_U,coord,resp):
             demandas_s.append(demanda_s)
 
         # ordenar lista de demanda
-        demandas_s.sort(key=lambda x: x[10])
+        demandas_s.sort(key=lambda x: x[9])
 
         return render_template ('prioriza.html',demandas=demandas_s,quantidade=quantidade,form=form)
 
@@ -1610,11 +1636,11 @@ def update_demanda(demanda_id):
 
     if form.validate_on_submit():
 
-        demanda.atividade_id              = form.atividade.data
-        demanda.sei                   = form.sei.data
-        demanda.tipo                  = form.tipo.data
-        demanda.titulo                = form.titulo.data
-        demanda.desc                  = form.desc.data
+        demanda.atividade_id = form.atividade.data
+        demanda.sei          = form.sei.data
+        demanda.tipo         = form.tipo.data
+        demanda.titulo       = form.titulo.data
+        demanda.desc         = form.desc.data
 
         if form.tipo_despacho.data == '0':
             demanda.necessita_despacho_cg = 0
@@ -1627,13 +1653,16 @@ def update_demanda(demanda_id):
             # enviar e-mail para chefes sobre necessidade de despacho
             if demanda.necessita_despacho == 0:
 
-                chefes_emails = db.session.query(User.email,User.id)\
-                                          .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                                  User.coord == current_user.coord)
+                chefes_emails = db.session.query(User.id, User.email)\
+                                          .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                          .filter(or_(User.id == Coords.id_chefe,User.id == Coords.id_chefe_subs),
+                                                  User.coord == current_user.coord)\
+                                          .all()
+                                   
 
                 destino = []
                 for email in chefes_emails:
-                    destino.append(email[0])
+                    destino.append(email.email)
                 destino.append(current_user.email)
 
                 if len(destino) > 1:
@@ -1649,14 +1678,14 @@ def update_demanda(demanda_id):
                         msg = Msgs_Recebidas(user_id    = user.id,
                                              data_hora  = datetime.now(),
                                              demanda_id = demanda_id,
-                                             msg        = 'Chefia, a demanda está pedindo um despacho!')
+                                             msg        = 'A demanda aguardad um despacho!')
                         db.session.add(msg)
 
-                        msg = Msgs_Recebidas(user_id    = current_user.id,
-                                             data_hora  = datetime.now(),
-                                             demanda_id = demanda_id,
-                                             msg        = 'Você marcou a opção -Necessita despacho?- na demanda!')
-                        db.session.add(msg)
+                    msg = Msgs_Recebidas(user_id    = current_user.id,
+                                            data_hora  = datetime.now(),
+                                            demanda_id = demanda_id,
+                                            msg        = 'Você marcou a opção -Necessita despacho?- na demanda!')
+                    db.session.add(msg)
 
                     db.session.commit()
 
@@ -1679,15 +1708,17 @@ def update_demanda(demanda_id):
                 demanda.data_conclu = datetime.now()
 
                 # enviar e-mail para chefes sobre demanda concluida
-                chefes_emails = db.session.query(User.email)\
-                                          .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                                  User.coord == current_user.coord)
+                chefes_emails = db.session.query(User.id, User.email)\
+                                      .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                      .filter(or_(User.id == Coords.id_chefe,User.id == Coords.id_chefe_subs),
+                                              User.coord == current_user.coord)\
+                                      .all()
 
                 destino = []
                 for email in chefes_emails:
-                    destino.append(email[0])
+                    destino.append(email.email)
                 destino.append(current_user.email)
-
+                
                 if len(destino) > 1:
 
                     html = render_template('email_demanda_conclu.html',demanda=demanda_id,user=current_user.username,
@@ -1697,12 +1728,20 @@ def update_demanda(demanda_id):
 
                     send_email('Demanda ' + str(demanda_id) + ' foi concluída (' + pt.atividade_sigla + ')', destino,'', html)
 
+                    for user in chefes_emails:
+                        msg = Msgs_Recebidas(user_id    = user.id,
+                                             data_hora  = datetime.now(),
+                                             demanda_id = demanda_id,
+                                             msg        = 'A demanda foi concluída!')
+                        db.session.add(msg)
+                    
                     msg = Msgs_Recebidas(user_id    = demanda.user_id,
                                          data_hora  = datetime.now(),
                                          demanda_id = demanda_id,
                                          msg        = 'A demanda foi concluída!')
 
                     db.session.add(msg)
+                    
                     db.session.commit()
 
         else:
@@ -1941,16 +1980,7 @@ def pesquisa_demanda():
     pesquisa = True
     
     form = PesquisaForm()
-
-    # os choices dos campos de escolha são definidos aqui e não no form
-
-    # coords = db.session.query(Coords.id,Coords.sigla)\
-    #                   .order_by(Coords.sigla).all()
-    # lista_coords = [(str(c.id),c.sigla) for c in coords]
-    # lista_coords.insert(0,('',''))
-    
-    # limitando a visão às demandas da unidade e subordinadas
-    
+  
     unidade = current_user.coord
     unidade_usu = db.session.query(Coords.sigla).filter(Coords.id == cast(unidade,Integer)).first() 
 
@@ -2041,6 +2071,18 @@ def list_pesquisa(pesq,unid):
 
     pesq_l = pesq.split(';')
 
+    # identificação dos campos da string de pesquisa e tipo correspondente no banco de dados
+    # pesq_l[0]   processo          - str
+    # pesq_l[1]   título da demanda - str
+    # pesq_l[2]   tipo de demanda   - str
+    # pesq_l[3]   necessita despacho - int
+    # pesq_l[4]   concluída          - str
+    # pesq_l[5]   user_id            - int
+    # pesq_l[6]   id                 - int
+    # pesq_l[7]   atividade_id       - int
+    # pesq_l[8]   coord              - str (não tem na tabela de demandas)
+    # pesq_l[9]   necessita desp sup - int
+    
     sei = pesq_l[0]
     if sei.find('_') != -1:
         sei = str(pesq_l[0]).replace('_','/')
@@ -2077,17 +2119,27 @@ def list_pesquisa(pesq,unid):
         pesq_l[6] = '%'+str(pesq_l[6])+'%'
     else:
         pesq_l[6] = str(pesq_l[6])
-    #atividade
+    #
+    # atividade
     if pesq_l[7] == '':
-        pesq_l[7] = '%'+str(pesq_l[7])+'%'
+        pesq_l[7] = '%%'
     else:
         pesq_l[7] = str(pesq_l[7])
-
+    
     if pesq_l[8] == '':
         pesq_l[8] = '%'
-    else:
-        pesq_l[8] = str(pesq_l[8])
+        unidade = current_user.coord
+        
+        # se unidade for pai, junta ela com seus filhos
+        hierarquia = db.session.query(Coords.id).filter(Coords.id_pai == cast(unidade,Integer)).all()
 
+        if hierarquia:
+            l_unid = [str(f.id) for f in hierarquia]
+            l_unid.append(unidade)
+        else:
+            l_unid = [unidade]
+    else:
+        l_unid = [pesq_l[8]]    
 
 
     demandas = db.session.query(Demanda.id,
@@ -2107,9 +2159,13 @@ def list_pesquisa(pesq,unid):
                                 Demanda.nota,
                                 Plano_Trabalho.atividade_sigla,
                                 User.coord,
-                                User.username)\
+                                User.username,
+                                Coords.id_chefe,
+                                Coords.id_chefe_subs,
+                                Coords.sigla)\
                          .join(User, User.id == Demanda.user_id)\
                          .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
+                         .join(Coords, Coords.id == cast(User.coord,Integer))\
                          .filter(Demanda.sei.like('%'+sei+'%'),
                                  Demanda.titulo.like('%'+pesq_l[1]+'%'),
                                  Demanda.tipo.like('%'+p_tipo_pattern+'%'),
@@ -2117,9 +2173,9 @@ def list_pesquisa(pesq,unid):
                                  cast(Demanda.necessita_despacho_cg,String) != p_n_dcg,
                                  cast(Demanda.conclu,String).like('%'+p_conclu+'%'),
                                  cast(Demanda.user_id,String).like (autor_id),
-                                 cast(Demanda.id,String).like (pesq_l[7]),
-                                 cast(Demanda.atividade_id,String).like (pesq_l[8]),
-                                 cast(User.coord,String).like (pesq_l[9]))\
+                                 cast(Demanda.id,String).like (pesq_l[6]),
+                                 cast(Demanda.atividade_id,String).like (pesq_l[7]),
+                                 cast(User.coord,String).in_(l_unid))\
                          .order_by(Demanda.data.desc())\
                          .paginate(page=page,per_page=8)
 
@@ -2141,8 +2197,6 @@ def list_pesquisa(pesq,unid):
                                  Despacho.user_id,
                                  label('username',User.username +' - DESPACHO'),
                                  User.despacha,
-                                 User.despacha2,
-                                 User.despacha0,
                                  Despacho.passo)\
                                 .outerjoin(User, Despacho.user_id == User.id)\
                                 .order_by(Despacho.data.desc()).all()
@@ -2183,7 +2237,6 @@ def cria_despacho(demanda_id):
     else:
         tipo_despacho = 'normal'
         
-    
 
     # o choices do campo passos são definidos aqui e não no form
     passos = db.session.query(Passos_Tipos.passo, Passos_Tipos.ordem).filter(Passos_Tipos.tipo_id == tipo.id).order_by(Passos_Tipos.ordem).all()
@@ -2213,17 +2266,36 @@ def cria_despacho(demanda_id):
         db.session.add(despacho)
         db.session.commit()
 
-        registra_log_auto(current_user.id,demanda_id,'Despacho registrado.')
+        if tipo_despacho == 'normal':
+            txt = 'A demanda recebeu um despacho da chefia da unidade.'
+        elif tipo_despacho == 'superior':
+            txt = 'A demanda recebeu um despacho da chefia da unidade superior.'
+        registra_log_auto(current_user.id,demanda_id,txt)
 
         # marca a demanda quanto à necessidade de despacho na unidade superior
         # e desmarca, dependendo de quem deu o despacho.
         if form.necessita_despacho_cg.data:
             demanda.necessita_despacho_cg = 1
+            demanda.data_env_despacho = datetime.now()
+            # registra alerta (msg) para chefes superiores
+            chefes_sup = db.session.query(Coords.id_chefe, Coords.id_chefe_subs).filter(Coords.id == unid_pai.id_pai).first()
+            msg = Msgs_Recebidas(user_id    = chefes_sup.id_chefe,
+                                 data_hora  = datetime.now(),
+                                 demanda_id = demanda_id,
+                                 msg        = 'A demanda aguarda um despacho superior!')
+            db.session.add(msg)
+            msg = Msgs_Recebidas(user_id    = chefes_sup.id_chefe_sub,
+                                 data_hora  = datetime.now(),
+                                 demanda_id = demanda_id,
+                                 msg        = 'A demanda aguarda um despacho superior!')
+
+            db.session.add(msg)
+            
+            db.session.commit()
+            
+            
         else:
             demanda.necessita_despacho_cg = 0
-
-        if form.necessita_despacho_cg == 1:
-            demanda.data_env_despacho = datetime.now()
 
         if tipo_despacho == 'normal':
             demanda.necessita_despacho = 0
@@ -2242,15 +2314,17 @@ def cria_despacho(demanda_id):
             if demanda.conclu == '0':
 
                 # enviar e-mail para chefes sobre demanda concluida
-                chefes_emails = db.session.query(User.email)\
-                                          .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                                  User.coord == current_user.coord)
+                chefes_emails = db.session.query(User.id, User.email)\
+                                      .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                      .filter(or_(User.id == Coords.id_chefe,User.id == Coords.id_chefe_subs),
+                                              User.coord == current_user.coord)\
+                                      .all()
 
                 destino = []
                 for email in chefes_emails:
-                    destino.append(email[0])
+                    destino.append(email.email)
                 destino.append(current_user.email)
-
+                
                 if len(destino) > 1:
 
                     sistema = db.session.query(Sistema.nome_sistema).first()
@@ -2262,12 +2336,20 @@ def cria_despacho(demanda_id):
 
                     send_email('Demanda ' + str(demanda_id) + ' foi concluída (' + pt.atividade_sigla + ')', destino,'', html)
 
+                    for user in chefes_emails:
+                        msg = Msgs_Recebidas(user_id    = user.id,
+                                             data_hora  = datetime.now(),
+                                             demanda_id = demanda_id,
+                                             msg        = 'A demanda foi concluída!')
+                        db.session.add(msg)
+                    
                     msg = Msgs_Recebidas(user_id    = demanda.user_id,
                                          data_hora  = datetime.now(),
                                          demanda_id = demanda_id,
                                          msg        = 'A demanda foi concluída!')
 
                     db.session.add(msg)
+                    
                     db.session.commit()
 
             demanda.conclu      = form.conclu.data
@@ -2281,7 +2363,7 @@ def cria_despacho(demanda_id):
             db.session.commit()
 
         #
-        # envia e-mail par ao responsável pela demanda
+        # envia e-mail para o responsável pela demanda
 
         dono_email = db.session.query(User.email,User.username).filter(User.id == demanda.user_id).first()
 
@@ -2299,12 +2381,26 @@ def cria_despacho(demanda_id):
 
         send_email('Demanda ' + str(demanda_id) + ' recebeu um Despacho (' + pt.atividade_sigla + ')', destino,'', html)
 
+        # registra alerta para dono da demanda
+        if tipo_despacho == 'normal':
+            txt = 'A demanda recebeu um despacho da chefia da unidade'
+        elif tipo_despacho == 'superior':
+            txt = 'A demanda recebeu um despacho da chefia da unidade superior'
         msg = Msgs_Recebidas(user_id    = demanda.user_id,
+                             data_hora  = datetime.now(),
+                             demanda_id = demanda_id,
+                             msg        = txt)
+
+        db.session.add(msg)
+        
+        # registra alerta para o emissor do despacho
+        msg = Msgs_Recebidas(user_id    = current_user.id,
                              data_hora  = datetime.now(),
                              demanda_id = demanda_id,
                              msg        = 'A demanda recebeu um despacho!')
 
         db.session.add(msg)
+        
         db.session.commit()
 
         # avisa que despacho foi criado e mostra a demanda
@@ -2342,10 +2438,7 @@ def afere_demanda(demanda_id):
        |Recebe o ID da demanda como parâmetro.                                                |
        +--------------------------------------------------------------------------------------+
     """
-    if current_user.ativo == 0:
-        abort(403)
-
-    if current_user.despacha == 0:
+    if current_user.ativo == 0 or current_user.despacha == 0:
         abort(403)
 
     demanda = Demanda.query.get_or_404(demanda_id)
@@ -2395,20 +2488,17 @@ def cria_providencia(demanda_id):
 
     tipo = db.session.query(Tipos_Demanda.id).filter(Tipos_Demanda.tipo == demanda.tipo).first()
 
+    form = ProvidenciaForm()
+    
     # o choices do campo passos são definidos aqui e não no form
     passos = db.session.query(Passos_Tipos.passo, Passos_Tipos.ordem).filter(Passos_Tipos.tipo_id == tipo.id).order_by(Passos_Tipos.ordem).all()
     qtd = len(passos)
     lista_passos = [('('+str(p[1])+'/'+str(qtd)+') '+p[0],'('+str(p[1])+'/'+str(qtd)+') '+p[0]) for p in passos]
     lista_passos.insert(0,('',''))
-    form = ProvidenciaForm()
+    
     form.passo.choices = lista_passos
 
     if form.validate_on_submit():
-
-        if form.data_hora.data > datetime.now():
-            programada = 1
-        else:
-            programada = 0
 
         if form.passo.data == None:
             passo = ''
@@ -2420,35 +2510,35 @@ def cria_providencia(demanda_id):
                                   texto      = form.texto.data,
                                   user_id    = current_user.id,
                                   duracao    = form.duracao.data,
-                                  programada = programada,
+                                  programada = 0,
                                   passo      = passo)
 
         db.session.add(providencia)
         db.session.commit()
 
-        if programada == 1:
-            registra_log_auto(current_user.id,demanda_id,'Providência agendada.',demanda.atividade_id,form.duracao.data)
-        else:
-            registra_log_auto(current_user.id,demanda_id,'Providência registrada.',demanda.atividade_id,form.duracao.data)
+        registra_log_auto(current_user.id,demanda_id,'Providência registrada.',demanda.atividade_id,form.duracao.data)
 
 # para o caso da providência exigir um despacho
         if form.necessita_despacho.data == True:
 
             # enviar e-mail para chefes, user que registrou a providência e dono da demanda
             if demanda.necessita_despacho == 0:
-
-                chefes_emails = db.session.query(User.email,User.id)\
-                                          .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                                  User.coord == current_user.coord)
+                
+                chefes_emails = db.session.query(User.id, User.email)\
+                                          .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                          .filter(or_(User.id == Coords.id_chefe,User.id == Coords.id_chefe_subs),
+                                                  User.coord == current_user.coord)\
+                                          .all()
 
                 dono_email = db.session.query(User.email,User.id).filter(User.id == demanda.user_id).first()
 
                 destino = []
                 for email in chefes_emails:
-                    destino.append(email[0])
+                    destino.append(email.email)
                 destino.append(current_user.email)
-                destino.append(dono_email.email)
-
+                if dono_email.email != current_user.email:
+                    destino.append(dono_email.email)
+                
                 if len(destino) > 1:
 
                     sistema = db.session.query(Sistema.nome_sistema).first()
@@ -2464,13 +2554,13 @@ def cria_providencia(demanda_id):
                         msg = Msgs_Recebidas(user_id    = user.id,
                                              data_hora  = datetime.now(),
                                              demanda_id = demanda_id,
-                                             msg        = 'Chefia, a demanda está pedindo um despacho!')
+                                             msg        = 'A demanda aguarda um despacho!')
                         db.session.add(msg)
 
                     msg = Msgs_Recebidas(user_id    = current_user.id,
                                          data_hora  = datetime.now(),
                                          demanda_id = demanda_id,
-                                         msg        = 'Você marcou a opção -Necessita despacho?- na demanda!')
+                                         msg        = 'Você marcou a opção "Necessita despacho?" na demanda!')
                     db.session.add(msg)
 
                     if dono_email.id != current_user.id:
@@ -2478,7 +2568,7 @@ def cria_providencia(demanda_id):
                         msg = Msgs_Recebidas(user_id    = dono_email.id,
                                              data_hora  = datetime.now(),
                                              demanda_id = demanda_id,
-                                             msg        = 'A opção -Necessita despacho?- foi marcada na sua demanda!')
+                                             msg        = 'A opção "Necessita despacho?" foi marcada na sua demanda!')
                         db.session.add(msg)
 
                     db.session.commit()
@@ -2502,15 +2592,17 @@ def cria_providencia(demanda_id):
                     demanda.necessita_despacho_cg = 0
                     #
                     # enviar e-mail para chefes sobre demanda concluida
-                    chefes_emails = db.session.query(User.email)\
-                                              .filter(or_(User.despacha == 1,User.despacha0 == 1),
-                                                      User.coord == current_user.coord)
+                    chefes_emails = db.session.query(User.id, User.email)\
+                                      .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                      .filter(or_(User.id == Coords.id_chefe,User.id == Coords.id_chefe_subs),
+                                              User.coord == current_user.coord)\
+                                      .all()
 
                     destino = []
                     for email in chefes_emails:
-                        destino.append(email[0])
+                        destino.append(email.email)
                     destino.append(current_user.email)
-
+                    
                     if len(destino) > 1:
 
                         sistema = db.session.query(Sistema.nome_sistema).first()
@@ -2522,12 +2614,20 @@ def cria_providencia(demanda_id):
 
                         send_email('Demanda ' + str(demanda_id) + ' foi concluída (' + pt.atividade_sigla + ')', destino,'', html)
 
+                        for user in chefes_emails:
+                            msg = Msgs_Recebidas(user_id    = user.id,
+                                                data_hora  = datetime.now(),
+                                                demanda_id = demanda_id,
+                                                msg        = 'A demanda foi concluída!')
+                            db.session.add(msg)
+                        
                         msg = Msgs_Recebidas(user_id    = demanda.user_id,
                                              data_hora  = datetime.now(),
                                              demanda_id = demanda_id,
                                              msg        = 'A demanda foi concluída!')
 
                         db.session.add(msg)
+                        
                         db.session.commit()
 
 
@@ -2566,72 +2666,8 @@ def cria_providencia(demanda_id):
                 db.session.add(msg)
                 db.session.commit()
 
-
-        if programada == 1 and form.agenda.data:
-
-            # cria evento no google agenda quando a providência for futura e o usuário assim o desejar
-            scopes = ['https://www.googleapis.com/auth/calendar.events']
-
-            if getattr(sys, 'frozen', False):
-                base_path = sys._MEIPASS
-                client_file = os.path.join(base_path, 'client.json')
-            else:
-                client_file = 'client.json'
-
-            flow = InstalledAppFlow.from_client_secrets_file(client_file, scopes=scopes)
-
-            # o flow acima apresenta um link enorme para que o usário concorde com o
-            # SICOPES acessando sua agenda, mas isto só precisa ser feito uma vez, abaixo
-            # as credenciais são armazenadas e usadas nos outros agendamentos
-
-            pasta_token_antiga = os.path.normpath('/temp/token.pkl')
-            pasta_token = os.path.normpath('/temp/token/token.pkl')
-
-            if os.path.exists(pasta_token_antiga):
-                os.makedirs(os.path.normpath('/temp/token/'))
-                os.system('copy '+ pasta_token_antiga +' '+pasta_token)
-                os.remove(pasta_token_antiga)
-
-            if os.path.exists(pasta_token):
-                credentials = pickle.load(open(pasta_token, "rb"))
-            else:
-                credentials = flow.run_console()
-                pickle.dump(credentials, open(pasta_token, "wb"))
-
-            service = build("calendar", "v3", credentials=credentials)
-
-            ini = form.data_hora.data
-            fim = ini + timedelta(minutes=form.duracao.data)
-            timezone = 'America/Sao_Paulo'
-
-            event = {
-                      'summary': 'Demanda ' + str(demanda.id) + ' - Providência agendada',
-                      'location': 'CNPq',
-                      'description': form.texto.data,
-                      'start': {
-                        'dateTime': ini.strftime("%Y-%m-%dT%H:%M:%S"),
-                        'timeZone': timezone,
-                      },
-                      'end': {
-                        'dateTime': fim.strftime("%Y-%m-%dT%H:%M:%S"),
-                        'timeZone': timezone,
-                      },
-                      'reminders': {
-                        'useDefault': False,
-                        'overrides': [
-                          {'method': 'email', 'minutes': 24 * 60},
-                          {'method': 'popup', 'minutes': 15},
-                        ],
-                      },
-                    }
-
-            service.events().insert(calendarId='primary', body=event).execute()
-
-            flash ('Providência agendada!','sucesso')
-
-        else:
-
-            flash ('Providência criada!','sucesso')
+        
+        flash ('Providência criada!','sucesso')
 
         return redirect(url_for('demandas.demanda',demanda_id=demanda.id))
 
@@ -2707,13 +2743,13 @@ def demandas_resumo(coord):
 
     else:
 
-        form.coord.data  = coord
-
         if coord == '*':
             coord = l_unid_id
+            form.coord.data = ''
         else:
-            coord = [unidade]
-
+            form.coord.data = coord
+            coord = [coord]
+            
         ## conta demandas por tipo, destacando a quantidade concluída e a vida média
         demandas_count = db.session.query(Demanda,User.coord)\
                                    .join(User, Demanda.user_id == User.id)\
@@ -3012,6 +3048,9 @@ def numeros_usu(usu):
 
     #dados usuário
     usuario = db.session.query(User).filter(User.id == usu).first()
+    
+    #unidade do usuário
+    unidade = db.session.query(Coords.sigla).filter(Coords.id == cast(usuario.coord,Integer)).first()
 
     # calcula quantidade de demandas do usuário
     user_demandas = db.session.query(Demanda.user_id,func.count(Demanda.user_id))\
@@ -3022,10 +3061,14 @@ def numeros_usu(usu):
 
     # calcula quantidade de demandas concluídas do usuário
     user_demandas_conclu = db.session.query(Demanda.user_id,func.count(Demanda.user_id))\
-                                        .filter(Demanda.user_id == usu, Demanda.conclu == '1')\
-                                        .group_by(Demanda.user_id)
+                                     .filter(Demanda.user_id == usu, Demanda.conclu == '1')\
+                                     .group_by(Demanda.user_id)
+                                     
 
-    qtd_demandas_conclu = user_demandas_conclu[0][1]
+    if user_demandas_conclu.first():
+        qtd_demandas_conclu = user_demandas_conclu[0][1]
+    else:
+        qtd_demandas_conclu = 0
 
     if qtd_demandas != 0:
         percent_conclu = round((qtd_demandas_conclu / qtd_demandas) * 100)
@@ -3163,5 +3206,6 @@ def numeros_usu(usu):
                                           min_hd=min_hd,
                                           mes_min_hd=mes_min_hd,
                                           horas=horas_dedicadas_semana,
-                                          usuario=usuario)
+                                          usuario=usuario,
+                                          unidade = unidade)
 

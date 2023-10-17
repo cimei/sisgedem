@@ -151,9 +151,7 @@ def primeiro_user():
             user = User(email                      = form.email.data,
                         username                   = form.username.data,
                         plaintext_password         = form.password.data,
-                        despacha0                  = 0,
                         despacha                   = 0,
-                        despacha2                  = 0,
                         coord                      = form.coord.data,
                         role                       = 'admin',
                         email_confirmation_sent_on = datetime.now(),
@@ -207,27 +205,15 @@ def register():
 
         if form.check_username(form.username) and form.check_email(form.email):
           
-            if form.despacha0.data:
-                despacha0 = 1
-            else:
-                despacha0 = 0
-
             if form.despacha.data:
                 despacha = 1
             else:
                 despacha = 0
 
-            if form.despacha2.data:
-                despacha2 = 1
-            else:
-                despacha2 = 0    
-
             user = User(email                      = form.email.data,
                         username                   = form.username.data,
                         plaintext_password         = form.password.data,
-                        despacha0                  = despacha0,
                         despacha                   = despacha,
-                        despacha2                  = despacha2,
                         coord                      = form.coord.data,
                         role                       = 'user',
                         email_confirmation_sent_on = datetime.now(),
@@ -486,7 +472,10 @@ def account():
         form.username.data = current_user.username
         form.email.data = current_user.email
         
-        coord = db.session.query(Coords.sigla).filter(Coords.id == cast(current_user.coord,Integer)).first()
+        coord = db.session.query(Coords.sigla,Coords.id).filter(Coords.id == cast(current_user.coord,Integer)).first()
+        
+        # verifica se unidade do usuário tem unidades subordinadas
+        unids_filho = db.session.query(Coords.id).filter(Coords.id_pai == coord.id).all()
 
         # calcula quantidade de demandas do usuário
         user_demandas = db.session.query(Demanda.user_id,
@@ -651,7 +640,8 @@ def account():
                                           min_hd=min_hd,
                                           mes_min_hd=mes_min_hd,
                                           horas=horas_dedicadas_semana,
-                                          coord = coord)
+                                          coord = coord,
+                                          unids_filho = unids_filho)
 
 # lista das demandas de um usuário
 
@@ -699,7 +689,11 @@ def user_posts (username,filtro):
                                         Demanda.data_env_despacho,
                                         Demanda.nota,
                                         Plano_Trabalho.atividade_sigla,
-                                        Demanda.data_verific)\
+                                        Demanda.data_verific,
+                                        User.username,
+                                        Coords.sigla)\
+                                .join(User, User.id == Demanda.user_id)\
+                                .join(Coords, Coords.id == cast(User.coord,Integer))\
                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
                                 .filter(Demanda.conclu == '0')\
                                 .order_by(Demanda.urgencia,Demanda.data.desc())\
@@ -794,11 +788,15 @@ def user_posts (username,filtro):
                                         Demanda.urgencia,
                                         Demanda.data_env_despacho,
                                         Demanda.nota,
-                                        Plano_Trabalho.atividade_sigla)\
-                                        .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
-                                        .filter(Demanda.conclu != '0')\
-                                        .order_by(Demanda.data_conclu.desc())\
-                                        .all()
+                                        Plano_Trabalho.atividade_sigla,
+                                        User.username,
+                                        Coords.sigla)\
+                                 .join(User, User.id == Demanda.user_id)\
+                                 .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
+                                 .filter(Demanda.conclu != '0')\
+                                 .order_by(Demanda.data_conclu.desc())\
+                                 .all()
         else:
             
             if user.despacha == 1: # user é chefe
@@ -859,10 +857,14 @@ def user_posts (username,filtro):
                                         Demanda.urgencia,
                                         Demanda.data_env_despacho,
                                         Demanda.nota,
-                                        Plano_Trabalho.atividade_sigla)\
-                                        .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
-                                        .order_by(Demanda.urgencia,Demanda.data.desc())\
-                                        .all()
+                                        Plano_Trabalho.atividade_sigla,
+                                        User.username,
+                                        Coords.sigla)\
+                                 .join(User, User.id == Demanda.user_id)\
+                                 .join(Coords, Coords.id == cast(User.coord,Integer))\
+                                 .outerjoin(Plano_Trabalho, Plano_Trabalho.id == Demanda.atividade_id)\
+                                 .order_by(Demanda.urgencia,Demanda.data.desc())\
+                                 .all()
         else:
             
             if user.despacha == 1: # user é chefe
@@ -1047,12 +1049,11 @@ def admin_view_users():
                                  User.email_confirmed,
                                  User.email_confirmed_on,
                                  User.current_logged_in,
-                                 User.despacha2,
                                  User.despacha,
-                                 User.despacha0,
-                                 Coords.sigla)\
+                                 Coords.sigla,
+                                 Coords.id_pai)\
                           .join(Coords, Coords.id == cast(User.coord,Integer))\
-                          .order_by(User.username)\
+                          .order_by(Coords.sigla,User.username)\
                           .all()
         
         return render_template('admin_view_users.html', users=users)
@@ -1091,18 +1092,10 @@ def admin_update_user(user_id):
 
             user.coord = form.coord.data
 
-            if form.despacha0.data:
-                user.despacha0 = 1
-            else: 
-                user.despacha0 = 0
             if form.despacha.data:
                 user.despacha = 1
             else: 
                 user.despacha = 0
-            if form.despacha2.data:
-                user.despacha2 = 1
-            else: 
-                user.despacha2 = 0      
 
             if form.ativo.data:
                 user.ativo = 1
@@ -1128,9 +1121,7 @@ def admin_update_user(user_id):
         elif request.method == 'GET':
 
             form.coord.data       = user.coord
-            form.despacha0.data   = user.despacha0
             form.despacha.data    = user.despacha
-            form.despacha2.data   = user.despacha2
             form.role.data        = user.role
             form.cargo_func.data  = user.cargo_func
             form.ativo.data       = user.ativo
@@ -1430,17 +1421,29 @@ def user_obs():
     """
 
     form = LogFormMan()
+    
+    atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
+                           .order_by(Plano_Trabalho.atividade_sigla).all()
+    lista_atividades = [(str(a.id),a.atividade_sigla) for a in atividades]
+    lista_atividades.insert(0,('',''))
+    
+    form.atividade.choices = lista_atividades
 
     if form.validate_on_submit():
 
         if form.entrada_log.data != '':
+            
+            if form.atividade.data == '':
+                ativ = None
+            else:
+                ativ = form.atividade.data
 
             # registra_log_auto(current_user.id,None,'man: '+form.entrada_log.data)
             reg_log = Log_Auto(data_hora     = datetime.now(),
                                user_id       = current_user.id,
                                demanda_id    = None,
                                registro = 'man: '+form.entrada_log.data,
-                               atividade     = form.atividade.data,
+                               atividade     = ativ,
                                duracao       = form.duracao.data)
             db.session.add(reg_log)
             db.session.commit()
@@ -1588,9 +1591,33 @@ def coord_view_users():
        |Visto somente por coord.                                                              |
        +--------------------------------------------------------------------------------------+
     """
-    if current_user.despacha == 1 or current_user.despacha0 == 1 or current_user.role[0:5] == "admin":
+    if current_user.despacha == 1 or current_user.role[0:5] == "admin":
+        
+        unidade = current_user.coord
 
-        users = User.query.order_by(User.id).filter(User.coord == current_user.coord, User.ativo == 1).all()
+        # se unidade for pai, junta ela com seus filhos
+        hierarquia = db.session.query(Coords.id).filter(Coords.id_pai == cast(unidade,Integer)).all()
+
+        if hierarquia:
+            l_unid = [str(f.id) for f in hierarquia]
+            l_unid.append(unidade)
+        else:
+            l_unid = [unidade]
+
+        users = db.session.query(User.id,
+                                 User.username,
+                                 User.email,
+                                 User.role,
+                                 User.registered_on,
+                                 User.ativo,
+                                 Coords.sigla,
+                                 Coords.id_pai)\
+                          .join(Coords, Coords.id == cast(User.coord,Integer))\
+                          .filter(User.coord.in_(l_unid), User.ativo == 1)\
+                          .order_by(User.username)\
+                          .all()
+        
+        
         return render_template('coord_view_users.html', users=users)
 
     else:
@@ -1613,9 +1640,11 @@ def ativ_usu(user_id):
     |Recebe o id do user como parâmetro.                                                           |
     +----------------------------------------------------------------------------------------------+
     """
-    if current_user.despacha == 1 or current_user.despacha0 == 1 or current_user.role[0:5] == "admin":
+    if current_user.despacha == 1 or current_user.role[0:5] == "admin":
 
         user = User.query.get_or_404(user_id)
+        
+        unidade = db.session.query(Coords.sigla).filter(Coords.id == cast(user.coord,Integer)).first()
 
         ativ_usu = db.session.query(Ativ_Usu.atividade_id, Ativ_Usu.nivel, Ativ_Usu.id)\
                              .filter(Ativ_Usu.user_id == user.id)\
@@ -1624,7 +1653,9 @@ def ativ_usu(user_id):
         l_ativ_usu = [a[0] for a in ativ_usu]
 
         atividades = db.session.query(Plano_Trabalho.atividade_sigla, Plano_Trabalho.id)\
-                          .order_by(Plano_Trabalho.atividade_sigla).all()
+                               .filter(Plano_Trabalho.unidade == user.coord)\
+                               .order_by(Plano_Trabalho.atividade_sigla)\
+                               .all()
         lista_atividades = [(str(a[1]),a[0]) for a in atividades]
         lista_atividades.insert(0,('',''))
 
@@ -1660,7 +1691,8 @@ def ativ_usu(user_id):
                                   .filter(Plano_Trabalho.id == ativ.atividade_id).first()
                 l_ativ_usu.append([atividade_usu.atividade_sigla, ativ.nivel, ativ.id])
 
-        return render_template('coord_update_user.html', user_id=user.id, name=user.username, atividades_usu=l_ativ_usu, form=form)
+        return render_template('coord_update_user.html', user_id=user.id, name=user.username, 
+                               atividades_usu=l_ativ_usu, form=form, unidade=unidade)
 
     else:
         abort(403)
@@ -1677,7 +1709,7 @@ def delete_atividade_usu(id,user_id):
        +----------------------------------------------------------------------+
 
     """
-    if current_user.ativo == 0 or (current_user.despacha0 == 0 and current_user.despacha == 0 and current_user.despacha2 == 0):
+    if current_user.ativo == 0 or current_user.despacha == 0:
         abort(403)
 
     atividade = Ativ_Usu.query.get_or_404(id)
@@ -1685,7 +1717,7 @@ def delete_atividade_usu(id,user_id):
     db.session.delete(atividade)
     db.session.commit()
 
-    registra_log_auto(current_user.id,None,'xus')
+    registra_log_auto(current_user.id,None,'Uma atividade foi excluída da lista do usuário.')
 
     flash ('Atividade excluída da lista do usuário!','sucesso')
 

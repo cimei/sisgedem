@@ -61,16 +61,17 @@
           <a href="{{url_for('users.user_posts',username=current_user.username,filtro='*')}}" class="btn btn-outline-success">Veja suas demandas</a>
         </div>
 
-        {% if current_user.despacha == 1 or current_user.despacha0 == 1 %}
+        {% if current_user.despacha == 1 %}
           <div class="card-footer text-center">
-            <a href="{{url_for('demandas.list_pesquisa',pesq=';;;Não;Todos;;;;;'+current_user.coord+';Todos')}}" class="btn btn-outline-warning">Veja demandas que aguardam despacho</a>
+            <a href="{{url_for('demandas.list_pesquisa',pesq=';;;Não;Todos;;;;;'+current_user.coord+';Todos',unid=current_user.coord)}}" class="btn btn-outline-warning">Demandas que aguardam despacho</a>
           </div>
-        {% endif %}
 
-        {% if current_user.despacha2 == 1 %}
-          <div class="card-footer text-center">
-            <a href="{{url_for('demandas.list_pesquisa',pesq=';;;Todos;Todos;;;;;;Não')}}" class="btn btn-info">Veja demandas que aguardam despacho CG</a>
-          </div>
+          {% if unids_filho %}
+            <div class="card-footer text-center">
+              <a href="{{url_for('demandas.list_pesquisa',pesq=';;;Todos;Todos;;;;;;Não',unid=current_user.coord)}}" class="btn btn-outline-info">Demandas que aguardam despacho sup.</a>
+            </div>
+          {% endif %}
+
         {% endif %}
 
     </div>

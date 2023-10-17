@@ -90,7 +90,7 @@ class DemandaForm1(FlaskForm):
 
 class DemandaForm(FlaskForm):
 
-    atividade             = SelectField('Atividade:')
+    atividade             = SelectField('Atividade:', validators=[DataRequired(message="Escolhah uma atividade!")])
     titulo                = StringField('Título:', validators=[DataRequired(message="Defina um Título!")])
     desc                  = TextAreaField('Descrição:',validators=[DataRequired(message="Descreva a Demanda!")])
     necessita_despacho    = BooleanField('Necessita despacho?')
@@ -104,7 +104,7 @@ class DemandaForm(FlaskForm):
 #
 class Demanda_ATU_Form(FlaskForm):
 
-    atividade     = SelectField('Atividade:')
+    atividade     = SelectField('Atividade:', validators=[DataRequired(message="Escolhah uma atividade!")])
     sei           = StringField('Processo:')
     tipo          = SelectField('Tipo:')
     titulo        = StringField('Título:', validators=[DataRequired(message="Defina um Título!")])
@@ -133,7 +133,7 @@ class ProvidenciaForm(FlaskForm):
 
     data_hora           = DateTimeField('Momento:',format='%d/%m/%Y %H:%M:%S',validators=[DataRequired(message="O momento deve ser informado!")])
     duracao             = IntegerField('Tempo (min.):')
-    agenda              = BooleanField("Marcar na agenda")
+    # agenda              = BooleanField("Marcar na agenda")
     texto               = TextAreaField('Descrição:',validators=[DataRequired(message="Insira uma descrição!")])
     necessita_despacho  = BooleanField('Necessita despacho?')
     conclu              = SelectField('Demanda concluída?',choices=[('0','Não'),('1','Sim, com sucesso'),('2','Sim, com insucesso')], validators=[Optional()])
@@ -142,7 +142,7 @@ class ProvidenciaForm(FlaskForm):
 
 class PesquisaForm(FlaskForm):
 
-    coord               = SelectField('Coordenação:')
+    coord               = SelectField('Unidade:')
     sei                 = StringField('Processo:')
     tipo                = SelectField()
     titulo              = StringField('Título:')
