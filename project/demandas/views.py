@@ -3053,12 +3053,16 @@ def numeros_usu(usu):
     unidade = db.session.query(Coords.sigla).filter(Coords.id == cast(usuario.coord,Integer)).first()
 
     # calcula quantidade de demandas do usuário
-    user_demandas = db.session.query(Demanda.user_id,func.count(Demanda.user_id))\
-                                .filter(Demanda.user_id == usu)\
-                                .group_by(Demanda.user_id)
+    user_demandas = db.session.query(Demanda.user_id,label('qtd_dem',func.count(Demanda.user_id)))\
+                              .filter(Demanda.user_id == usu)\
+                              .group_by(Demanda.user_id)\
+                              .first()
 
-    qtd_demandas = user_demandas[0][1]
-
+    if user_demandas is not None:
+        qtd_demandas = user_demandas.qtd_dem
+    else:
+        qtd_demandas = 0    
+        
     # calcula quantidade de demandas concluídas do usuário
     user_demandas_conclu = db.session.query(Demanda.user_id,func.count(Demanda.user_id))\
                                      .filter(Demanda.user_id == usu, Demanda.conclu == '1')\
