@@ -1221,7 +1221,12 @@ def list_demandas():
     else:
         l_unid = [unidade]
         
-    unidade_usu = db.session.query(Coords.sigla).filter(Coords.id == cast(unidade,Integer)).first()    
+    unidade_usu = db.session.query(Coords.sigla).filter(Coords.id == cast(unidade,Integer)).first() 
+    if unidade_usu:
+        sigla = unidade_usu.sigla
+    else:
+        sigla = None
+           
     
     # monta lista com todas as pessoas da unidade
     pessoas_unid = db.session.query(User.id).filter(User.coord.in_(l_unid)).all()
@@ -1296,7 +1301,7 @@ def list_demandas():
                             demandas = demandas,
                             pro_des = pro_des, 
                             demandas_count = demandas_count, 
-                            sigla = unidade_usu.sigla,
+                            sigla = sigla,
                             chefes = chefes)
 
 #

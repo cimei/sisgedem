@@ -38,7 +38,7 @@ def load_user(user_id):
 class Coords (db.Model):
 
     __tablename__ = "coords"
-    __table_args__ = {"schema": "dem"} 
+##    #__table_args__ = {"schema": "dem"} 
 
     id            = db.Column(db.Integer,primary_key=True)
     sigla         = db.Column(db.String)
@@ -62,7 +62,7 @@ class Coords (db.Model):
 class Tipos_Demanda(db.Model):
 
     __tablename__ = 'tipos_demanda'
-    __table_args__ = {"schema": "dem"}
+    ##__table_args__ = {"schema": "dem"}
 
     id         = db.Column(db.Integer, primary_key=True)
     tipo       = db.Column(db.String,nullable=False)
@@ -83,10 +83,10 @@ class Tipos_Demanda(db.Model):
 class Passos_Tipos(db.Model):
 
     __tablename__ = 'passos_tipos'
-    __table_args__ = {"schema": "dem"}
+    ##__table_args__ = {"schema": "dem"}
 
     id      = db.Column(db.Integer, primary_key=True)
-    tipo_id = db.Column(db.Integer, db.ForeignKey('dem.tipos_demanda.id'),nullable=False)
+    tipo_id = db.Column(db.Integer, db.ForeignKey('tipos_demanda.id'),nullable=False)
     ordem   = db.Column(db.Integer, nullable=False)
     passo   = db.Column(db.String, nullable=False)
     desc    = db.Column(db.String, nullable=False)
@@ -106,7 +106,7 @@ class Passos_Tipos(db.Model):
 class Plano_Trabalho(db.Model):
 
     __tablename__ = 'plano_trabalho'
-    __table_args__ = {"schema": "dem"}
+    ##__table_args__ = {"schema": "dem"}
 
     id              = db.Column(db.Integer, primary_key=True)
     atividade_sigla = db.Column(db.String,nullable=False)
@@ -133,11 +133,11 @@ class Plano_Trabalho(db.Model):
 class Ativ_Usu(db.Model):
 
     __tablename__ = 'ativ_usu'
-    __table_args__ = {"schema": "dem"}
+    ##__table_args__ = {"schema": "dem"}
 
     id           = db.Column(db.Integer, primary_key=True)
-    atividade_id = db.Column(db.Integer, db.ForeignKey('dem.plano_trabalho.id'),nullable=False)
-    user_id      = db.Column(db.Integer, db.ForeignKey('dem.users.id'),nullable=False)
+    atividade_id = db.Column(db.Integer, db.ForeignKey('plano_trabalho.id'),nullable=False)
+    user_id      = db.Column(db.Integer, db.ForeignKey('users.id'),nullable=False)
     nivel        = db.Column(db.String, nullable=False)
 
 
@@ -156,12 +156,12 @@ class Ativ_Usu(db.Model):
 class Msgs_Recebidas(db.Model):
 
     __tablename__ = 'msgs_recebidas'
-    __table_args__ = {"schema": "dem"}
+    ##__table_args__ = {"schema": "dem"}
 
     id         = db.Column(db.Integer, primary_key=True)
-    user_id    = db.Column(db.Integer, db.ForeignKey('dem.users.id'),nullable=False)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id'),nullable=False)
     data_hora  = db.Column(db.DateTime,nullable=False,default=datetime.now())
-    demanda_id = db.Column(db.Integer, db.ForeignKey('dem.demandas.id'),nullable=False)
+    demanda_id = db.Column(db.Integer, db.ForeignKey('demandas.id'),nullable=False)
     msg        = db.Column(db.String, nullable=False)
 
 
@@ -180,14 +180,14 @@ class Msgs_Recebidas(db.Model):
 class Demanda(db.Model):
 
     __tablename__ = 'demandas'
-    __table_args__ = {"schema": "dem"}
+    #__table_args__ = {"schema": "dem"}
 
     id                     = db.Column(db.Integer, primary_key=True)
     atividade_id           = db.Column(db.Integer)
     sei                    = db.Column(db.String, nullable=False)
     tipo                   = db.Column(db.String,nullable=False)
     data                   = db.Column(db.DateTime,nullable=False,default=datetime.now())
-    user_id                = db.Column(db.Integer, db.ForeignKey('dem.users.id'),nullable=False)
+    user_id                = db.Column(db.Integer, db.ForeignKey('users.id'),nullable=False)
     titulo                 = db.Column(db.String(140),nullable=False)
     desc                   = db.Column(db.Text,nullable=False)
     necessita_despacho     = db.Column(db.Integer)
@@ -243,12 +243,12 @@ class Demanda(db.Model):
 class Despacho(db.Model):
 
     __tablename__ = 'despachos'
-    __table_args__ = {"schema": "dem"}
+    #__table_args__ = {"schema": "dem"}
 
     id         = db.Column(db.Integer, primary_key=True)
     data       = db.Column(db.DateTime,nullable=False,default=datetime.now())
-    user_id    = db.Column(db.Integer, db.ForeignKey('dem.users.id', ondelete="CASCADE"),nullable=False)
-    demanda_id = db.Column(db.Integer, db.ForeignKey('dem.demandas.id', ondelete="CASCADE"),nullable=False)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"),nullable=False)
+    demanda_id = db.Column(db.Integer, db.ForeignKey('demandas.id', ondelete="CASCADE"),nullable=False)
     texto      = db.Column(db.Text,nullable=False)
     passo      = db.Column(db.String)
 
@@ -268,11 +268,11 @@ class Despacho(db.Model):
 class Providencia(db.Model):
 
     __tablename__ = 'providencias'
-    __table_args__ = {"schema": "dem"}
+    #__table_args__ = {"schema": "dem"}
 
     id         = db.Column(db.Integer, primary_key=True)
     data       = db.Column(db.DateTime,nullable=False,default=datetime.now())
-    demanda_id = db.Column(db.Integer, db.ForeignKey('dem.demandas.id', ondelete="CASCADE"),nullable=False)
+    demanda_id = db.Column(db.Integer, db.ForeignKey('demandas.id', ondelete="CASCADE"),nullable=False)
     texto      = db.Column(db.Text,nullable=False)
     user_id    = db.Column(db.Integer, nullable=False)
     duracao    = db.Column(db.Integer)
@@ -296,7 +296,7 @@ class Providencia(db.Model):
 class User(db.Model, UserMixin):
 
     __tablename__ = 'users'
-    __table_args__ = {"schema": "dem"}
+    #__table_args__ = {"schema": "dem"}
 
     id                         = db.Column(db.Integer,primary_key=True)
     profile_image              = db.Column(db.String(64),nullable=False,default='default_profile.png')
@@ -351,13 +351,13 @@ class User(db.Model, UserMixin):
 class Log_Auto(db.Model):
 
     __tablename__ = 'log_auto'
-    __table_args__ = {"schema": "dem"}
+    #__table_args__ = {"schema": "dem"}
 
     id          = db.Column(db.Integer, primary_key=True, autoincrement=True)
     data_hora   = db.Column(db.DateTime,nullable=False,default=datetime.now())
-    user_id     = db.Column(db.Integer, db.ForeignKey('dem.users.id'),nullable=False)
-    demanda_id  = db.Column(db.Integer, db.ForeignKey('dem.demandas.id'))
-    atividade   = db.Column(db.Integer,db.ForeignKey('dem.plano_trabalho.id'))
+    user_id     = db.Column(db.Integer, db.ForeignKey('users.id'),nullable=False)
+    demanda_id  = db.Column(db.Integer, db.ForeignKey('demandas.id'))
+    atividade   = db.Column(db.Integer,db.ForeignKey('plano_trabalho.id'))
     duracao     = db.Column(db.Integer,default=0)
     registro    = db.Column(db.String)
 
@@ -379,7 +379,7 @@ class Log_Auto(db.Model):
 class Sistema(db.Model):
 
     __tablename__ = 'sistema'
-    __table_args__ = {"schema": "dem"}
+    #__table_args__ = {"schema": "dem"}
 
     id            = db.Column(db.Integer, primary_key=True)
     nome_sistema  = db.Column(db.String,nullable=False)
@@ -402,7 +402,7 @@ class Sistema(db.Model):
 class Objeto(db.Model):
 
     __tablename__ = 'objeto'
-    __table_args__ = {"schema": "dem"}
+    #__table_args__ = {"schema": "dem"}
 
     id           = db.Column(db.Integer,primary_key=True)
     coord        = db.Column(db.String)

@@ -143,6 +143,9 @@ def primeiro_user():
     usuarios_qtd = User.query.count()
 
     form = RegistrationForm()
+    lista_unids = [(0,'')]
+    
+    form.coord.choices = lista_unids
 
     if form.validate_on_submit():
 
@@ -152,7 +155,7 @@ def primeiro_user():
                         username                   = form.username.data,
                         plaintext_password         = form.password.data,
                         despacha                   = 0,
-                        coord                      = form.coord.data,
+                        coord                      = '',
                         role                       = 'admin',
                         email_confirmation_sent_on = datetime.now(),
                         ativo                      = 1,
@@ -170,7 +173,7 @@ def primeiro_user():
         
             flash('Primeiro usuário '+ user.username +' registrado e confirmado de forma direta!','sucesso')
             
-            return redirect(url_for('usuarios.login'))
+            return redirect(url_for('users.login'))
 
         else:
             flash('Já existem usuários registrados!','erro')
@@ -1052,7 +1055,7 @@ def admin_view_users():
                                  User.despacha,
                                  Coords.sigla,
                                  Coords.id_pai)\
-                          .join(Coords, Coords.id == cast(User.coord,Integer))\
+                          .outerjoin(Coords, Coords.id == cast(User.coord,Integer))\
                           .order_by(Coords.sigla,User.username)\
                           .all()
         
